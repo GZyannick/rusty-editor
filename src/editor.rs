@@ -150,9 +150,10 @@ impl Editor {
 
         self.stdout.queue(mode_style)?;
         if !self.command.is_empty() {
-            self.stdout.queue(cursor::MoveTo(0, self.cursor.1))?;
+            self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
         }
+        self.stdout.flush()?;
 
         Ok(())
     }
