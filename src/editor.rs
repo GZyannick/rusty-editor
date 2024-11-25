@@ -1,16 +1,16 @@
-use std::io::{Stdout, Write};
-
+use std::io::{Read, Stdout, Write};
 use anyhow::Result;
 use crossterm::{
-    cursor,
-    event::{self, read, Event, KeyCode},
-    style::{Attribute, Color, Print, PrintStyledContent, Stylize},
-    terminal::{self, size},
-    ExecutableCommand, QueueableCommand,
+    cursor, event::{self, read, Event, KeyCode}, style::{Attribute, Color, Print, PrintStyledContent, Stylize}, terminal::{self, size}, ExecutableCommand, QueueableCommand
 };
 
+//How i will handle printing file
+// I dont know if i print it char by char or word by word
+// once printed didnt print it each time 
+// reprint it just if a change like save appens or compilation message for lsp
+
 use crate::mode::Mode;
-use crate::{action::Action, mode};
+use crate::action::Action;
 
 pub struct Editor {
     pub mode: Mode,
@@ -18,16 +18,28 @@ pub struct Editor {
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
+    //pub file_buffer: Vec<u8>,
 }
 
 impl Editor {
     pub fn new() -> Result<Editor> {
+        
+        //Test purpose
+            //let mut file_buffer: Vec<u8> = vec![];
+            //let mut file = std::fs::File::open("./src/main.rs")?;
+            //file.read_to_end(&mut file_buffer)?;
+            //
+            //
+        //Test purpose
+
+
         Ok(Editor {
             mode: Mode::Normal,
             command: String::new(),
             stdout: std::io::stdout(),
             size: size()?,
             cursor: (0, 0),
+            //file_buffer,
         })
     }
 
@@ -38,6 +50,7 @@ impl Editor {
             .execute(terminal::SetSize(self.size.0, self.size.1 - 2))?;
         self.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?;
+
         Ok(())
     }
 
