@@ -20,6 +20,7 @@ enum Action {
     MoveRight,
     EnterMode(Mode),
     AddChar(char),
+    AddCommandChar(char),
     Quit,
 }
 
@@ -56,22 +57,32 @@ fn handle_action(event: Event, mode: &Mode) -> Result<Option<Action>> {
             KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
             KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
             KeyCode::Char(c) if matches!(mode, Mode::Insert) => Ok(Some(Action::AddChar(c))),
+            KeyCode::Char(c) if matches!(mode, Mode::Command) => Ok(Some(Action::AddCommandChar(c))),
             _ => Ok(None),
         };
     }
     Ok(None)
 }
-
 fn handle_navigation(code: &KeyCode, mode: &Mode) -> Result<Option<Action>> {
+
+    if matches!(mode, Mode::Insert) | matches!(mode, Mode::Command) {
+        return match code {
+            KeyCode::Down => Ok(Some(Action::MoveDown)),
+            KeyCode::Up => Ok(Some(Action::MoveUp)),
+            KeyCode::Left => Ok(Some(Action::MoveLeft)),
+            KeyCode::Right => Ok(Some(Action::MoveRight)),
+            _ => Ok(None)
+       }
+    } 
     match code {
         KeyCode::Down => Ok(Some(Action::MoveDown)),
         KeyCode::Up => Ok(Some(Action::MoveUp)),
         KeyCode::Left => Ok(Some(Action::MoveLeft)),
         KeyCode::Right => Ok(Some(Action::MoveRight)),
-        KeyCode::Char('h') if !matches!(mode, Mode::Insert) => Ok(Some(Action::MoveLeft)),
-        KeyCode::Char('j') if !matches!(mode, Mode::Insert) => Ok(Some(Action::MoveDown)),
-        KeyCode::Char('k') if !matches!(mode, Mode::Insert) => Ok(Some(Action::MoveUp)),
-        KeyCode::Char('l') if !matches!(mode, Mode::Insert) => Ok(Some(Action::MoveRight)),
+        KeyCode::Char('h') => Ok(Some(Action::MoveLeft)),
+        KeyCode::Char('j') => Ok(Some(Action::MoveDown)),
+        KeyCode::Char('k') => Ok(Some(Action::MoveUp)),
+        KeyCode::Char('l') => Ok(Some(Action::MoveRight)),
         _ => Ok(None)
     }
 }
@@ -81,12 +92,13 @@ fn main() -> Result<()> {
     let mut cy = 0;
     let mut current_mode = Mode::Normal;
     let mut stdout = std::io::stdout();
+    let mut command_buffer = String::new();
 
     let size = size()?;
     enter_editor(&mut stdout, &size)?;
 
     loop {
-        print_bottom_line(&current_mode, &mut stdout, &size.1)?;
+        print_bottom_line(&current_mode, &mut stdout, &size.1, &command_buffer)?;
         stdout.queue(cursor::MoveTo(cx, cy))?;
         stdout.flush()?;
 
@@ -115,6 +127,9 @@ fn main() -> Result<()> {
                 Action::EnterMode(mode) => {
                     current_mode = mode;
                 }
+                Action::AddCommandChar(c) => {
+                    command_buffer.push(c);
+                }
                 _ => {}
             }
         }
@@ -136,12 +151,11 @@ fn enter_editor(stdout: &mut Stdout, size: &(u16, u16)) -> anyhow::Result<()> {
 fn leave_editor(stdout: &mut Stdout) -> anyhow::Result<()> {
     stdout.execute(terminal::LeaveAlternateScreen)?;
     crossterm::terminal::disable_raw_mode()?;
-
     Ok(())
 }
 
 /// clear the bottom line and print the mode we currently are
-fn print_bottom_line(mode: &Mode, stdout: &mut Stdout, sy: &u16) -> anyhow::Result<()> {
+fn print_bottom_line(mode: &Mode, stdout: &mut Stdout, sy: &u16, command_buffer: &String) -> anyhow::Result<()> {
     stdout.queue(cursor::MoveTo(0, *sy - 2))?;
     stdout.queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
     let mode_style = PrintStyledContent(
@@ -155,6 +169,11 @@ fn print_bottom_line(mode: &Mode, stdout: &mut Stdout, sy: &u16) -> anyhow::Resu
             .attribute(Attribute::Bold),
     );
     stdout.queue(mode_style)?;
+
+    if !command_buffer.is_empty() {
+       stdout.queue(cursor::MoveTo(0, *sy))?;
+       stdout.queue(Print(format!(":{}", command_buffer)))?;
+    }
     stdout.flush()?;
     Ok(())
 }
