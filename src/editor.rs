@@ -6,15 +6,18 @@ use crossterm::{
     terminal::{self, size},
     ExecutableCommand, QueueableCommand,
 };
-use std::io::{Stdout, Write};
+use std::{
+    fmt::write,
+    io::{Stdout, Write},
+};
 
 //How i will handle printing file
 // I dont know if i print it char by char or word by word
 // once printed didnt print it each time
 // reprint it just if a change like save appens or compilation message for lsp
 
-use crate::{action::Action, colors};
 use crate::mode::Mode;
+use crate::{action::Action, colors, Buffer};
 
 pub struct Editor {
     pub mode: Mode,
@@ -22,32 +25,25 @@ pub struct Editor {
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
-    //pub file_buffer: Vec<u8>,
+    pub buffer: Buffer,
 }
 
 impl Editor {
-    pub fn new() -> Result<Editor> {
-        //Test purpose
-        //let mut file_buffer: Vec<u8> = vec![];
-        //let mut file = std::fs::File::open("./src/main.rs")?;
-        //file.read_to_end(&mut file_buffer)?;
-        //
-        //
-        //Test purpose
-
+    pub fn new(buffer: Buffer) -> Result<Editor> {
         Ok(Editor {
             mode: Mode::Normal,
             command: String::new(),
             stdout: std::io::stdout(),
             size: size()?,
             cursor: (0, 0),
-            //file_buffer,
+            buffer,
         })
     }
 
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
         crossterm::terminal::enable_raw_mode()?;
-        self.stdout.execute(crossterm::style::SetBackgroundColor(colors::BG_0))?;
+        self.stdout
+            .execute(crossterm::style::SetBackgroundColor(colors::BG_0))?;
         self.stdout.execute(terminal::EnterAlternateScreen)?;
         self.stdout
             .execute(terminal::SetSize(self.size.0, self.size.1 - 2))?;
@@ -95,6 +91,7 @@ impl Editor {
 
     pub fn draw(&mut self) -> Result<()> {
         self.draw_bottom_line()?;
+        self.draw_buffer()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
         self.stdout.flush()?;
@@ -130,9 +127,15 @@ impl Editor {
     }
 
     // TODO replace handle action in each specific fn of mode
-    fn handle_insert_event(&mut self, code: KeyCode) -> Result<()> {todo!()}
-    fn handle_normal_event(&mut self, code: KeyCode) -> Result<()> {todo!()}
-    fn handle_command_event(&mut self, code: KeyCode) -> Result<()> {todo!()}
+    fn handle_insert_event(&mut self, code: KeyCode) -> Result<()> {
+        todo!()
+    }
+    fn handle_normal_event(&mut self, code: KeyCode) -> Result<()> {
+        todo!()
+    }
+    fn handle_command_event(&mut self, code: KeyCode) -> Result<()> {
+        todo!()
+    }
 
     fn navigation(&mut self, code: &KeyCode) -> Result<Option<Action>> {
         let mut action: Option<Action> = None;
@@ -162,23 +165,47 @@ impl Editor {
         Ok(action)
     }
 
+    fn draw_buffer(&mut self) -> Result<()> {
+        self.stdout.queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
+
+        // TODO see how to print in the view
+        //for line in self.buffer.lines.iter() {
+        //    self.stdout.queue(Print(line))?;
+        //}
+
+        self.stdout.flush()?;
+        Ok(())
+    }
+
     fn draw_bottom_line(&mut self) -> Result<()> {
-        self.stdout.queue(cursor::MoveTo(0, self.size.1 - 2))?;
-        self.stdout
-            .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
-
-        let mode_style = PrintStyledContent(
-            format!(" {} ", self.mode)
-                .with(Color::White).attribute(Attribute::Bold)
-                .on(colors::STATUS_BG)
-        );
-
-        self.stdout.queue(mode_style)?;
         // TODO find a separator
-        //self.stdout.queue(PrintStyledContent("".with(colors::STATUS_BG).bold()))?;
+        // TODO handle real filename
 
-        //TODO ADD real file name
-        self.stdout.queue(PrintStyledContent(" /src/placeholder.rs ".with(Color::White).bold().on(colors::FILE_STATUS_BG)))?;
+        self.stdout.queue(cursor::MoveTo(0, self.size.1 - 2))?;
+        //self.stdout
+        //    .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
+        //
+        let mode = format!(" {} ", self.mode);
+
+        let pos = format!(" {}:{} ", self.cursor.0, self.cursor.1);
+        let filename = "/src/placeholder.rs";
+        let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - 2;
+        let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
+
+        //print the mode
+        self.stdout.queue(PrintStyledContent(
+            mode.with(Color::White).bold().on(colors::STATUS_BG),
+        ))?;
+
+        //print the filename
+        self.stdout.queue(PrintStyledContent(
+            filename.with(Color::White).on(colors::FILE_STATUS_BG),
+        ))?;
+
+        // print the cursor position
+        self.stdout.queue(PrintStyledContent(
+            pos.with(Color::White).on(colors::STATUS_BG),
+        ))?;
 
         self.stdout.flush()?;
         self.draw_command_line()?;
