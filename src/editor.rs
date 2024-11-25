@@ -10,8 +10,7 @@ use crossterm::{
 };
 
 use crate::mode::Mode;
-use crate::action::Action;
-
+use crate::{action::Action, mode};
 
 pub struct Editor {
     pub mode: Mode,
@@ -35,8 +34,10 @@ impl Editor {
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
         crossterm::terminal::enable_raw_mode()?;
         self.stdout.execute(terminal::EnterAlternateScreen)?;
-        self.stdout.execute(terminal::SetSize(self.size.0, self.size.1 - 2))?;
-        self.stdout.execute(terminal::Clear(terminal::ClearType::All))?;
+        self.stdout
+            .execute(terminal::SetSize(self.size.0, self.size.1 - 2))?;
+        self.stdout
+            .execute(terminal::Clear(terminal::ClearType::All))?;
         Ok(())
     }
 
@@ -46,7 +47,6 @@ impl Editor {
             self.stdout
                 .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
             self.stdout.flush()?;
-
 
             let event = read()?;
             if let Some(action) = self.handle_action(event)? {
@@ -110,26 +110,32 @@ impl Editor {
     }
 
     fn navigation(&mut self, code: &KeyCode) -> Result<Option<Action>> {
-        if matches!(self.mode, Mode::Insert) | matches!(self.mode, Mode::Command) {
-            return match code {
-                KeyCode::Down => Ok(Some(Action::MoveDown)),
-                KeyCode::Up => Ok(Some(Action::MoveUp)),
-                KeyCode::Left => Ok(Some(Action::MoveLeft)),
-                KeyCode::Right => Ok(Some(Action::MoveRight)),
-                _ => Ok(None),
-            };
+        let mut action: Option<Action> = None;
+
+        if matches!(self.mode, Mode::Command) {
+            return Ok(action);
         }
-        match code {
-            KeyCode::Down => Ok(Some(Action::MoveDown)),
-            KeyCode::Up => Ok(Some(Action::MoveUp)),
-            KeyCode::Left => Ok(Some(Action::MoveLeft)),
-            KeyCode::Right => Ok(Some(Action::MoveRight)),
-            KeyCode::Char('h') => Ok(Some(Action::MoveLeft)),
-            KeyCode::Char('j') => Ok(Some(Action::MoveDown)),
-            KeyCode::Char('k') => Ok(Some(Action::MoveUp)),
-            KeyCode::Char('l') => Ok(Some(Action::MoveRight)),
-            _ => Ok(None),
-        }
+
+        action = match code {
+            KeyCode::Down => Some(Action::MoveDown),
+            KeyCode::Up => Some(Action::MoveUp),
+            KeyCode::Left => Some(Action::MoveLeft),
+            KeyCode::Right => Some(Action::MoveRight),
+            _ => None,
+        };
+
+        if !matches!(self.mode, Mode::Insert) && action.is_none()
+        {
+            action = match code {
+                KeyCode::Char('h') => Some(Action::MoveLeft),
+                KeyCode::Char('j') => Some(Action::MoveDown),
+                KeyCode::Char('k') => Some(Action::MoveUp),
+                KeyCode::Char('l') => Some(Action::MoveRight),
+                _ => None,
+            }
+        };
+
+        Ok(action)
     }
 
     fn draw_bottom_line(&mut self) -> Result<()> {
@@ -149,12 +155,17 @@ impl Editor {
         );
 
         self.stdout.queue(mode_style)?;
+        self.stdout.flush()?;
+        self.draw_command_line()?;
+
+        Ok(())
+    }
+
+    fn draw_command_line(&mut self) -> Result<()> {
         if !self.command.is_empty() {
             self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
         }
-        self.stdout.flush()?;
-
         Ok(())
     }
 }
