@@ -1,16 +1,15 @@
-use std::io::{Stdout, Write};
-
 use anyhow::Result;
 use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode},
-    style::{Attribute, Color, Print, PrintStyledContent, Stylize},
+    style::{Color, Print, PrintStyledContent, Stylize},
     terminal::{self, size},
     ExecutableCommand, QueueableCommand,
 };
+use std::io::{Stdout, Write};
 
-use crate::mode::Mode;
-use crate::{action::Action, mode};
+use crate::{mode::Mode, Viewport};
+use crate::{action::Action, colors, buffer::Buffer};
 
 pub struct Editor {
     pub mode: Mode,
@@ -18,36 +17,41 @@ pub struct Editor {
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
+    pub viewport: Viewport
 }
 
 impl Editor {
-    pub fn new() -> Result<Editor> {
+    pub fn new(buffer: Buffer) -> Result<Editor> {
+
+        let size = size()?;
+        let viewport = Viewport::new(buffer, size.0, size.1);
+
         Ok(Editor {
             mode: Mode::Normal,
             command: String::new(),
             stdout: std::io::stdout(),
-            size: size()?,
+            size,
             cursor: (0, 0),
+            viewport,
         })
     }
 
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
         crossterm::terminal::enable_raw_mode()?;
+        self.stdout
+            .execute(crossterm::style::SetBackgroundColor(colors::BG_0))?;
         self.stdout.execute(terminal::EnterAlternateScreen)?;
         self.stdout
             .execute(terminal::SetSize(self.size.0, self.size.1 - 2))?;
         self.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?;
+
         Ok(())
     }
 
-    pub fn draw(&mut self) -> Result<()> {
+    pub fn run(&mut self) -> Result<()> {
         loop {
-            self.draw_bottom_line()?;
-            self.stdout
-                .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
-            self.stdout.flush()?;
-
+            self.draw()?;
             let event = read()?;
             if let Some(action) = self.handle_action(event)? {
                 match action {
@@ -65,8 +69,15 @@ impl Editor {
                         self.cursor.1 += 1;
                     }
                     Action::AddChar(c) => {
-                        self.stdout.queue(Print(c.to_string()))?;
                         self.cursor.0 += 1;
+                        self.viewport.buffer.add_char(c, &self.cursor);
+                    }
+                    Action::RemoveChar => {
+                        if self.cursor.0 > 0 {
+                            self.viewport.buffer.remove_char(&self.cursor);
+                            self.cursor.0 -= 1;
+                        }
+                        // TODO  add else remove char from line up above
                     }
                     Action::EnterMode(mode) => {
                         self.mode = mode;
@@ -74,10 +85,25 @@ impl Editor {
                     Action::AddCommandChar(c) => {
                         self.command.push(c);
                     }
+                    Action::Resize => {
+                        let size = size()?;
+                        self.viewport.width = size.0;
+                        self.viewport.height = size.1;
+                        self.size = size;
+                    }
                     _ => {}
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn draw(&mut self) -> Result<()> {
+        self.draw_buffer()?;
+        self.draw_bottom_line()?;
+        self.stdout
+            .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
+        self.stdout.flush()?;
         Ok(())
     }
 
@@ -88,25 +114,45 @@ impl Editor {
             }
 
             let code = ev.code;
-            if let Some(action) = self.navigation(&code)? {
-                return Ok(Some(action));
+            let nav = self.navigation(&code)?;
+            if nav.is_some(){
+                return Ok(nav);
             }
 
-            return match code {
-                KeyCode::Char('q') if matches!(self.mode, Mode::Command) => Ok(Some(Action::Quit)),
-                KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
-                KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
-                KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
-                KeyCode::Char(c) if matches!(self.mode, Mode::Insert) => {
-                    Ok(Some(Action::AddChar(c)))
-                }
-                KeyCode::Char(c) if matches!(self.mode, Mode::Command) => {
-                    Ok(Some(Action::AddCommandChar(c)))
-                }
-                _ => Ok(None),
+            return match self.mode {
+                Mode::Normal => self.handle_normal_event(&code),
+                Mode::Command => self.handle_command_event(&code),
+                Mode::Insert => self.handle_insert_event(&code),
             };
+
         }
         Ok(None)
+    }
+
+    fn handle_insert_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
+        match code {
+            KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
+            KeyCode::Backspace => Ok(Some(Action::RemoveChar)),
+            KeyCode::Char(c) => Ok(Some(Action::AddChar(*c))),
+            _ => Ok(None),
+        }
+    }
+
+    fn handle_normal_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
+        match code {
+            KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
+            KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
+            _ => Ok(None),
+        }
+    }
+
+    fn handle_command_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
+        match code {
+            KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
+            KeyCode::Char('q')  => Ok(Some(Action::Quit)),
+            KeyCode::Char(c) => Ok(Some(Action::AddCommandChar(*c))),
+            _ => Ok(None),
+        }
     }
 
     fn navigation(&mut self, code: &KeyCode) -> Result<Option<Action>> {
@@ -124,8 +170,7 @@ impl Editor {
             _ => None,
         };
 
-        if !matches!(self.mode, Mode::Insert) && action.is_none()
-        {
+        if !matches!(self.mode, Mode::Insert) && action.is_none() {
             action = match code {
                 KeyCode::Char('h') => Some(Action::MoveLeft),
                 KeyCode::Char('j') => Some(Action::MoveDown),
@@ -138,23 +183,51 @@ impl Editor {
         Ok(action)
     }
 
+    fn draw_buffer(&mut self) -> Result<()> {
+        self.stdout.queue(cursor::MoveTo(0, 0))?;
+
+        // TODO see if clearAll is the better option to remove undesired artifact when a char is
+        // remove
+        //TODO see how i can reprint the bg if i still do ClearType::All
+        //self.stdout.queue(crossterm::style::SetBackgroundColor(colors::BG_0))?;
+        self.stdout.queue(terminal::Clear(terminal::ClearType::All))?;
+
+        for (i, line) in self.viewport.get_buffer_viewport().iter().enumerate() {
+            self.stdout
+
+                .queue(PrintStyledContent(line.clone().on(colors::BG_0)))?;
+            self.stdout.queue(cursor::MoveTo(0, i as u16))?;
+        }
+
+        Ok(())
+    }
+
     fn draw_bottom_line(&mut self) -> Result<()> {
+        // TODO find a separator
+
         self.stdout.queue(cursor::MoveTo(0, self.size.1 - 2))?;
-        self.stdout
-            .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
 
-        let mode_style = PrintStyledContent(
-            format!(" {} ", self.mode)
-                .with(Color::White)
-                .on(Color::Rgb {
-                    r: 188,
-                    g: 150,
-                    b: 230,
-                })
-                .attribute(Attribute::Bold),
-        );
+        let mode = format!(" {} ", self.mode);
+        let pos = format!(" {}:{} ", self.cursor.0, self.cursor.1);
+        let filename = format!(" {}", self.viewport.buffer.path);
+        let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - 2;
+        let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
 
-        self.stdout.queue(mode_style)?;
+        //print the mode
+        self.stdout.queue(PrintStyledContent(
+            mode.with(Color::White).bold().on(colors::STATUS_BG),
+        ))?;
+
+        //print the filename
+        self.stdout.queue(PrintStyledContent(
+            filename.with(Color::White).on(colors::FILE_STATUS_BG),
+        ))?;
+
+        // print the cursor position
+        self.stdout.queue(PrintStyledContent(
+            pos.with(Color::White).on(colors::STATUS_BG),
+        ))?;
+
         self.stdout.flush()?;
         self.draw_command_line()?;
 
@@ -165,7 +238,7 @@ impl Editor {
         if !self.command.is_empty() {
             self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
-        }
+        } 
         Ok(())
     }
 }
