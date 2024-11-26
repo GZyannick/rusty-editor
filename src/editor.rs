@@ -8,12 +8,7 @@ use crossterm::{
 };
 use std::io::{Stdout, Write};
 
-//How i will handle printing file
-// I dont know if i print it char by char or word by word
-// once printed didnt print it each time
-// reprint it just if a change like save appens or compilation message for lsp
-
-use crate::mode::Mode;
+use crate::{mode::Mode, Viewport};
 use crate::{action::Action, colors, buffer::Buffer};
 
 pub struct Editor {
@@ -22,18 +17,22 @@ pub struct Editor {
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
-    pub buffer: Buffer,
+    pub viewport: Viewport
 }
 
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
+
+        let size = size()?;
+        let viewport = Viewport::new(buffer, size.0.clone(), size.1.clone());
+
         Ok(Editor {
             mode: Mode::Normal,
             command: String::new(),
             stdout: std::io::stdout(),
-            size: size()?,
+            size,
             cursor: (0, 0),
-            buffer,
+            viewport,
         })
     }
 
@@ -71,20 +70,26 @@ impl Editor {
                     }
                     Action::AddChar(c) => {
                         self.cursor.0 += 1;
-                        self.buffer.add_char(c, &self.cursor);
+                        self.viewport.buffer.add_char(c, &self.cursor);
                     }
                     Action::RemoveChar => {
                         if self.cursor.0 > 0 {
-                            self.buffer.remove_char(&self.cursor);
+                            self.viewport.buffer.remove_char(&self.cursor);
                             self.cursor.0 -= 1;
                         }
-                        // TODO  add else remove char from line up
+                        // TODO  add else remove char from line up above
                     }
                     Action::EnterMode(mode) => {
                         self.mode = mode;
                     }
                     Action::AddCommandChar(c) => {
                         self.command.push(c);
+                    }
+                    Action::Resize => {
+                        let size = size()?;
+                        self.viewport.width = size.0.clone();
+                        self.viewport.height = size.1.clone();
+                        self.size = size;
                     }
                     _ => {}
                 }
@@ -181,7 +186,10 @@ impl Editor {
     fn draw_buffer(&mut self) -> Result<()> {
         self.stdout.queue(cursor::MoveTo(0, 0))?;
 
-        for (i, line) in self.buffer.lines.iter().enumerate() {
+        for (i, line) in self.viewport.get_buffer_viewport().iter().enumerate() {
+            //if i == (self.size.1 -2).into() {
+            //    break
+            //}
             self.stdout
                 .queue(PrintStyledContent(line.clone().on(colors::BG_0)))?;
             self.stdout.queue(cursor::MoveTo(0, i as u16))?;
@@ -197,7 +205,7 @@ impl Editor {
 
         let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", self.cursor.0, self.cursor.1);
-        let filename = format!(" {}", self.buffer.path);
+        let filename = format!(" {}", self.viewport.buffer.path);
         let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - 2;
         let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
 
@@ -225,15 +233,14 @@ impl Editor {
     fn draw_command_line(&mut self) -> Result<()> {
         if !self.command.is_empty() {
             self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
-            //TODO See if clear currentLine is the best for the text to not show behind the command
-            self.stdout
-                .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
+            //self.stdout
+                //.queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
         } else {
-            self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
+            //self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
             //TODO See if clear currentLine is the best for the text to not show behind the command
-            self.stdout
-                .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
+            //self.stdout
+            //    .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
         }
         Ok(())
     }
