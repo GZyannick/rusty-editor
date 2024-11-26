@@ -70,8 +70,8 @@ impl Editor {
                         self.cursor.1 += 1;
                     }
                     Action::AddChar(c) => {
-                        self.buffer.add_char(c, &self.cursor);
                         self.cursor.0 += 1;
+                        self.buffer.add_char(c, &self.cursor);
                     }
                     Action::RemoveChar => {
                         if self.cursor.0 > 0 {
