@@ -2,14 +2,11 @@ use anyhow::Result;
 use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode},
-    style::{Attribute, Color, Print, PrintStyledContent, Stylize},
+    style::{Color, Print, PrintStyledContent, Stylize},
     terminal::{self, size},
     ExecutableCommand, QueueableCommand,
 };
-use std::{
-    fmt::{format, write},
-    io::{Stdout, Write},
-};
+use std::io::{Stdout, Write};
 
 //How i will handle printing file
 // I dont know if i print it char by char or word by word
@@ -17,7 +14,7 @@ use std::{
 // reprint it just if a change like save appens or compilation message for lsp
 
 use crate::mode::Mode;
-use crate::{action::Action, colors, Buffer};
+use crate::{action::Action, colors, buffer::Buffer};
 
 pub struct Editor {
     pub mode: Mode,
@@ -73,8 +70,15 @@ impl Editor {
                         self.cursor.1 += 1;
                     }
                     Action::AddChar(c) => {
-                        self.stdout.queue(Print(c.to_string()))?;
+                        self.buffer.add_char(c, &self.cursor);
                         self.cursor.0 += 1;
+                    }
+                    Action::RemoveChar => {
+                        if self.cursor.0 > 0 {
+                            self.buffer.remove_char(&self.cursor);
+                            self.cursor.0 -= 1;
+                        }
+                        // TODO  add else remove char from line up
                     }
                     Action::EnterMode(mode) => {
                         self.mode = mode;
@@ -105,8 +109,9 @@ impl Editor {
             }
 
             let code = ev.code;
-            if let Some(action) = self.navigation(&code)? {
-                return Ok(Some(action));
+            let nav = self.navigation(&code)?;
+            if nav.is_some(){
+                return Ok(nav);
             }
 
             return match self.mode {
@@ -122,10 +127,12 @@ impl Editor {
     fn handle_insert_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
         match code {
             KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
+            KeyCode::Backspace => Ok(Some(Action::RemoveChar)),
             KeyCode::Char(c) => Ok(Some(Action::AddChar(*c))),
             _ => Ok(None),
         }
     }
+
     fn handle_normal_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
         match code {
             KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
@@ -133,6 +140,7 @@ impl Editor {
             _ => Ok(None),
         }
     }
+
     fn handle_command_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
         match code {
             KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),

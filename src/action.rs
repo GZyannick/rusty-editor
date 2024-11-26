@@ -7,6 +7,7 @@ pub enum Action {
     MoveRight,
     EnterMode(Mode),
     AddChar(char),
+    RemoveChar,
     AddCommandChar(char),
     Quit,
 }
