@@ -7,7 +7,7 @@ use crossterm::{
     ExecutableCommand, QueueableCommand,
 };
 use std::{
-    fmt::write,
+    fmt::{format, write},
     io::{Stdout, Write},
 };
 
@@ -90,8 +90,8 @@ impl Editor {
     }
 
     pub fn draw(&mut self) -> Result<()> {
-        self.draw_bottom_line()?;
         self.draw_buffer()?;
+        self.draw_bottom_line()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
         self.stdout.flush()?;
@@ -109,32 +109,37 @@ impl Editor {
                 return Ok(Some(action));
             }
 
-            return match code {
-                KeyCode::Char('q') if matches!(self.mode, Mode::Command) => Ok(Some(Action::Quit)),
-                KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
-                KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
-                KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
-                KeyCode::Char(c) if matches!(self.mode, Mode::Insert) => {
-                    Ok(Some(Action::AddChar(c)))
-                }
-                KeyCode::Char(c) if matches!(self.mode, Mode::Command) => {
-                    Ok(Some(Action::AddCommandChar(c)))
-                }
-                _ => Ok(None),
+            return match self.mode {
+                Mode::Normal => self.handle_normal_event(&code),
+                Mode::Command => self.handle_command_event(&code),
+                Mode::Insert => self.handle_insert_event(&code),
             };
+
         }
         Ok(None)
     }
 
-    // TODO replace handle action in each specific fn of mode
-    fn handle_insert_event(&mut self, code: KeyCode) -> Result<()> {
-        todo!()
+    fn handle_insert_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
+        match code {
+            KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
+            KeyCode::Char(c) => Ok(Some(Action::AddChar(*c))),
+            _ => Ok(None),
+        }
     }
-    fn handle_normal_event(&mut self, code: KeyCode) -> Result<()> {
-        todo!()
+    fn handle_normal_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
+        match code {
+            KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
+            KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
+            _ => Ok(None),
+        }
     }
-    fn handle_command_event(&mut self, code: KeyCode) -> Result<()> {
-        todo!()
+    fn handle_command_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
+        match code {
+            KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
+            KeyCode::Char('q')  => Ok(Some(Action::Quit)),
+            KeyCode::Char(c) => Ok(Some(Action::AddCommandChar(*c))),
+            _ => Ok(None),
+        }
     }
 
     fn navigation(&mut self, code: &KeyCode) -> Result<Option<Action>> {
@@ -166,29 +171,25 @@ impl Editor {
     }
 
     fn draw_buffer(&mut self) -> Result<()> {
-        self.stdout.queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
+        self.stdout.queue(cursor::MoveTo(0, 0))?;
 
-        // TODO see how to print in the view
-        //for line in self.buffer.lines.iter() {
-        //    self.stdout.queue(Print(line))?;
-        //}
+        for (i, line) in self.buffer.lines.iter().enumerate() {
+            self.stdout
+                .queue(PrintStyledContent(line.clone().on(colors::BG_0)))?;
+            self.stdout.queue(cursor::MoveTo(0, i as u16))?;
+        }
 
-        self.stdout.flush()?;
         Ok(())
     }
 
     fn draw_bottom_line(&mut self) -> Result<()> {
         // TODO find a separator
-        // TODO handle real filename
 
         self.stdout.queue(cursor::MoveTo(0, self.size.1 - 2))?;
-        //self.stdout
-        //    .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
-        //
-        let mode = format!(" {} ", self.mode);
 
+        let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", self.cursor.0, self.cursor.1);
-        let filename = "/src/placeholder.rs";
+        let filename = format!(" {}", self.buffer.path);
         let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - 2;
         let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
 
@@ -216,7 +217,15 @@ impl Editor {
     fn draw_command_line(&mut self) -> Result<()> {
         if !self.command.is_empty() {
             self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
+            //TODO See if clear currentLine is the best for the text to not show behind the command
+            self.stdout
+                .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
+        } else {
+            self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
+            //TODO See if clear currentLine is the best for the text to not show behind the command
+            self.stdout
+                .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
         }
         Ok(())
     }
