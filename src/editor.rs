@@ -87,8 +87,8 @@ impl Editor {
                     }
                     Action::Resize => {
                         let size = size()?;
-                        self.viewport.width = size.0.clone();
-                        self.viewport.height = size.1.clone();
+                        self.viewport.width = size.0;
+                        self.viewport.height = size.1;
                         self.size = size;
                     }
                     _ => {}
@@ -186,11 +186,15 @@ impl Editor {
     fn draw_buffer(&mut self) -> Result<()> {
         self.stdout.queue(cursor::MoveTo(0, 0))?;
 
+        // TODO see if clearAll is the better option to remove undesired artifact when a char is
+        // remove
+        //TODO see how i can reprint the bg if i still do ClearType::All
+        //self.stdout.queue(crossterm::style::SetBackgroundColor(colors::BG_0))?;
+        self.stdout.queue(terminal::Clear(terminal::ClearType::All))?;
+
         for (i, line) in self.viewport.get_buffer_viewport().iter().enumerate() {
-            //if i == (self.size.1 -2).into() {
-            //    break
-            //}
             self.stdout
+
                 .queue(PrintStyledContent(line.clone().on(colors::BG_0)))?;
             self.stdout.queue(cursor::MoveTo(0, i as u16))?;
         }

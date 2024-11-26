@@ -28,8 +28,12 @@ impl Viewport {
 
    pub fn get_buffer_viewport(&mut self) -> &[String] {
         let start = self.y_pos as usize;
-        let end = (self.x_pos + self.height) as usize;
-        &self.buffer.lines[start..end]
+        let end = (self.y_pos + self.height) as usize;
+        if self.buffer.lines.len() - 1 > end {
+            &self.buffer.lines[start..end]
+        } else {
+            &self.buffer.lines[0..]
+        }
    } 
 }
 
