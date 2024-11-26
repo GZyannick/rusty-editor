@@ -24,7 +24,7 @@ impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
 
         let size = size()?;
-        let viewport = Viewport::new(buffer, size.0.clone(), size.1.clone());
+        let viewport = Viewport::new(buffer, size.0, size.1);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -237,15 +237,8 @@ impl Editor {
     fn draw_command_line(&mut self) -> Result<()> {
         if !self.command.is_empty() {
             self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
-            //self.stdout
-                //.queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
-        } else {
-            //self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
-            //TODO See if clear currentLine is the best for the text to not show behind the command
-            //self.stdout
-            //    .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
-        }
+        } 
         Ok(())
     }
 }
