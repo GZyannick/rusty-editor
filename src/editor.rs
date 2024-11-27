@@ -3,14 +3,10 @@ use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode},
     style::{Color, Print, PrintStyledContent, Stylize},
-    terminal::{self, size},
+    terminal,
     ExecutableCommand, QueueableCommand,
 };
-use std::{
-    io::{Stdout, Write},
-    u16, usize,
-};
-
+use std::io::{Stdout, Write};
 use crate::mode::Mode;
 use crate::{action::Action, buffer::Buffer, colors, viewport::Viewport};
 
@@ -29,7 +25,7 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
-        let viewport = Viewport::new(buffer, size.0 - 2, size.1 - 2);
+        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -69,20 +65,30 @@ impl Editor {
             }
 
             if let Some(action) = self.handle_action(event)? {
+                
+                //TODO Ajouter quand on scroll up and down est que le cursor est superieur a la
+                //taille de la ligne. Replacer le cursor a la fin de cetter ligne
                 match action {
                     Action::Quit => break,
-                    Action::MoveUp if self.cursor.1 > 0 => {
-                        self.cursor.1 -= 1;
+                    Action::MoveUp => {
+                        if self.cursor.1 > 0 {
+                            self.cursor.1 -= 1;
+                        } else {
+                            self.viewport.scroll_up();
+                        }
                     }
-                    Action::MoveUp if self.cursor.1 == 0 && self.viewport.y_pos > 0 => {
-                        self.viewport.scroll_up();
-                    }
-                    Action::MoveLeft if self.cursor.0 > 0 => {
-                        self.cursor.0 -= 1;
-                    }
+
                     Action::MoveRight => {
-                        self.cursor.0 += 1;
+                        if self.viewport.get_line_len(&self.cursor) > self.cursor.0 {
+                            self.cursor.0 += 1;
+                        }
                     }
+                    Action::MoveLeft => {
+                        if self.cursor.0 > 0 {
+                            self.cursor.0 -= 1;
+                        }
+                    }
+
                     Action::MoveDown if self.viewport.is_under_buffer_len(&self.cursor) => {
                         match self.max_cursor_viewport_height() {
                             true => {
@@ -201,10 +207,7 @@ impl Editor {
     }
 
     pub fn draw(&mut self) -> Result<()> {
-        // handle line is empty
-        if !self.viewport.buffer.lines.is_empty() {
-            self.draw_buffer()?;
-        }
+        self.viewport.draw(&mut self.stdout)?;
         self.draw_bottom_line()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
@@ -212,18 +215,6 @@ impl Editor {
         Ok(())
     }
 
-    fn draw_buffer(&mut self) -> Result<()> {
-        self.stdout.queue(cursor::MoveTo(0, 0))?;
-        self.stdout
-            .queue(terminal::Clear(terminal::ClearType::All))?;
-
-        for (i, ele) in self.viewport.get_buffer_viewport().iter().enumerate() {
-            self.stdout.queue(cursor::MoveTo(0, i as u16))?;
-            self.stdout.queue(Print(ele))?;
-        }
-
-        Ok(())
-    }
 
     fn draw_bottom_line(&mut self) -> Result<()> {
         // TODO find a separator
