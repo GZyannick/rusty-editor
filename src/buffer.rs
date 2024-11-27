@@ -1,5 +1,6 @@
 use std::{fs::File, io::Read, usize};
 
+#[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
     pub path: String,
@@ -23,13 +24,13 @@ impl Buffer {
         Buffer { file: None, lines: vec![], path: "Empty".to_string() }
     }
 
-    pub fn add_char(&mut self, c: char, cursor: &(u16, u16)) {
+    pub fn add_char(&mut self, c: char, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize + 1_usize ) {
             line.insert(cursor.0 as usize - 1_usize, c);
         }
     }
 
-    pub fn remove_char(&mut self, cursor: &(u16, u16)) {
+    pub fn remove_char(&mut self, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize + 1_usize ) {
             line.remove(cursor.0 as usize - 1_usize);
         }
