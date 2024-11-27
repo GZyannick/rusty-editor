@@ -6,25 +6,30 @@ use crossterm::{
     terminal::{self, size},
     ExecutableCommand, QueueableCommand,
 };
-use std::io::{Stdout, Write};
+use std::{
+    io::{Stdout, Write},
+    u16, usize,
+};
 
-use crate::{mode::Mode, Viewport};
-use crate::{action::Action, colors, buffer::Buffer};
+use crate::mode::Mode;
+use crate::{action::Action, buffer::Buffer, colors, viewport::Viewport};
 
+pub const TERMINAL_SIZE_MINUS: u16 = 2;
+
+#[derive(Debug)]
 pub struct Editor {
     pub mode: Mode,
     pub command: String,
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
-    pub viewport: Viewport
+    pub viewport: Viewport,
 }
 
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
-
-        let size = size()?;
-        let viewport = Viewport::new(buffer, size.0, size.1);
+        let size = terminal::size()?;
+        let viewport = Viewport::new(buffer, size.0 - 2, size.1 - 2);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -42,9 +47,9 @@ impl Editor {
             .execute(crossterm::style::SetBackgroundColor(colors::BG_0))?;
         self.stdout.execute(terminal::EnterAlternateScreen)?;
         self.stdout
-            .execute(terminal::SetSize(self.size.0, self.size.1 - 2))?;
-        self.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?;
+        self.stdout
+            .execute(terminal::SetSize(self.size.0, self.size.1))?;
 
         Ok(())
     }
@@ -53,11 +58,24 @@ impl Editor {
         loop {
             self.draw()?;
             let event = read()?;
+
+            if let event::Event::Resize(width, height) = event {
+                self.viewport.width = width;
+                self.viewport.height = height;
+                self.size = (width, height);
+                self.stdout
+                    .queue(terminal::Clear(terminal::ClearType::All))?;
+                continue;
+            }
+
             if let Some(action) = self.handle_action(event)? {
                 match action {
                     Action::Quit => break,
                     Action::MoveUp if self.cursor.1 > 0 => {
                         self.cursor.1 -= 1;
+                    }
+                    Action::MoveUp if self.cursor.1 == 0 && self.viewport.y_pos > 0 => {
+                        self.viewport.scroll_up();
                     }
                     Action::MoveLeft if self.cursor.0 > 0 => {
                         self.cursor.0 -= 1;
@@ -65,16 +83,27 @@ impl Editor {
                     Action::MoveRight => {
                         self.cursor.0 += 1;
                     }
-                    Action::MoveDown => {
-                        self.cursor.1 += 1;
+                    Action::MoveDown if self.viewport.is_under_buffer_len(&self.cursor) => {
+                        match self.max_cursor_viewport_height() {
+                            true => {
+                                self.viewport.scroll_down();
+                            }
+                            false => {
+                                self.cursor.1 += 1;
+                            }
+                        }
                     }
                     Action::AddChar(c) => {
                         self.cursor.0 += 1;
-                        self.viewport.buffer.add_char(c, &self.cursor);
+                        let cursor_viewport =
+                            self.viewport.get_cursor_viewport_position(&self.cursor);
+                        self.viewport.buffer.add_char(c, cursor_viewport);
                     }
                     Action::RemoveChar => {
                         if self.cursor.0 > 0 {
-                            self.viewport.buffer.remove_char(&self.cursor);
+                            let cursor_viewport =
+                                self.viewport.get_cursor_viewport_position(&self.cursor);
+                            self.viewport.buffer.remove_char(cursor_viewport);
                             self.cursor.0 -= 1;
                         }
                         // TODO  add else remove char from line up above
@@ -85,12 +114,6 @@ impl Editor {
                     Action::AddCommandChar(c) => {
                         self.command.push(c);
                     }
-                    Action::Resize => {
-                        let size = size()?;
-                        self.viewport.width = size.0;
-                        self.viewport.height = size.1;
-                        self.size = size;
-                    }
                     _ => {}
                 }
             }
@@ -98,13 +121,8 @@ impl Editor {
         Ok(())
     }
 
-    pub fn draw(&mut self) -> Result<()> {
-        self.draw_buffer()?;
-        self.draw_bottom_line()?;
-        self.stdout
-            .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
-        self.stdout.flush()?;
-        Ok(())
+    fn max_cursor_viewport_height(&self) -> bool {
+        self.cursor.1 >= (self.viewport.height - 1)
     }
 
     fn handle_action(&mut self, event: Event) -> Result<Option<Action>> {
@@ -115,7 +133,7 @@ impl Editor {
 
             let code = ev.code;
             let nav = self.navigation(&code)?;
-            if nav.is_some(){
+            if nav.is_some() {
                 return Ok(nav);
             }
 
@@ -124,7 +142,6 @@ impl Editor {
                 Mode::Command => self.handle_command_event(&code),
                 Mode::Insert => self.handle_insert_event(&code),
             };
-
         }
         Ok(None)
     }
@@ -149,7 +166,7 @@ impl Editor {
     fn handle_command_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
         match code {
             KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
-            KeyCode::Char('q')  => Ok(Some(Action::Quit)),
+            KeyCode::Char('q') => Ok(Some(Action::Quit)),
             KeyCode::Char(c) => Ok(Some(Action::AddCommandChar(*c))),
             _ => Ok(None),
         }
@@ -183,20 +200,26 @@ impl Editor {
         Ok(action)
     }
 
+    pub fn draw(&mut self) -> Result<()> {
+        // handle line is empty
+        if !self.viewport.buffer.lines.is_empty() {
+            self.draw_buffer()?;
+        }
+        self.draw_bottom_line()?;
+        self.stdout
+            .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
+        self.stdout.flush()?;
+        Ok(())
+    }
+
     fn draw_buffer(&mut self) -> Result<()> {
         self.stdout.queue(cursor::MoveTo(0, 0))?;
+        self.stdout
+            .queue(terminal::Clear(terminal::ClearType::All))?;
 
-        // TODO see if clearAll is the better option to remove undesired artifact when a char is
-        // remove
-        //TODO see how i can reprint the bg if i still do ClearType::All
-        //self.stdout.queue(crossterm::style::SetBackgroundColor(colors::BG_0))?;
-        self.stdout.queue(terminal::Clear(terminal::ClearType::All))?;
-
-        for (i, line) in self.viewport.get_buffer_viewport().iter().enumerate() {
-            self.stdout
-
-                .queue(PrintStyledContent(line.clone().on(colors::BG_0)))?;
+        for (i, ele) in self.viewport.get_buffer_viewport().iter().enumerate() {
             self.stdout.queue(cursor::MoveTo(0, i as u16))?;
+            self.stdout.queue(Print(ele))?;
         }
 
         Ok(())
@@ -205,12 +228,20 @@ impl Editor {
     fn draw_bottom_line(&mut self) -> Result<()> {
         // TODO find a separator
 
-        self.stdout.queue(cursor::MoveTo(0, self.size.1 - 2))?;
+        self.stdout
+            .queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS))?;
 
         let mode = format!(" {} ", self.mode);
-        let pos = format!(" {}:{} ", self.cursor.0, self.cursor.1);
+
+        let terminal_size = format!(" term_size: x:{} y:{} ", self.size.0, self.size.1);
+        let cursor_viewport = self.viewport.get_cursor_viewport_position(&self.cursor);
+        let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);
         let filename = format!(" {}", self.viewport.buffer.path);
-        let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - 2;
+        let pad_width = self.size.0
+            - mode.len() as u16
+            - terminal_size.len() as u16
+            - pos.len() as u16
+            - TERMINAL_SIZE_MINUS;
         let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
 
         //print the mode
@@ -221,6 +252,10 @@ impl Editor {
         //print the filename
         self.stdout.queue(PrintStyledContent(
             filename.with(Color::White).on(colors::FILE_STATUS_BG),
+        ))?;
+
+        self.stdout.queue(PrintStyledContent(
+            terminal_size.with(Color::White).on(Color::Green),
         ))?;
 
         // print the cursor position
@@ -238,13 +273,16 @@ impl Editor {
         if !self.command.is_empty() {
             self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
-        } 
+        }
         Ok(())
     }
 }
 
 impl Drop for Editor {
     fn drop(&mut self) {
+        let _ = self
+            .stdout
+            .execute(terminal::Clear(terminal::ClearType::Purge));
         let _ = self.stdout.execute(terminal::LeaveAlternateScreen);
         let _ = terminal::disable_raw_mode();
     }
