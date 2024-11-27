@@ -24,7 +24,7 @@ impl Viewport {
    pub fn get_buffer_viewport(&mut self) -> &[String] {
         let start = self.y_pos as usize;
         let end = (self.y_pos + self.height) as usize;
-        &self.buffer.lines[start..end - 1]
+        &self.buffer.lines[start..end]
    } 
 
    pub fn get_cursor_viewport_position(&self, cursor: &(u16, u16)) -> (u16, u16) {
@@ -39,6 +39,14 @@ impl Viewport {
        if self.y_pos > 0 {
            self.y_pos -= 1;
        }
+   }
+
+   pub fn is_under_buffer_len(&self, cursor: &(u16, u16)) -> bool {
+       if self.buffer.lines.is_empty() {
+           return false;
+       }
+       let cursor_viewport_position = self.get_cursor_viewport_position(cursor);
+       (cursor_viewport_position.1  as usize) < (self.buffer.lines.len() - 1_usize)
    }
 
 }

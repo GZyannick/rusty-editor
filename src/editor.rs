@@ -16,6 +16,7 @@ use crate::{action::Action, buffer::Buffer, colors, viewport::Viewport};
 
 pub const TERMINAL_SIZE_MINUS: u16 = 2;
 
+#[derive(Debug)]
 pub struct Editor {
     pub mode: Mode,
     pub command: String,
@@ -27,8 +28,8 @@ pub struct Editor {
 
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
-        let size = size()?;
-        let viewport = Viewport::new(buffer, size.0, size.1);
+        let size = terminal::size()?;
+        let viewport = Viewport::new(buffer, size.0 - 2, size.1 - 2);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -46,9 +47,9 @@ impl Editor {
             .execute(crossterm::style::SetBackgroundColor(colors::BG_0))?;
         self.stdout.execute(terminal::EnterAlternateScreen)?;
         self.stdout
-            .execute(terminal::SetSize(self.size.0 - TERMINAL_SIZE_MINUS, self.size.1 - TERMINAL_SIZE_MINUS))?;
-        self.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?;
+        self.stdout
+            .execute(terminal::SetSize(self.size.0, self.size.1))?;
 
         Ok(())
     }
@@ -57,6 +58,16 @@ impl Editor {
         loop {
             self.draw()?;
             let event = read()?;
+
+            if let event::Event::Resize(width, height) = event {
+                self.viewport.width = width;
+                self.viewport.height = height;
+                self.size = (width, height);
+                self.stdout
+                    .queue(terminal::Clear(terminal::ClearType::All))?;
+                continue;
+            }
+
             if let Some(action) = self.handle_action(event)? {
                 match action {
                     Action::Quit => break,
@@ -72,19 +83,14 @@ impl Editor {
                     Action::MoveRight => {
                         self.cursor.0 += 1;
                     }
-                    Action::MoveDown if self.max_cursor_viewport_height() => {
-                        let cursor_viewport =
-                            self.viewport.get_cursor_viewport_position(&self.cursor);
-                        if (cursor_viewport.1 as usize) < (self.viewport.buffer.lines.len() - TERMINAL_SIZE_MINUS as usize) {
-                            self.viewport.scroll_down();
-                        }
-                    }
-                    Action::MoveDown => {
-                        // TODO stop cursor at the end of the file
-                        let cursor_viewport =
-                            self.viewport.get_cursor_viewport_position(&self.cursor);
-                        if (cursor_viewport.1 as usize) < (self.viewport.buffer.lines.len() - TERMINAL_SIZE_MINUS as usize) {
-                            self.cursor.1 += 1;
+                    Action::MoveDown if self.viewport.is_under_buffer_len(&self.cursor) => {
+                        match self.max_cursor_viewport_height() {
+                            true => {
+                                self.viewport.scroll_down();
+                            }
+                            false => {
+                                self.cursor.1 += 1;
+                            }
                         }
                     }
                     Action::AddChar(c) => {
@@ -108,12 +114,6 @@ impl Editor {
                     Action::AddCommandChar(c) => {
                         self.command.push(c);
                     }
-                    Action::Resize => {
-                        let size = size()?;
-                        self.viewport.width = size.0;
-                        self.viewport.height = size.1;
-                        self.size = size;
-                    }
                     _ => {}
                 }
             }
@@ -122,12 +122,8 @@ impl Editor {
     }
 
     fn max_cursor_viewport_height(&self) -> bool {
-        // the status line and command line take two line and we dont want the cursor to go on them
-        // so max_cursor_height is -3 the height
-        // on the mode line so -3
-       self.cursor.1 >= (self.viewport.height - (TERMINAL_SIZE_MINUS + 1_u16))
+        self.cursor.1 >= (self.viewport.height - 1)
     }
-
 
     fn handle_action(&mut self, event: Event) -> Result<Option<Action>> {
         if let event::Event::Key(ev) = event {
@@ -205,7 +201,10 @@ impl Editor {
     }
 
     pub fn draw(&mut self) -> Result<()> {
-        self.draw_buffer()?;
+        // handle line is empty
+        if !self.viewport.buffer.lines.is_empty() {
+            self.draw_buffer()?;
+        }
         self.draw_bottom_line()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
@@ -213,37 +212,36 @@ impl Editor {
         Ok(())
     }
 
-
-
     fn draw_buffer(&mut self) -> Result<()> {
         self.stdout.queue(cursor::MoveTo(0, 0))?;
-
-        // TODO see if clearAll is the better option to remove undesired artifact when a char is
-        // remove
-        //TODO see how i can reprint the bg if i still do ClearType::All
-        //self.stdout.queue(crossterm::style::SetBackgroundColor(colors::BG_0))?;
         self.stdout
             .queue(terminal::Clear(terminal::ClearType::All))?;
 
-        for (i, line) in self.viewport.get_buffer_viewport().iter().enumerate() {
-            self.stdout
-                .queue(PrintStyledContent(line.clone().on(colors::BG_0)))?;
+        for (i, ele) in self.viewport.get_buffer_viewport().iter().enumerate() {
             self.stdout.queue(cursor::MoveTo(0, i as u16))?;
+            self.stdout.queue(Print(ele))?;
         }
 
         Ok(())
     }
 
-
     fn draw_bottom_line(&mut self) -> Result<()> {
         // TODO find a separator
 
-        self.stdout.queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS ))?;
+        self.stdout
+            .queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS))?;
 
         let mode = format!(" {} ", self.mode);
-        let pos = format!(" {}:{} ", self.cursor.0, self.cursor.1);
+
+        let terminal_size = format!(" term_size: x:{} y:{} ", self.size.0, self.size.1);
+        let cursor_viewport = self.viewport.get_cursor_viewport_position(&self.cursor);
+        let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);
         let filename = format!(" {}", self.viewport.buffer.path);
-        let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - TERMINAL_SIZE_MINUS;
+        let pad_width = self.size.0
+            - mode.len() as u16
+            - terminal_size.len() as u16
+            - pos.len() as u16
+            - TERMINAL_SIZE_MINUS;
         let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
 
         //print the mode
@@ -254,6 +252,10 @@ impl Editor {
         //print the filename
         self.stdout.queue(PrintStyledContent(
             filename.with(Color::White).on(colors::FILE_STATUS_BG),
+        ))?;
+
+        self.stdout.queue(PrintStyledContent(
+            terminal_size.with(Color::White).on(Color::Green),
         ))?;
 
         // print the cursor position
@@ -269,18 +271,18 @@ impl Editor {
 
     fn draw_command_line(&mut self) -> Result<()> {
         if !self.command.is_empty() {
-            self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1 ))?;
+            self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
             self.stdout.queue(Print(format!(":{}", self.command)))?;
         }
         Ok(())
     }
-
-
-
 }
 
 impl Drop for Editor {
     fn drop(&mut self) {
+        let _ = self
+            .stdout
+            .execute(terminal::Clear(terminal::ClearType::Purge));
         let _ = self.stdout.execute(terminal::LeaveAlternateScreen);
         let _ = terminal::disable_raw_mode();
     }
