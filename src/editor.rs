@@ -108,7 +108,6 @@ impl Editor {
                             self.viewport.buffer.remove_char(cursor_viewport);
                             self.cursor.0 -= 1;
                         }
-                        // TODO  add else remove char from line up above
                     }
                     Action::EnterMode(mode) => {
                         self.mode = mode;
@@ -239,8 +238,6 @@ impl Editor {
     }
 
     fn draw_bottom_line(&mut self) -> Result<()> {
-        // TODO find a separator
-
         self.stdout
             .queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS))?;
 
