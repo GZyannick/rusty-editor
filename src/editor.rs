@@ -64,8 +64,6 @@ impl Editor {
             }
 
             if let Some(action) = self.handle_action(event)? {
-                //TODO Ajouter quand on scroll up and down est que le cursor est superieur a la
-                //taille de la ligne. Replacer le cursor a la fin de cetter ligne
                 match action {
                     Action::Quit => break,
                     Action::MoveUp => {
