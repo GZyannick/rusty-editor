@@ -6,7 +6,7 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::{buffer::Buffer, colors};
+use crate::{buffer::Buffer, colors, log_message};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -75,6 +75,18 @@ impl Viewport {
             self.top -= 1;
         }
     }
+    
+    pub fn get_cursor_max_x_position(&self, cursor: &(u16, u16)) -> u16 {
+        
+        let ll = self.get_line_len(cursor);
+        log_message!("ll = {}, cx = {}", ll, cursor.0);
+        
+        match cursor.0 > ll {
+            true => ll,
+            false => cursor.0,
+        }
+    }
+
 
     pub fn is_under_buffer_len(&self, cursor: &(u16, u16)) -> bool {
         if self.buffer.lines.is_empty() {

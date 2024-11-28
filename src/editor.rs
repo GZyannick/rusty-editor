@@ -7,7 +7,7 @@ use crossterm::{
     ExecutableCommand, QueueableCommand,
 };
 use std::io::{Stdout, Write};
-use crate::mode::Mode;
+use crate::{log_message, mode::Mode};
 use crate::{action::Action, buffer::Buffer, colors, viewport::Viewport};
 
 pub const TERMINAL_SIZE_MINUS: u16 = 2;
@@ -76,6 +76,7 @@ impl Editor {
                         } else {
                             self.viewport.scroll_up();
                         }
+                        self.cursor.0 = self.viewport.get_cursor_max_x_position(&self.cursor);
                     }
 
                     Action::MoveRight => {
@@ -98,6 +99,7 @@ impl Editor {
                                 self.cursor.1 += 1;
                             }
                         }
+                        self.cursor.0 = self.viewport.get_cursor_max_x_position(&self.cursor);
                     }
                     Action::AddChar(c) => {
                         self.cursor.0 += 1;
