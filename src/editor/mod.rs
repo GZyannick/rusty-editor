@@ -253,9 +253,8 @@ impl Draw for Editor {
 
         let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);
-        let filename = format!(" {}", self.viewport.buffer.path);
         let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - TERMINAL_SIZE_MINUS;
-        let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
+        let filename = format!(" {:<width$} ", self.viewport.buffer.path, width = pad_width as usize);
 
         self.draw_status_line(mode, filename)?;
         self.draw_line_counter(pos)?;
