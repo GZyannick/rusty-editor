@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read, usize};
+use std::{fs::{File, OpenOptions}, io::Write, io::Read, usize};
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -64,5 +64,19 @@ impl Buffer {
     fn from_dir(_f_path: &str) -> Buffer {
         //TODO Handle dir path for now it will return an empty buffer
         Buffer { file: None, lines: vec![], path: "Empty".to_string() }
+    }
+
+    pub fn save(&mut self) -> anyhow::Result<()> {
+
+        // TODO handle file creation if he doenst exist;
+        if let Some(_c_file) = &self.file {
+            let mut open_file = OpenOptions::new().read(true).write(true).create(true).truncate(true).open(self.path.clone())?;
+            for line in self.lines.iter() {
+                writeln!(open_file, "{line}")?;
+            }
+
+        }
+        
+        Ok(())
     }
 }
