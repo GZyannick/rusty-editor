@@ -3,6 +3,13 @@ mod colors;
 mod editor;
 mod mode;
 mod buffer;
+mod logger;
+
+use std::sync::{OnceLock, Mutex};
+use crate::logger::Logger;
+
+
+pub static INSTANCE: OnceLock<Mutex<Logger>> = OnceLock::new();
 
 use anyhow::Ok;
 use buffer::Buffer;
