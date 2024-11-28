@@ -117,7 +117,7 @@ impl Editor {
                         self.command.push(c);
                     }
                     Action::SaveFile => {
-                        self.viewport.buffer.save();
+                        self.viewport.buffer.save()?;
                    }
                     //_ => {}
                 }
