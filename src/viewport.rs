@@ -1,4 +1,3 @@
-use std::{ops::SubAssign, u16};
 
 use crossterm::{
     cursor,
@@ -77,7 +76,6 @@ impl Viewport {
     }
     
     pub fn get_cursor_max_x_position(&self, cursor: &(u16, u16)) -> u16 {
-        
         let ll = self.get_line_len(cursor);
         log_message!("ll = {}, cx = {}", ll, cursor.0);
         
@@ -86,7 +84,6 @@ impl Viewport {
             false => cursor.0,
         }
     }
-
 
     pub fn is_under_buffer_len(&self, cursor: &(u16, u16)) -> bool {
         if self.buffer.lines.is_empty() {
