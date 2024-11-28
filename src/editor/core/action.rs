@@ -1,4 +1,4 @@
-use  crate::mode::Mode;
+use super::mode::Mode;
 
 pub enum Action {
     MoveUp,
@@ -11,4 +11,4 @@ pub enum Action {
     AddCommandChar(char),
     SaveFile,
     Quit,
-}
+} 

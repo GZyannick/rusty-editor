@@ -5,7 +5,7 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::{buffer::Buffer, colors, log_message};
+use crate::{buff::Buffer, theme::colors, log_message};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]

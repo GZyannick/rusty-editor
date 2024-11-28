@@ -1,5 +1,12 @@
-use crate::{action::Action, buffer::Buffer, colors, viewport::Viewport};
-use crate::{log_message, mode::Mode};
+mod ui;
+mod core;
+use core::{mode::Mode, action::Action};
+use crate::theme::colors;
+
+use crate::viewport::Viewport;
+use crate::buff::Buffer;
+
+
 use anyhow::Result;
 use crossterm::{
     cursor,
