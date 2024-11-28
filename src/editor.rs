@@ -1,14 +1,13 @@
+use crate::{action::Action, buffer::Buffer, colors, viewport::Viewport};
+use crate::{log_message, mode::Mode};
 use anyhow::Result;
 use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode},
     style::{Color, Print, PrintStyledContent, Stylize},
-    terminal,
-    ExecutableCommand, QueueableCommand,
+    terminal, ExecutableCommand, QueueableCommand,
 };
 use std::io::{Stdout, Write};
-use crate::{log_message, mode::Mode};
-use crate::{action::Action, buffer::Buffer, colors, viewport::Viewport};
 
 pub const TERMINAL_SIZE_MINUS: u16 = 2;
 
@@ -65,41 +64,36 @@ impl Editor {
             }
 
             if let Some(action) = self.handle_action(event)? {
-                
-                //TODO Ajouter quand on scroll up and down est que le cursor est superieur a la
-                //taille de la ligne. Replacer le cursor a la fin de cetter ligne
                 match action {
                     Action::Quit => break,
                     Action::MoveUp => {
-                        if self.cursor.1 > 0 {
-                            self.cursor.1 -= 1;
-                        } else {
-                            self.viewport.scroll_up();
-                        }
+                        self.move_prev_line();
                         self.cursor.0 = self.viewport.get_cursor_max_x_position(&self.cursor);
                     }
 
                     Action::MoveRight => {
                         if self.viewport.get_line_len(&self.cursor) > self.cursor.0 {
                             self.cursor.0 += 1;
+                        } else {
+                           // if we are at the end of the line go ot the next line if exist
+                           // and move the cursor to the start of the line
+                            self.move_next_line(0);
                         }
                     }
                     Action::MoveLeft => {
                         if self.cursor.0 > 0 {
                             self.cursor.0 -= 1;
+                        } else if self.cursor.0 == 0 && (self.cursor.1 > 0 || self.viewport.top > 0)
+                        {
+                            // if we are at the start of the line go ot the prev line if exist
+                            // and move the cursor to the end of the line
+                            self.move_prev_line();
+                            self.cursor.0 = self.viewport.get_line_len(&self.cursor);
                         }
                     }
 
-                    Action::MoveDown if self.viewport.is_under_buffer_len(&self.cursor) => {
-                        match self.max_cursor_viewport_height() {
-                            true => {
-                                self.viewport.scroll_down();
-                            }
-                            false => {
-                                self.cursor.1 += 1;
-                            }
-                        }
-                        self.cursor.0 = self.viewport.get_cursor_max_x_position(&self.cursor);
+                    Action::MoveDown => {
+                        self.move_next_line(self.viewport.get_cursor_max_x_position(&self.cursor));
                     }
                     Action::AddChar(c) => {
                         self.cursor.0 += 1;
@@ -127,6 +121,29 @@ impl Editor {
             }
         }
         Ok(())
+    }
+
+    fn move_prev_line(&mut self) {
+        if self.cursor.1 > 0 {
+            self.cursor.1 -= 1;
+        } else {
+            self.viewport.scroll_up();
+        }
+    }
+
+    fn move_next_line(&mut self, x_pos: u16) {
+        if self.viewport.is_under_buffer_len(&self.cursor) {
+            match self.max_cursor_viewport_height() {
+                true => {
+                    self.viewport.scroll_down();
+                }
+                false => {
+                    self.cursor.1 += 1;
+                }
+            }
+            
+            self.cursor.0 = x_pos;
+        }
     }
 
     fn max_cursor_viewport_height(&self) -> bool {
@@ -216,7 +233,6 @@ impl Editor {
         self.stdout.flush()?;
         Ok(())
     }
-
 
     fn draw_bottom_line(&mut self) -> Result<()> {
         // TODO find a separator
