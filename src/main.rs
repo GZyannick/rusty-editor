@@ -1,27 +1,27 @@
-mod action;
-mod colors;
-mod editor;
-mod mode;
-mod buffer;
-mod logger;
-
 use std::sync::{OnceLock, Mutex};
-use crate::logger::Logger;
 
+mod theme;
+
+mod buff;
+use buff::Buffer;
+
+mod helper;
+use helper::logger::Logger;
+
+mod editor;
+use editor::Editor;
 
 pub static INSTANCE: OnceLock<Mutex<Logger>> = OnceLock::new();
 
 use anyhow::Ok;
-use buffer::Buffer;
 mod viewport;
 
 fn main() -> anyhow::Result<()> {
     let file_path = std::env::args().nth(1);
     let buffer = Buffer::new(file_path);
-    let mut editor = editor::Editor::new(buffer)?;
+    let mut editor = Editor::new(buffer)?;
     editor.enter_raw_mode()?;
     editor.run()?;
     drop(editor);
     Ok(())
 }
-
