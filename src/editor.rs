@@ -116,7 +116,10 @@ impl Editor {
                     Action::AddCommandChar(c) => {
                         self.command.push(c);
                     }
-                    _ => {}
+                    Action::SaveFile => {
+                        self.viewport.buffer.save();
+                   }
+                    //_ => {}
                 }
             }
         }
@@ -192,6 +195,7 @@ impl Editor {
         match code {
             KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
             KeyCode::Char('q') => Ok(Some(Action::Quit)),
+            KeyCode::Char('w') => Ok(Some(Action::SaveFile)),
             KeyCode::Char(c) => Ok(Some(Action::AddCommandChar(*c))),
             _ => Ok(None),
         }
