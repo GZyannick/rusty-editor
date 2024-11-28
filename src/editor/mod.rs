@@ -1,11 +1,11 @@
 mod ui;
+use ui::Draw;
 mod core;
-use core::{mode::Mode, action::Action};
 use crate::theme::colors;
+use core::{action::Action, mode::Mode};
 
-use crate::viewport::Viewport;
 use crate::buff::Buffer;
-
+use crate::viewport::Viewport;
 
 use anyhow::Result;
 use crossterm::{
@@ -82,8 +82,8 @@ impl Editor {
                         if self.viewport.get_line_len(&self.cursor) > self.cursor.0 {
                             self.cursor.0 += 1;
                         } else {
-                           // if we are at the end of the line go ot the next line if exist
-                           // and move the cursor to the start of the line
+                            // if we are at the end of the line go ot the next line if exist
+                            // and move the cursor to the start of the line
                             self.move_next_line(0);
                         }
                     }
@@ -124,8 +124,7 @@ impl Editor {
                     }
                     Action::SaveFile => {
                         self.viewport.buffer.save()?;
-                   }
-                    //_ => {}
+                    } //_ => {}
                 }
             }
         }
@@ -150,7 +149,7 @@ impl Editor {
                     self.cursor.1 += 1;
                 }
             }
-            
+
             self.cursor.0 = x_pos;
         }
     }
@@ -234,34 +233,38 @@ impl Editor {
 
         Ok(action)
     }
+}
 
-    pub fn draw(&mut self) -> Result<()> {
+impl Draw for Editor {
+    fn draw(&mut self) -> Result<()> {
         self.viewport.draw(&mut self.stdout)?;
-        self.draw_bottom_line()?;
+        self.draw_bottom()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
         self.stdout.flush()?;
         Ok(())
     }
 
-    fn draw_bottom_line(&mut self) -> Result<()> {
+    fn draw_bottom(&mut self) -> anyhow::Result<()> {
         self.stdout
             .queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS))?;
 
-        let mode = format!(" {} ", self.mode);
-
-        let terminal_size = format!(" term_size: x:{} y:{} ", self.size.0, self.size.1);
         let cursor_viewport = self.viewport.get_cursor_viewport_position(&self.cursor);
+
+        let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);
         let filename = format!(" {}", self.viewport.buffer.path);
-        let pad_width = self.size.0
-            - mode.len() as u16
-            - terminal_size.len() as u16
-            - pos.len() as u16
-            - TERMINAL_SIZE_MINUS;
+        let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - TERMINAL_SIZE_MINUS;
         let filename = format!(" {:<width$} ", filename, width = pad_width as usize);
 
-        //print the mode
+        self.draw_status_line(mode, filename)?;
+        self.draw_line_counter(pos)?;
+        self.draw_command_line()?;
+
+        Ok(())
+    }
+
+    fn draw_status_line(&mut self, mode: String, filename: String) -> Result<()> {
         self.stdout.queue(PrintStyledContent(
             mode.with(Color::White).bold().on(colors::STATUS_BG),
         ))?;
@@ -270,18 +273,14 @@ impl Editor {
         self.stdout.queue(PrintStyledContent(
             filename.with(Color::White).on(colors::FILE_STATUS_BG),
         ))?;
+        Ok(())
+    }
 
-        self.stdout.queue(PrintStyledContent(
-            terminal_size.with(Color::White).on(Color::Green),
-        ))?;
-
+    fn draw_line_counter(&mut self, pos: String) -> Result<()> {
         // print the cursor position
         self.stdout.queue(PrintStyledContent(
             pos.with(Color::White).on(colors::STATUS_BG),
         ))?;
-
-        self.stdout.flush()?;
-        self.draw_command_line()?;
 
         Ok(())
     }
