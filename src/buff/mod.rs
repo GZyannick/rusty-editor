@@ -1,7 +1,7 @@
 use std::{
     fs::{File, OpenOptions},
-    io::Read,
-    io::Write,
+    io::{Read, Write},
+    usize,
 };
 
 use crate::log_message;
@@ -40,22 +40,25 @@ impl Buffer {
 
     pub fn new_line(&mut self, cursor: (u16, u16), is_enter: bool) {
         let y_pos: usize = cursor.1 as usize + 1;
+        let mut new_line = String::new();
 
         if is_enter {
             // slice the part of the string from cursor into the end;
-            if let Some(line) = self.get_line(cursor.1.into()) {
-                let x_pos = cursor.0;
-                //let content = &line[x_pos..];
-                //log_message!("content of the line: {}", content);
+            if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
+                let x = cursor.0 as usize;
+                let clone_line = line.clone();
+                let next_line_content = &clone_line[x..];
+                line.replace_range(x.., "");
+                new_line.push_str(next_line_content);
             }
         }
 
         match y_pos > self.lines.len() {
             true => {
-                self.lines.push(String::new());
+                self.lines.push(new_line);
             }
             false => {
-                self.lines.insert(y_pos, String::new());
+                self.lines.insert(y_pos, new_line);
             }
         }
     }
