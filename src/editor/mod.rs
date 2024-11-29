@@ -122,9 +122,9 @@ impl Editor {
                     Action::AddCommandChar(c) => {
                         self.command.push(c);
                     }
-                    Action::NewLine => {
+                    Action::NewLine(is_enter) => {
                         let v_cursor = self.viewport.get_cursor_viewport_position(&self.cursor);
-                        self.viewport.buffer.new_line(v_cursor);
+                        self.viewport.buffer.new_line(v_cursor, is_enter);
                         self.move_next_line(self.viewport.get_cursor_max_x_position(&self.cursor));
                         self.cursor.0 = 0;
                     }
@@ -190,7 +190,7 @@ impl Editor {
         match code {
             KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
             KeyCode::Backspace => Ok(Some(Action::RemoveChar)),
-            KeyCode::Enter => Ok(Some(Action::NewLine)),
+            KeyCode::Enter => Ok(Some(Action::NewLine(true))),
             KeyCode::Char(c) => Ok(Some(Action::AddChar(*c))),
             _ => Ok(None),
         }
@@ -200,7 +200,7 @@ impl Editor {
         match code {
             KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
             KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
-            KeyCode::Char('o') => Ok(Some(Action::NewLine)),
+            KeyCode::Char('o') => Ok(Some(Action::NewLine(false))),
             _ => Ok(None),
         }
     }

@@ -1,11 +1,10 @@
-
 use crossterm::{
     cursor,
     style::{PrintStyledContent, Stylize},
     QueueableCommand,
 };
 
-use crate::{buff::Buffer, theme::colors, log_message};
+use crate::{buff::Buffer, log_message, theme::colors};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -58,9 +57,9 @@ impl Viewport {
     pub fn get_buffer_viewport(&mut self) -> &[String] {
         let start = self.top as usize;
         let end = (self.top + self.height) as usize;
-            match  end > self.buffer.lines.len() {
-                true => &self.buffer.lines[start..],
-                false => &self.buffer.lines[start..end],
+        match end > self.buffer.lines.len() {
+            true => &self.buffer.lines[start..],
+            false => &self.buffer.lines[start..end],
         }
     }
 
@@ -77,11 +76,11 @@ impl Viewport {
             self.top -= 1;
         }
     }
-    
+
     pub fn get_cursor_max_x_position(&self, cursor: &(u16, u16)) -> u16 {
         let ll = self.get_line_len(cursor);
         //log_message!("ll = {}, cx = {}", ll, cursor.0);
-        
+
         match cursor.0 > ll {
             true => ll,
             false => cursor.0,

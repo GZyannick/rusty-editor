@@ -38,8 +38,18 @@ impl Buffer {
         self.lines.get(n).cloned()
     }
 
-    pub fn new_line(&mut self, cursor: (u16, u16)) {
+    pub fn new_line(&mut self, cursor: (u16, u16), is_enter: bool) {
         let y_pos: usize = cursor.1 as usize + 1;
+
+        if is_enter {
+            // slice the part of the string from cursor into the end;
+            if let Some(line) = self.get_line(cursor.1.into()) {
+                let x_pos = cursor.0;
+                //let content = &line[x_pos..];
+                //log_message!("content of the line: {}", content);
+            }
+        }
+
         match y_pos > self.lines.len() {
             true => {
                 self.lines.push(String::new());
