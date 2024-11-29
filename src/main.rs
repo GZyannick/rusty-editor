@@ -22,6 +22,5 @@ fn main() -> anyhow::Result<()> {
     let mut editor = Editor::new(buffer)?;
     editor.enter_raw_mode()?;
     editor.run()?;
-    drop(editor);
     Ok(())
 }

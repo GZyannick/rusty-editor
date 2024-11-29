@@ -58,7 +58,10 @@ impl Viewport {
     pub fn get_buffer_viewport(&mut self) -> &[String] {
         let start = self.top as usize;
         let end = (self.top + self.height) as usize;
-        &self.buffer.lines[start..end]
+            match  end > self.buffer.lines.len() {
+                true => &self.buffer.lines[start..],
+                false => &self.buffer.lines[start..end],
+        }
     }
 
     pub fn get_cursor_viewport_position(&self, cursor: &(u16, u16)) -> (u16, u16) {
