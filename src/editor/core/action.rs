@@ -9,6 +9,7 @@ pub enum Action {
     AddChar(char),
     RemoveChar,
     AddCommandChar(char),
+    NewLine,
     SaveFile,
     Quit,
 } 

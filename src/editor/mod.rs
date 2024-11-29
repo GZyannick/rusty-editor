@@ -7,7 +7,7 @@ use core::{action::Action, mode::Mode};
 use crate::buff::Buffer;
 use crate::viewport::Viewport;
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode},
@@ -122,9 +122,16 @@ impl Editor {
                     Action::AddCommandChar(c) => {
                         self.command.push(c);
                     }
+                    Action::NewLine => {
+                        let v_cursor = self.viewport.get_cursor_viewport_position(&self.cursor);
+                        self.viewport.buffer.new_line(v_cursor);
+                        self.move_next_line(self.viewport.get_cursor_max_x_position(&self.cursor));
+                        self.cursor.0 = 0;
+                    }
                     Action::SaveFile => {
                         self.viewport.buffer.save()?;
-                    } //_ => {}
+                    }
+                    //_ => {}
                 }
             }
         }
@@ -183,6 +190,7 @@ impl Editor {
         match code {
             KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
             KeyCode::Backspace => Ok(Some(Action::RemoveChar)),
+            KeyCode::Enter => Ok(Some(Action::NewLine)),
             KeyCode::Char(c) => Ok(Some(Action::AddChar(*c))),
             _ => Ok(None),
         }
@@ -192,6 +200,7 @@ impl Editor {
         match code {
             KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
             KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
+            KeyCode::Char('o') => Ok(Some(Action::NewLine)),
             _ => Ok(None),
         }
     }

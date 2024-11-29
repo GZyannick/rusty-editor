@@ -77,7 +77,7 @@ impl Viewport {
     
     pub fn get_cursor_max_x_position(&self, cursor: &(u16, u16)) -> u16 {
         let ll = self.get_line_len(cursor);
-        log_message!("ll = {}, cx = {}", ll, cursor.0);
+        //log_message!("ll = {}, cx = {}", ll, cursor.0);
         
         match cursor.0 > ll {
             true => ll,

@@ -1,4 +1,10 @@
-use std::{fs::{File, OpenOptions}, io::Write, io::Read, usize};
+use std::{
+    fs::{File, OpenOptions},
+    io::Read,
+    io::Write,
+};
+
+use crate::log_message;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -21,24 +27,38 @@ impl Buffer {
             }
         }
 
-        Buffer { file: None, lines: vec![], path: "Empty".to_string() }
+        Buffer {
+            file: None,
+            lines: vec![],
+            path: "Empty".to_string(),
+        }
     }
 
     pub fn get_line(&self, n: usize) -> Option<String> {
         self.lines.get(n).cloned()
     }
 
-    pub fn add_char(&mut self, c: char, cursor: (u16, u16)) {
-        if let Some(line) = self.lines.get_mut(cursor.1 as usize ) {
-            line.insert(cursor.0 as usize - 1_usize, c);
+    pub fn new_line(&mut self, cursor: (u16, u16)) {
+        let y_pos: usize = cursor.1 as usize + 1;
+        match y_pos > self.lines.len() {
+            true => {
+                self.lines.push(String::new());
+            }
+            false => {
+                self.lines.insert(y_pos, String::new());
+            }
         }
     }
 
+    pub fn add_char(&mut self, c: char, cursor: (u16, u16)) {
+        if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
+            line.insert(cursor.0 as usize - 1_usize, c);
+        }
+    }
     pub fn remove_char(&mut self, cursor: (u16, u16)) {
-        if let Some(line) = self.lines.get_mut(cursor.1 as usize ) {
+        if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
             line.remove(cursor.0 as usize - 1_usize);
         }
-
     }
 
     fn from_file(f_path: &str) -> Buffer {
@@ -54,26 +74,30 @@ impl Buffer {
             path = f_path.to_string();
         }
 
-        Buffer {
-            file,
-            lines,
-            path,
-        }
+        Buffer { file, lines, path }
     }
 
     fn from_dir(_f_path: &str) -> Buffer {
-        Buffer { file: None, lines: vec![], path: "Empty".to_string() }
+        Buffer {
+            file: None,
+            lines: vec!["".to_string()],
+            path: "Empty".to_string(),
+        }
     }
 
     pub fn save(&mut self) -> anyhow::Result<()> {
         if let Some(_c_file) = &self.file {
-            let mut open_file = OpenOptions::new().read(true).write(true).create(true).truncate(true).open(self.path.clone())?;
+            let mut open_file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(self.path.clone())?;
             for line in self.lines.iter() {
                 writeln!(open_file, "{line}")?;
             }
-
         }
-        
+
         Ok(())
     }
 }
