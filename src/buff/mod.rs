@@ -68,9 +68,21 @@ impl Buffer {
             line.insert(cursor.0 as usize - 1_usize, c);
         }
     }
+
     pub fn remove_char(&mut self, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
             line.remove(cursor.0 as usize - 1_usize);
+        }
+    }
+
+    pub fn remove_char_line(&mut self, cursor: (u16, u16)) {
+        let mut buf = String::new();
+        if let Some(line) = self.get_line(cursor.1 as usize) {
+            buf = line.clone();
+            self.lines.remove(cursor.1 as usize);
+        }
+        if let Some(prev_line) = self.lines.get_mut(cursor.1 as usize - 1) {
+            prev_line.push_str(buf.as_str());
         }
     }
 

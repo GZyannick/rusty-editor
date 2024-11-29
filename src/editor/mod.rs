@@ -1,11 +1,10 @@
 mod ui;
 use ui::Draw;
 mod core;
-use crate::theme::colors;
-use core::{action::Action, mode::Mode};
-
 use crate::buff::Buffer;
+use crate::theme::colors;
 use crate::viewport::Viewport;
+use core::{action::Action, mode::Mode};
 
 use anyhow::{Ok, Result};
 use crossterm::{
@@ -109,11 +108,24 @@ impl Editor {
                         self.viewport.buffer.add_char(c, cursor_viewport);
                     }
                     Action::RemoveChar => {
-                        if self.cursor.0 > 0 {
-                            let cursor_viewport =
-                                self.viewport.get_cursor_viewport_position(&self.cursor);
-                            self.viewport.buffer.remove_char(cursor_viewport);
-                            self.cursor.0 -= 1;
+                        let cursor_viewport =
+                            self.viewport.get_cursor_viewport_position(&self.cursor);
+                        match cursor_viewport.0 > 0 {
+                            true => {
+                                self.viewport.buffer.remove_char(cursor_viewport);
+                                self.cursor.0 -= 1;
+                            }
+                            false if cursor_viewport.1 > 0 => {
+                                // we get the size of the prev line before change
+                                // because we want the text that will be added behind the cursor
+                                let new_x_pos = self
+                                    .viewport
+                                    .get_line_len(&(self.cursor.0, self.cursor.1 - 1));
+                                self.viewport.buffer.remove_char_line(cursor_viewport);
+                                self.move_prev_line();
+                                self.cursor.0 = new_x_pos;
+                            }
+                            _ => {}
                         }
                     }
                     Action::EnterMode(mode) => {
@@ -130,8 +142,7 @@ impl Editor {
                     }
                     Action::SaveFile => {
                         self.viewport.buffer.save()?;
-                    }
-                    //_ => {}
+                    } //_ => {}
                 }
             }
         }
@@ -263,7 +274,11 @@ impl Draw for Editor {
         let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);
         let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - TERMINAL_SIZE_MINUS;
-        let filename = format!(" {:<width$} ", self.viewport.buffer.path, width = pad_width as usize);
+        let filename = format!(
+            " {:<width$} ",
+            self.viewport.buffer.path,
+            width = pad_width as usize
+        );
 
         self.draw_status_line(mode, filename)?;
         self.draw_line_counter(pos)?;
