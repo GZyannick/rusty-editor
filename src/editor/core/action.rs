@@ -10,7 +10,7 @@ pub enum Action {
     RemoveChar,
     AddCommandChar(char),
     NewLine(bool), // the bool is to know if we create the new line with or without the text behind
-                   // the cursor like with Enter we want the text behind
+    // the cursor like with Enter we want the text behind
     SaveFile,
     Quit,
-} 
+}

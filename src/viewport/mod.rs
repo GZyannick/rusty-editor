@@ -1,3 +1,5 @@
+mod ui;
+
 use crossterm::{
     cursor,
     style::{PrintStyledContent, Stylize},
@@ -32,14 +34,32 @@ impl Viewport {
             return Ok(());
         }
 
-        let v_width = self.width as usize;
+        let v_width = self.width;
         stdout.queue(cursor::MoveTo(0, 0))?;
+
+        // le calcule pour la ligne devra etre surement avec cursor position v_top, v_height
+        //let start = self.top as usize;
+        //let end = (self.top + self.height) as usize;
+        //
+        //log_message!("start: {}, end: {}", start, end);
+        //
+        //for i in start..end {
+        //    if let Some(line) = self.buffer.get_line(i.into()) {
+        //        stdout
+        //            .queue(cursor::MoveTo(3, i as u16))?
+        //            .queue(PrintStyledContent(
+        //                format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
+        //            ))?;
+        //    }
+        //}
+        //
+        //
 
         for (i, line) in self.get_buffer_viewport().iter().enumerate() {
             stdout
                 .queue(cursor::MoveTo(0, i as u16))?
                 .queue(PrintStyledContent(
-                    format!("{line:<width$}", width = v_width).on(colors::BG_0),
+                    format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
                 ))?;
         }
         Ok(())

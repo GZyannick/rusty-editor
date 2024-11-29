@@ -30,7 +30,7 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
-        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
+        let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
 
         Ok(Editor {
             mode: Mode::Normal,
