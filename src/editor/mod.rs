@@ -15,6 +15,9 @@ use crossterm::{
 };
 use std::io::{Stdout, Write};
 
+// TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
+// 1 stop on char, 0 stop after the char
+pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
 pub const TERMINAL_SIZE_MINUS: u16 = 2;
 
 #[derive(Debug)]
@@ -30,7 +33,8 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
-        let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
+        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
+        //let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -55,14 +59,25 @@ impl Editor {
         Ok(())
     }
 
+    fn check_bounds(&mut self) {
+        let line_len = self.viewport.get_line_len(&self.cursor);
+        if self.cursor.0 >= line_len {
+            self.cursor.0 = match line_len {
+                0 => 0,
+                _ => line_len - TERMINAL_LINE_LEN_MINUS,
+            };
+        }
+    }
+
     pub fn run(&mut self) -> Result<()> {
         loop {
+            self.check_bounds();
             self.draw()?;
             let event = read()?;
 
             if let event::Event::Resize(width, height) = event {
-                self.viewport.width = width;
-                self.viewport.height = height;
+                self.viewport.vwidth = width;
+                self.viewport.vheight = height;
                 self.size = (width, height);
                 self.stdout
                     .queue(terminal::Clear(terminal::ClearType::All))?;
@@ -74,16 +89,22 @@ impl Editor {
                     Action::Quit => break,
                     Action::MoveUp => {
                         self.move_prev_line();
-                        self.cursor.0 = self.viewport.get_cursor_max_x_position(&self.cursor);
                     }
 
                     Action::MoveRight => {
-                        if self.viewport.get_line_len(&self.cursor) > self.cursor.0 {
-                            self.cursor.0 += 1;
-                        } else {
-                            // if we are at the end of the line go ot the next line if exist
-                            // and move the cursor to the start of the line
-                            self.move_next_line(0);
+                        // if we are at the end of the line_len - 1 move to next line
+                        let line_len = match self.viewport.get_line_len(&self.cursor) {
+                            0 => 0,
+                            ll => ll - TERMINAL_LINE_LEN_MINUS,
+                        };
+                        match line_len > self.cursor.0 {
+                            true => self.cursor.0 += 1,
+                            false => {
+                                // if we are at the end of the line go ot the next line if exist
+                                // and move the cursor to the start of the line
+                                self.move_next_line();
+                                self.cursor.0 = 0;
+                            }
                         }
                     }
                     Action::MoveLeft => {
@@ -99,7 +120,7 @@ impl Editor {
                     }
 
                     Action::MoveDown => {
-                        self.move_next_line(self.viewport.get_cursor_max_x_position(&self.cursor));
+                        self.move_next_line();
                     }
                     Action::AddChar(c) => {
                         self.cursor.0 += 1;
@@ -137,8 +158,7 @@ impl Editor {
                     Action::NewLine(is_enter) => {
                         let v_cursor = self.viewport.get_cursor_viewport_position(&self.cursor);
                         self.viewport.buffer.new_line(v_cursor, is_enter);
-                        self.move_next_line(self.viewport.get_cursor_max_x_position(&self.cursor));
-                        self.cursor.0 = 0;
+                        self.move_next_line();
                     }
                     Action::SaveFile => {
                         self.viewport.buffer.save()?;
@@ -150,30 +170,23 @@ impl Editor {
     }
 
     fn move_prev_line(&mut self) {
-        if self.cursor.1 > 0 {
-            self.cursor.1 -= 1;
-        } else {
-            self.viewport.scroll_up();
+        match self.cursor.1 > 0 {
+            true => self.cursor.1 -= 1,
+            false => self.viewport.scroll_up(),
         }
     }
 
-    fn move_next_line(&mut self, x_pos: u16) {
+    fn move_next_line(&mut self) {
         if self.viewport.is_under_buffer_len(&self.cursor) {
             match self.max_cursor_viewport_height() {
-                true => {
-                    self.viewport.scroll_down();
-                }
-                false => {
-                    self.cursor.1 += 1;
-                }
+                true => self.viewport.scroll_down(),
+                false => self.cursor.1 += 1,
             }
-
-            self.cursor.0 = x_pos;
         }
     }
 
     fn max_cursor_viewport_height(&self) -> bool {
-        self.cursor.1 >= (self.viewport.height - 1)
+        self.cursor.1 >= (self.viewport.vheight - 1)
     }
 
     fn handle_action(&mut self, event: Event) -> Result<Option<Action>> {

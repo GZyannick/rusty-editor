@@ -38,11 +38,11 @@ impl Buffer {
         self.lines.get(n).cloned()
     }
 
-    pub fn new_line(&mut self, cursor: (u16, u16), is_enter: bool) {
+    pub fn new_line(&mut self, cursor: (u16, u16), is_take_text: bool) {
         let y_pos: usize = cursor.1 as usize + 1;
         let mut new_line = String::new();
 
-        if is_enter {
+        if is_take_text {
             // slice the part of the string from cursor into the end;
             if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
                 let x = cursor.0 as usize;
