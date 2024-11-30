@@ -27,6 +27,7 @@ pub struct Editor {
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
+    pub buffer_x_cursor: u16,
     pub viewport: Viewport,
 }
 
@@ -42,6 +43,7 @@ impl Editor {
             stdout: std::io::stdout(),
             size,
             cursor: (0, 0),
+            buffer_x_cursor: 0,
             viewport,
         })
     }
@@ -59,13 +61,33 @@ impl Editor {
         Ok(())
     }
 
+    fn clear_buffer_x_cursor(&mut self) {
+        self.buffer_x_cursor = 0;
+    }
+
     fn check_bounds(&mut self) {
-        let line_len = self.viewport.get_line_len(&self.cursor);
+        let line_len = match self.viewport.get_line_len(&self.cursor) {
+            0 => 0,
+            ll => ll - TERMINAL_LINE_LEN_MINUS,
+        };
+
         if self.cursor.0 >= line_len {
-            self.cursor.0 = match line_len {
-                0 => 0,
-                _ => line_len - TERMINAL_LINE_LEN_MINUS,
-            };
+            if self.buffer_x_cursor == 0 {
+                self.buffer_x_cursor = self.cursor.0;
+            }
+            self.cursor.0 = line_len;
+        } else if self.cursor.0 < line_len && self.buffer_x_cursor > 0 {
+            // allow us to add a buffer to the cursor to return to its original position
+            // when he move on multiple line that was inferior of the cursor.0
+            match self.buffer_x_cursor < line_len {
+                true => {
+                    self.cursor.0 = self.buffer_x_cursor;
+                    self.clear_buffer_x_cursor();
+                }
+                false => {
+                    self.cursor.0 = line_len;
+                }
+            }
         }
     }
 
@@ -92,6 +114,8 @@ impl Editor {
                     }
 
                     Action::MoveRight => {
+                        // we clear the buffer because to overwrite it if needed;
+                        self.clear_buffer_x_cursor();
                         // if we are at the end of the line_len - 1 move to next line
                         let line_len = match self.viewport.get_line_len(&self.cursor) {
                             0 => 0,
@@ -108,6 +132,8 @@ impl Editor {
                         }
                     }
                     Action::MoveLeft => {
+                        // we clear the buffer because to overwrite it if needed;
+                        self.clear_buffer_x_cursor();
                         if self.cursor.0 > 0 {
                             self.cursor.0 -= 1;
                         } else if self.cursor.0 == 0 && (self.cursor.1 > 0 || self.viewport.top > 0)
