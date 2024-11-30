@@ -6,7 +6,7 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::{buff::Buffer, log_message, theme::colors};
+use crate::{buff::Buffer, theme::colors};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -38,16 +38,34 @@ impl Viewport {
         stdout.queue(cursor::MoveTo(0, 0))?;
 
         for i in 0..self.vheight {
-            let line = match self.buffer.get_line(self.top as usize + i as usize) {
-                None => String::new(),
-                Some(s) => s,
-            };
+            let line: String = self
+                .buffer
+                .get_line(self.top as usize + i as usize)
+                .unwrap_or_default();
+
+            // See if this is the best opt
+            // to move it at 3 instead or 0
+
+            self.draw_line_number(stdout, i)?;
             stdout
-                .queue(cursor::MoveTo(0, i as u16))?
+                .queue(cursor::MoveTo(3, i))?
                 .queue(PrintStyledContent(
                     format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
                 ))?;
         }
+
+        Ok(())
+    }
+
+    fn draw_line_number(&self, stdout: &mut std::io::Stdout, i: u16) -> anyhow::Result<()> {
+        let pos = self.top as usize + i as usize;
+
+        let l_width = 3;
+        stdout
+            .queue(cursor::MoveTo(0, i))?
+            .queue(PrintStyledContent(
+                format!("{pos:<width$}", width = l_width).on(colors::BG_0),
+            ))?;
 
         Ok(())
     }
