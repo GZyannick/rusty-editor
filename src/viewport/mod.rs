@@ -6,7 +6,7 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::{buff::Buffer, theme::colors};
+use crate::{buff::Buffer, log_message, theme::colors};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -46,9 +46,9 @@ impl Viewport {
             // See if this is the best opt
             // to move it at 3 instead or 0
 
-            self.draw_line_number(stdout, i)?;
+            // self.draw_line_number(stdout, i)?;
             stdout
-                .queue(cursor::MoveTo(3, i))?
+                .queue(cursor::MoveTo(0, i))?
                 .queue(PrintStyledContent(
                     format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
                 ))?;
@@ -60,11 +60,11 @@ impl Viewport {
     fn draw_line_number(&self, stdout: &mut std::io::Stdout, i: u16) -> anyhow::Result<()> {
         let pos = self.top as usize + i as usize;
 
-        let l_width = 3;
+        let l_width = 4;
         stdout
             .queue(cursor::MoveTo(0, i))?
             .queue(PrintStyledContent(
-                format!("{pos:<width$}", width = l_width).on(colors::BG_0),
+                format!("{pos:>width$}", width = l_width).on(colors::BG_0),
             ))?;
 
         Ok(())
@@ -91,6 +91,38 @@ impl Viewport {
     pub fn scroll_down(&mut self) {
         self.top += 1;
     }
+
+    pub fn page_up(&mut self) {
+        if self.top > self.vheight {
+            self.top -= self.vheight;
+        } else {
+            self.move_top();
+        };
+    }
+
+    pub fn move_top(&mut self) {
+        self.top = 0;
+    }
+
+    pub fn move_end(&mut self) {
+        self.top = (self.buffer.lines.len() as u16) - self.vheight;
+    }
+
+    pub fn page_down(&mut self, cursor: &(u16, u16)) {
+        if self.is_under_buffer_len(&(cursor.0, cursor.1 + self.vheight)) {
+            self.top += self.vheight;
+        } else {
+            // allow us to move at the end of the file if the cursor is under the number of
+            // buffer_lines
+            let rest_of_file_len = (self.buffer.lines.len() as u16 - 1) - self.top;
+            if rest_of_file_len > 0
+                && self.is_under_buffer_len(&(cursor.0, cursor.1 + rest_of_file_len - 1))
+            {
+                self.top += rest_of_file_len;
+            }
+        }
+    }
+
     pub fn is_under_buffer_len(&self, cursor: &(u16, u16)) -> bool {
         if self.buffer.lines.is_empty() {
             return false;

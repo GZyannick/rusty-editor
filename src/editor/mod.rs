@@ -1,24 +1,26 @@
 mod ui;
 use ui::Draw;
 mod core;
-use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
+use crate::{buff::Buffer, log_message};
 use core::{action::Action, mode::Mode};
 
 use anyhow::{Ok, Result};
 use crossterm::{
     cursor,
-    event::{self, read, Event, KeyCode},
+    event::{self, read, Event, KeyCode, KeyModifiers},
     style::{Color, Print, PrintStyledContent, Stylize},
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::io::{Stdout, Write};
 
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
-// 1 stop on char, 0 stop after the char
+// 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
-pub const TERMINAL_SIZE_MINUS: u16 = 2;
+pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
+pub const MOVE_PREV_OR_NEXT_LINE: bool = false; // on true allow us to activate the feature where if we
+                                                // are at the end of the line or start move to next or prev line
 
 #[derive(Debug)]
 pub struct Editor {
@@ -123,12 +125,13 @@ impl Editor {
                         };
                         match line_len > self.cursor.0 {
                             true => self.cursor.0 += 1,
-                            false => {
+                            false if MOVE_PREV_OR_NEXT_LINE => {
                                 // if we are at the end of the line go ot the next line if exist
                                 // and move the cursor to the start of the line
                                 self.move_next_line();
                                 self.cursor.0 = 0;
                             }
+                            false => (),
                         }
                     }
                     Action::MoveLeft => {
@@ -136,7 +139,9 @@ impl Editor {
                         self.clear_buffer_x_cursor();
                         if self.cursor.0 > 0 {
                             self.cursor.0 -= 1;
-                        } else if self.cursor.0 == 0 && (self.cursor.1 > 0 || self.viewport.top > 0)
+                        } else if self.cursor.0 == 0
+                            && (self.cursor.1 > 0 || self.viewport.top > 0)
+                            && MOVE_PREV_OR_NEXT_LINE
                         {
                             // if we are at the start of the line go ot the prev line if exist
                             // and move the cursor to the end of the line
@@ -188,7 +193,21 @@ impl Editor {
                     }
                     Action::SaveFile => {
                         self.viewport.buffer.save()?;
-                    } //_ => {}
+                    }
+                    Action::PageUp => {
+                        self.viewport.page_up();
+                    }
+                    Action::StartOfLine => {
+                        self.clear_buffer_x_cursor();
+                        self.cursor.0 = 0;
+                    }
+                    Action::EndOfLine => {
+                        self.clear_buffer_x_cursor();
+                        self.cursor.0 = self.viewport.get_line_len(&self.cursor) - 1;
+                    }
+                    Action::PageDown => {
+                        self.viewport.page_down(&self.cursor);
+                    } // _ => {}
                 }
             }
         }
@@ -222,47 +241,75 @@ impl Editor {
             }
 
             let code = ev.code;
+            let modifiers = ev.modifiers;
             let nav = self.navigation(&code)?;
             if nav.is_some() {
                 return Ok(nav);
             }
 
             return match self.mode {
-                Mode::Normal => self.handle_normal_event(&code),
-                Mode::Command => self.handle_command_event(&code),
-                Mode::Insert => self.handle_insert_event(&code),
+                Mode::Normal => self.handle_normal_event(&code, &modifiers),
+                Mode::Command => self.handle_command_event(&code, &modifiers),
+                Mode::Insert => self.handle_insert_event(&code, &modifiers),
             };
         }
         Ok(None)
     }
 
-    fn handle_insert_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
-        match code {
-            KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
-            KeyCode::Backspace => Ok(Some(Action::RemoveChar)),
-            KeyCode::Enter => Ok(Some(Action::NewLine(true))),
-            KeyCode::Char(c) => Ok(Some(Action::AddChar(*c))),
-            _ => Ok(None),
-        }
+    fn handle_insert_event(
+        &mut self,
+        code: &KeyCode,
+        _modifiers: &KeyModifiers, // not used for now
+    ) -> Result<Option<Action>> {
+        let action = match code {
+            KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
+            KeyCode::Backspace => Some(Action::RemoveChar),
+            KeyCode::Enter => Some(Action::NewLine(true)),
+            KeyCode::Char(c) => Some(Action::AddChar(*c)),
+            _ => None,
+        };
+
+        Ok(action)
     }
 
-    fn handle_normal_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
-        match code {
-            KeyCode::Char('i') => Ok(Some(Action::EnterMode(Mode::Insert))),
-            KeyCode::Char(':') => Ok(Some(Action::EnterMode(Mode::Command))),
-            KeyCode::Char('o') => Ok(Some(Action::NewLine(false))),
-            _ => Ok(None),
-        }
+    fn handle_normal_event(
+        &mut self,
+        code: &KeyCode,
+        modifiers: &KeyModifiers,
+    ) -> Result<Option<Action>> {
+        let action = match code {
+            KeyCode::Char('i') => Some(Action::EnterMode(Mode::Insert)),
+            KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+            KeyCode::Char('o') => Some(Action::NewLine(false)),
+            KeyCode::Char('$') => Some(Action::EndOfLine),
+            KeyCode::Char('0') => Some(Action::StartOfLine),
+            KeyCode::Char('f') if matches!(modifiers, &KeyModifiers::CONTROL) => {
+                Some(Action::PageDown)
+            }
+            KeyCode::Char('b') if matches!(modifiers, &KeyModifiers::CONTROL) => {
+                Some(Action::PageUp)
+            }
+
+            _ => None,
+        };
+
+        Ok(action)
     }
 
-    fn handle_command_event(&mut self, code: &KeyCode) -> Result<Option<Action>> {
-        match code {
-            KeyCode::Esc => Ok(Some(Action::EnterMode(Mode::Normal))),
-            KeyCode::Char('q') => Ok(Some(Action::Quit)),
-            KeyCode::Char('w') => Ok(Some(Action::SaveFile)),
-            KeyCode::Char(c) => Ok(Some(Action::AddCommandChar(*c))),
-            _ => Ok(None),
-        }
+    fn handle_command_event(
+        &mut self,
+        code: &KeyCode,
+        _modifiers: &KeyModifiers, // not used for now
+    ) -> Result<Option<Action>> {
+        let action = match code {
+            KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
+            KeyCode::Char('q') => Some(Action::Quit),
+            KeyCode::Char('w') => Some(Action::SaveFile),
+            KeyCode::Char(c) => Some(Action::AddCommandChar(*c)),
+            _ => None,
+        };
+
+        Ok(action)
     }
 
     fn navigation(&mut self, code: &KeyCode) -> Result<Option<Action>> {
