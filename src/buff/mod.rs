@@ -65,7 +65,7 @@ impl Buffer {
 
     pub fn add_char(&mut self, c: char, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-            line.insert(cursor.0 as usize - 1_usize, c);
+            line.insert(cursor.0 as usize, c);
         }
     }
 

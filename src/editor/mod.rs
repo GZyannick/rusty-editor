@@ -154,10 +154,10 @@ impl Editor {
                         self.move_next_line();
                     }
                     Action::AddChar(c) => {
-                        self.cursor.0 += 1;
                         let cursor_viewport =
                             self.viewport.get_cursor_viewport_position(&self.cursor);
                         self.viewport.buffer.add_char(c, cursor_viewport);
+                        self.cursor.0 += 1;
                     }
                     Action::RemoveChar => {
                         let cursor_viewport =
@@ -279,13 +279,18 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Char('i') => Some(Action::EnterMode(Mode::Insert)),
+            KeyCode::Char('a') => Some(Action::EnterMode(Mode::Insert)), //TODO Move cursor to
+            //right 1 time
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
             KeyCode::Char('o') => Some(Action::NewLine(false)),
-            KeyCode::Char('$') => Some(Action::EndOfLine),
-            KeyCode::Char('0') => Some(Action::StartOfLine),
+            KeyCode::Char('$') | KeyCode::End => Some(Action::EndOfLine),
+            KeyCode::Char('0') | KeyCode::Home => Some(Action::StartOfLine),
+            KeyCode::PageUp => Some(Action::PageUp),
+            KeyCode::PageDown => Some(Action::PageDown),
             KeyCode::Char('f') if matches!(modifiers, &KeyModifiers::CONTROL) => {
                 Some(Action::PageDown)
             }
+
             KeyCode::Char('b') if matches!(modifiers, &KeyModifiers::CONTROL) => {
                 Some(Action::PageUp)
             }
