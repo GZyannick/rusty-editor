@@ -228,6 +228,12 @@ impl Editor {
                         let (_, y) = self.viewport.get_cursor_viewport_position(&self.cursor);
                         self.viewport.buffer.remove(y as usize);
                     }
+                    Action::DeleteWord => {
+                        log_message!("Delete Word");
+                        self.viewport
+                            .buffer
+                            .remove_word(self.viewport.get_cursor_viewport_position(&self.cursor))
+                    }
                     Action::StartOfFile => {
                         self.viewport.move_top();
                         self.cursor.1 = 0;
@@ -272,17 +278,7 @@ impl Editor {
             let modifiers = ev.modifiers;
 
             if let Some(c) = self.waiting_command {
-                let action = match code {
-                    KeyCode::Char('d') => match c {
-                        'd' => Some(Action::DeleteLine),
-                        _ => None,
-                    },
-                    KeyCode::Char('g') => match c {
-                        'g' => Some(Action::StartOfFile),
-                        _ => None,
-                    },
-                    _ => None,
-                };
+                let action = self.handle_waiting_command(c, &code);
                 self.waiting_command = None;
                 self.stdout
                     .queue(cursor::SetCursorStyle::DefaultUserShape)?;
@@ -301,6 +297,20 @@ impl Editor {
             };
         }
         Ok(None)
+    }
+    fn handle_waiting_command(&mut self, c: char, code: &KeyCode) -> Option<Action> {
+        match c {
+            'd' => match code {
+                KeyCode::Char('d') => Some(Action::DeleteLine),
+                KeyCode::Char('w') => Some(Action::DeleteWord),
+                _ => None,
+            },
+            'g' => match code {
+                KeyCode::Char('g') => Some(Action::StartOfFile),
+                _ => None,
+            },
+            _ => None,
+        }
     }
 
     fn handle_insert_event(

@@ -6,6 +6,23 @@ use std::{
 
 use crate::log_message;
 
+enum WordType {
+    AlphaNumeric,
+    WhiteSpace,
+    Punctuation,
+}
+
+impl WordType {
+    pub fn get_type(c: &char) -> Option<WordType> {
+        match c {
+            c if c.is_whitespace() => Some(WordType::WhiteSpace),
+            c if c.is_ascii_punctuation() => Some(WordType::Punctuation),
+            c if c.is_alphanumeric() => Some(WordType::Punctuation),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
@@ -32,6 +49,10 @@ impl Buffer {
             lines: vec![],
             path: "Empty".to_string(),
         }
+    }
+
+    fn get_word(&mut self, s: &str, c_type: WordType) -> String {
+        todo!()
     }
 
     pub fn get_line(&self, n: usize) -> Option<String> {
@@ -78,6 +99,20 @@ impl Buffer {
     pub fn remove_char(&mut self, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
             line.remove(cursor.0 as usize);
+        }
+    }
+
+    pub fn remove_word(&mut self, cursor: (u16, u16)) {
+        log_message!("hellow ");
+        if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
+            let x = cursor.0 as usize;
+            let slice = &line.clone()[x..];
+            // if let Some(c) = &slice.chars().nth(x) {
+            //     if let Some(c_type) = WordType::get_type(&c) {
+            //         let word = self.get_word(&slice, c_type);
+            //         log_message!("{word}");
+            //     }
+            // }
         }
     }
 
