@@ -30,14 +30,15 @@ pub struct Editor {
     pub size: (u16, u16),
     pub cursor: (u16, u16),
     pub buffer_x_cursor: u16,
+    pub waiting_command: Option<char>,
     pub viewport: Viewport,
 }
 
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
-        // let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
-        let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
+        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
+        // let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -46,6 +47,7 @@ impl Editor {
             size,
             cursor: (0, 0),
             buffer_x_cursor: 0,
+            waiting_command: None,
             viewport,
         })
     }
@@ -159,13 +161,22 @@ impl Editor {
                         self.viewport.buffer.add_char(c, cursor_viewport);
                         self.cursor.0 += 1;
                     }
+                    Action::RemoveCharCursorPosition => {
+                        let cursor_viewport =
+                            self.viewport.get_cursor_viewport_position(&self.cursor);
+                        if self.viewport.get_line_len(&cursor_viewport) > 0 {
+                            self.viewport.buffer.remove_char(cursor_viewport);
+                        }
+                    }
                     Action::RemoveChar => {
                         let cursor_viewport =
                             self.viewport.get_cursor_viewport_position(&self.cursor);
                         match cursor_viewport.0 > 0 {
                             true => {
-                                self.viewport.buffer.remove_char(cursor_viewport);
                                 self.cursor.0 -= 1;
+                                self.viewport
+                                    .buffer
+                                    .remove_char((cursor_viewport.0 - 1, cursor_viewport.1));
                             }
                             false if cursor_viewport.1 > 0 => {
                                 // we get the size of the prev line before change
@@ -207,7 +218,24 @@ impl Editor {
                     }
                     Action::PageDown => {
                         self.viewport.page_down(&self.cursor);
-                    } // _ => {}
+                    }
+                    Action::WaitingCmd(c) => {
+                        self.stdout
+                            .queue(cursor::SetCursorStyle::BlinkingUnderScore)?;
+                        self.waiting_command = Some(c);
+                    }
+                    Action::DeleteLine => {
+                        let (_, y) = self.viewport.get_cursor_viewport_position(&self.cursor);
+                        self.viewport.buffer.remove(y as usize);
+                    }
+                    Action::StartOfFile => {
+                        self.viewport.move_top();
+                        self.cursor.1 = 0;
+                    }
+                    Action::EndOfFile => {
+                        self.viewport.move_end();
+                        self.cursor.1 = self.viewport.vheight - 1;
+                    }
                 }
             }
         }
@@ -242,6 +270,25 @@ impl Editor {
 
             let code = ev.code;
             let modifiers = ev.modifiers;
+
+            if let Some(c) = self.waiting_command {
+                let action = match code {
+                    KeyCode::Char('d') => match c {
+                        'd' => Some(Action::DeleteLine),
+                        _ => None,
+                    },
+                    KeyCode::Char('g') => match c {
+                        'g' => Some(Action::StartOfFile),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                self.waiting_command = None;
+                self.stdout
+                    .queue(cursor::SetCursorStyle::DefaultUserShape)?;
+                return Ok(action);
+            }
+
             let nav = self.navigation(&code)?;
             if nav.is_some() {
                 return Ok(nav);
@@ -278,15 +325,29 @@ impl Editor {
         modifiers: &KeyModifiers,
     ) -> Result<Option<Action>> {
         let action = match code {
+            KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+
+            // Insert Action
             KeyCode::Char('i') => Some(Action::EnterMode(Mode::Insert)),
             KeyCode::Char('a') => Some(Action::EnterMode(Mode::Insert)), //TODO Move cursor to
-            //right 1 time
-            KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+            //cursor right 1 time
+
+            // Delete Action
+            KeyCode::Char('x') => Some(Action::RemoveCharCursorPosition),
+            KeyCode::Char('d') => Some(Action::WaitingCmd('d')),
+
+            // Create Action
             KeyCode::Char('o') => Some(Action::NewLine(false)),
-            KeyCode::Char('$') | KeyCode::End => Some(Action::EndOfLine),
-            KeyCode::Char('0') | KeyCode::Home => Some(Action::StartOfLine),
+
+            //Movement Action
             KeyCode::PageUp => Some(Action::PageUp),
             KeyCode::PageDown => Some(Action::PageDown),
+            KeyCode::Char('G') => Some(Action::EndOfFile),
+            KeyCode::Char('g') => Some(Action::WaitingCmd('g')),
+            KeyCode::Char('$') | KeyCode::End => Some(Action::EndOfLine),
+            KeyCode::Char('0') | KeyCode::Home => Some(Action::StartOfLine),
+
+            // Movement with Modifiers
             KeyCode::Char('f') if matches!(modifiers, &KeyModifiers::CONTROL) => {
                 Some(Action::PageDown)
             }
@@ -348,10 +409,15 @@ impl Editor {
 
 impl Draw for Editor {
     fn draw(&mut self) -> Result<()> {
+        // some terminal line windows default show the cursor when drawing the tui so hide and show
+        // it at the end of draw
+        self.stdout.queue(cursor::Hide)?;
         self.viewport.draw(&mut self.stdout)?;
         self.draw_bottom()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
+
+        self.stdout.queue(cursor::Show)?;
         self.stdout.flush()?;
         Ok(())
     }

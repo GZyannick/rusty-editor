@@ -8,6 +8,9 @@ pub enum Action {
     EnterMode(Mode),
     AddChar(char),
     RemoveChar,
+    RemoveCharCursorPosition,
+    WaitingCmd(char),
+    DeleteLine,
     AddCommandChar(char),
     NewLine(bool), // the bool is to know if we create the new line with or without the text behind
     // the cursor like with Enter we want the text behind
@@ -16,5 +19,7 @@ pub enum Action {
     EndOfLine,
     StartOfLine,
     SaveFile,
+    EndOfFile,
+    StartOfFile,
     Quit,
 }

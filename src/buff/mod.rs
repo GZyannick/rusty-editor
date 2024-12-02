@@ -69,9 +69,15 @@ impl Buffer {
         }
     }
 
+    pub fn remove(&mut self, y: usize) {
+        if self.lines.get_mut(y).is_some() {
+            self.lines.remove(y);
+        }
+    }
+
     pub fn remove_char(&mut self, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-            line.remove(cursor.0 as usize - 1_usize);
+            line.remove(cursor.0 as usize);
         }
     }
 
