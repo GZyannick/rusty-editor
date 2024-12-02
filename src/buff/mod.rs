@@ -7,7 +7,7 @@ use std::{
 
 use crate::log_message;
 
-// #[derive(Debug)]
+// #[derive(PartialEq, Debug)]
 // enum WordType {
 //     AlphaNumeric,
 //     WhiteSpace,
@@ -22,6 +22,16 @@ use crate::log_message;
 //             c if c.is_alphanumeric() => Some(WordType::AlphaNumeric),
 //             _ => None,
 //         }
+//     }
+//
+//     pub fn is_match(&self, c: &char) -> bool {
+//         if let Some(c_type) = WordType::get_type(c) {
+//             log_message!("{:?}, {:?}", self, c_type);
+//             if self == &c_type {
+//                 return true;
+//             }
+//         }
+//         false
 //     }
 // }
 
@@ -101,23 +111,31 @@ impl Buffer {
     }
 
     pub fn remove_word(&mut self, cursor: (u16, u16)) {
-        if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-            let chars: Vec<char> = line.clone().chars().collect();
-            let mut i = cursor.0 as usize;
-
-            while i < chars.len() && chars[i].is_whitespace() {
-                i += 1;
-            }
-
-            let mut word_end = i;
-            while word_end < chars.len() && chars[word_end].is_alphanumeric()
-                || chars[word_end] == '_'
-            {
-                word_end += 1;
-            }
-
-            line.replace_range(i..word_end, "");
-        }
+        // if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
+        //     let chars: Vec<char> = line.clone().chars().collect();
+        //     let line_len = line.len() - 1;
+        //     let i = cursor.0 as usize;
+        //     // let slice_len = &line.
+        //     if i < line_len {
+        //         if let Some(first_type_char) = WordType::get_type(&chars[i]) {
+        //             let mut word_end = i + 1;
+        //
+        //             if word_end < chars.len() {
+        //                 while word_end < chars.len() && first_type_char.is_match(&chars[word_end])
+        //                     || chars[word_end] == '_'
+        //                     || chars[word_end] == ' '
+        //                 {
+        //                     word_end += 1;
+        //                 }
+        //                 line.replace_range(i..word_end, "");
+        //             } else if word_end == chars.len() {
+        //                 line.remove(word_end);
+        //             }
+        //         };
+        //     } else if i == line_len {
+        //         line.remove(i);
+        //     }
+        // }
     }
 
     pub fn remove_char_line(&mut self, cursor: (u16, u16)) {
@@ -171,43 +189,3 @@ impl Buffer {
         Ok(())
     }
 }
-
-// TEST de remove_word
-//            // if line.is_empty() {
-//     return;
-// }
-// // je recois une
-// let x = cursor.0 as usize;
-//
-// // i think this cant not fail because we leave if empty and cursor cant be on non char
-// // in term
-// let slice = &line.clone()[x..];
-// let first_char = &line.clone()[x..x + 1].chars().next().unwrap();
-//
-// if let Some(c_type) = WordType::get_type(&first_char) {
-//     log_message!("type: {:?}", c_type);
-//     let first_non_matched = match c_type {
-//         WordType::WhiteSpace => {
-//             slice.find(|c: char| c.is_alphanumeric() || c.is_ascii_punctuation())
-//         }
-//         WordType::Punctuation => {
-//             slice.find(|c: char| c.is_whitespace() || c.is_alphanumeric())
-//         }
-//         WordType::AlphaNumeric => {
-//             slice.find(|c: char| c.is_whitespace() || c.is_ascii_punctuation())
-//         }
-//     };
-//
-//     let end_of_line = match first_non_matched {
-//         Some(index) => &slice[index..],
-//         None => &slice,
-//     };
-//
-//     let mut res = String::from(&line[..x]);
-//
-//     res.push_str(end_of_line);
-//     line.clear();
-//     line.push_str(res.as_str());
-// }
-// // log_message!("{:?}, line: {}", c_type, line);
-// // let l_type = line.clone()[x..].chars();
