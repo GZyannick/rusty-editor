@@ -192,8 +192,7 @@ impl Action {
                 editor.cursor.1 = 0;
             }
             Action::EndOfFile => {
-                editor.viewport.move_end();
-                editor.cursor.1 = editor.viewport.vheight - 1;
+                editor.viewport.move_end(&mut editor.cursor);
             }
             Action::Undo => {
                 if let Some(action) = editor.undo_actions.pop() {

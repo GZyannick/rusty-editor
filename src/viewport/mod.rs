@@ -105,8 +105,15 @@ impl Viewport {
         self.top = 0;
     }
 
-    pub fn move_end(&mut self) {
-        self.top = (self.buffer.lines.len() as u16) - self.vheight;
+    pub fn move_end(&mut self, cursor: &mut (u16, u16)) {
+        let buffer_len = self.get_buffer_len() as u16;
+        let vheight = self.vheight;
+        if buffer_len > vheight {
+            self.top = buffer_len - vheight;
+            cursor.1 = vheight - 1;
+        } else {
+            cursor.1 = buffer_len - 1;
+        }
     }
 
     pub fn page_down(&mut self, cursor: &(u16, u16)) {
