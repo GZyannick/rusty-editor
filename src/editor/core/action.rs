@@ -31,7 +31,7 @@ pub enum Action {
     SaveFile,
     EndOfFile,
     StartOfFile,
-    RetrieveDeletedLine((u16, u16), u16, Option<String>), //cursor , viewport.top, content
+    RetrieveDeletedLine(u16, u16, Option<String>), //cursor.1 , top, content
     CenterLine,
     Undo,
     Quit,
@@ -158,7 +158,7 @@ impl Action {
 
                 editor.viewport.buffer.remove(y as usize);
                 editor.undo_actions.push(Action::RetrieveDeletedLine(
-                    editor.cursor,
+                    editor.cursor.1,
                     editor.viewport.top,
                     content,
                 ))
@@ -177,11 +177,18 @@ impl Action {
                     action.execute(editor)?;
                 }
             }
-            Action::RetrieveDeletedLine(cursor, viewport_top, Some(content)) => {
-                let y: usize = cursor.1 as usize + *viewport_top as usize;
-                editor.viewport.buffer.lines.insert(y, content.clone());
-                editor.viewport.top = *viewport_top;
-                editor.cursor = *cursor;
+            Action::RetrieveDeletedLine(y, top, Some(content)) => {
+                let cy = y + top;
+                editor
+                    .viewport
+                    .buffer
+                    .lines
+                    .insert(cy as usize, content.clone());
+                editor.viewport.top = *top;
+                editor.cursor.1 = *y;
+
+                // put the line at the center of screen if possible
+                editor.viewport.center_line(&mut editor.cursor);
             }
             Action::CenterLine => {
                 editor.viewport.center_line(&mut editor.cursor);

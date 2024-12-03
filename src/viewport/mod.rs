@@ -134,14 +134,12 @@ impl Viewport {
 
     pub fn center_line(&mut self, cursor: &mut (u16, u16)) {
         let c_y = cursor.1;
-
         let half = self.vheight / 2;
         let v_cursor = self.viewport_cursor(cursor);
         match (c_y) < half {
             true => {
                 // top half
                 let move_len = half - c_y;
-
                 if v_cursor.1 > half {
                     cursor.1 = half;
                     self.top -= move_len;
