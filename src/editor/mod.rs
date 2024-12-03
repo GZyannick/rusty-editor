@@ -4,9 +4,8 @@ mod core;
 use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
-use core::{action::Action, mode::Mode};
-
 use anyhow::{Ok, Result};
+use core::{action::Action, mode::Mode};
 use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode, KeyModifiers},
@@ -17,7 +16,7 @@ use std::io::{Stdout, Write};
 
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
-pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
+pub const TERMINAL_LINE_LEN_MINUS: u16 = 0;
 pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
 pub const MOVE_PREV_OR_NEXT_LINE: bool = false; // on true allow us to activate the feature where if we
                                                 // are at the end of the line or start move to next or prev line
@@ -33,6 +32,7 @@ pub struct Editor {
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
     pub undo_actions: Vec<Action>,
+    pub buffer_actions: Vec<Action>,
 }
 
 impl Editor {
@@ -51,6 +51,7 @@ impl Editor {
             waiting_command: None,
             viewport,
             undo_actions: vec![],
+            buffer_actions: vec![],
         })
     }
 
@@ -206,7 +207,7 @@ impl Editor {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
             KeyCode::Backspace => Some(Action::RemoveChar),
-            KeyCode::Enter => Some(Action::NewLine(true)),
+            KeyCode::Enter => Some(Action::NewLine),
             KeyCode::Char(c) => Some(Action::AddChar(*c)),
             _ => None,
         };
@@ -234,7 +235,7 @@ impl Editor {
             KeyCode::Char('d') => Some(Action::WaitingCmd('d')),
 
             // Create Action
-            KeyCode::Char('o') => Some(Action::NewLine(false)),
+            KeyCode::Char('o') => Some(Action::NewLineInsertion),
 
             //Movement Action
             KeyCode::PageUp => Some(Action::PageUp),

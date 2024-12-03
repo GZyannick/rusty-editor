@@ -3,7 +3,7 @@ use std::usize;
 use crossterm::{cursor, QueueableCommand};
 
 use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
-use crate::{log_message, viewport};
+use crate::{buff, log_message, viewport};
 
 use super::super::Editor;
 use super::mode::Mode;
@@ -22,8 +22,7 @@ pub enum Action {
     DeleteLine,
     DeleteWord,
     AddCommandChar(char),
-    NewLine(bool), // the bool is to know if we create the new line with or without the text behind
-    // the cursor like with Enter we want the text behind
+    NewLine,
     PageDown,
     PageUp,
     EndOfLine,
@@ -31,10 +30,12 @@ pub enum Action {
     SaveFile,
     EndOfFile,
     StartOfFile,
-    RetrieveDeletedLine(u16, u16, Option<String>), //cursor.1 , top, content
+    UndoDeleteLine(u16, u16, Option<String>), //cursor.1 , top, content
     CenterLine,
     Undo,
     Quit,
+    NewLineInsertion,
+    UndoNewLine(u16, u16),
 }
 
 impl Action {
@@ -123,9 +124,19 @@ impl Action {
             Action::AddCommandChar(c) => {
                 editor.command.push(*c);
             }
-            Action::NewLine(is_enter) => {
+            Action::NewLineInsertion => {
                 let v_cursor = editor.v_cursor();
-                editor.viewport.buffer.new_line(v_cursor, *is_enter);
+                editor.viewport.buffer.new_line(v_cursor, false);
+                editor.move_next_line();
+                editor.mode = Mode::Insert;
+
+                editor
+                    .undo_actions
+                    .push(Action::UndoNewLine(editor.cursor.1, editor.viewport.top));
+            }
+            Action::NewLine => {
+                let v_cursor = editor.v_cursor();
+                editor.viewport.buffer.new_line(v_cursor, true);
                 editor.move_next_line();
             }
             Action::SaveFile => {
@@ -140,7 +151,8 @@ impl Action {
             }
             Action::EndOfLine => {
                 editor.clear_buffer_x_cursor();
-                editor.cursor.0 = editor.viewport.get_line_len(&editor.cursor) - 1;
+                editor.cursor.0 =
+                    editor.viewport.get_line_len(&editor.cursor) - TERMINAL_LINE_LEN_MINUS;
             }
             Action::PageDown => {
                 editor.viewport.page_down(&editor.cursor);
@@ -153,15 +165,19 @@ impl Action {
             }
             Action::DeleteLine => {
                 let (_, y) = editor.v_cursor();
-
                 let content = editor.viewport.buffer.get(y as usize).clone();
-
                 editor.viewport.buffer.remove(y as usize);
-                editor.undo_actions.push(Action::RetrieveDeletedLine(
+
+                editor.undo_actions.push(Action::UndoDeleteLine(
                     editor.cursor.1,
                     editor.viewport.top,
                     content,
-                ))
+                ));
+
+                let buffer_len = editor.viewport.get_buffer_len();
+                if y as usize >= buffer_len {
+                    editor.cursor.1 -= 1;
+                }
             }
             Action::DeleteWord => editor.viewport.buffer.remove_word(editor.v_cursor()),
             Action::StartOfFile => {
@@ -177,21 +193,38 @@ impl Action {
                     action.execute(editor)?;
                 }
             }
-            Action::RetrieveDeletedLine(y, top, Some(content)) => {
+            Action::UndoDeleteLine(y, top, Some(content)) => {
                 let cy = y + top;
-                editor
-                    .viewport
-                    .buffer
-                    .lines
-                    .insert(cy as usize, content.clone());
+                let buffer_len = editor.viewport.get_buffer_len();
+                log_message!("cy: {cy} buff_len: {buffer_len}");
+                if cy as usize >= buffer_len {
+                    editor.viewport.buffer.lines.push(content.clone());
+                    editor.cursor.1 += 1;
+                } else {
+                    editor
+                        .viewport
+                        .buffer
+                        .lines
+                        .insert(cy as usize, content.clone());
+                }
                 editor.viewport.top = *top;
-                editor.cursor.1 = *y;
 
                 // put the line at the center of screen if possible
                 editor.viewport.center_line(&mut editor.cursor);
             }
             Action::CenterLine => {
                 editor.viewport.center_line(&mut editor.cursor);
+            }
+            Action::UndoNewLine(y, top) => {
+                let cy = y + top;
+                editor.viewport.buffer.remove(cy as usize);
+                editor.viewport.top = *top;
+                let buffer_len = editor.viewport.get_buffer_len();
+                if cy as usize >= buffer_len {
+                    editor.cursor.1 = *y - 1;
+                } else {
+                    editor.cursor.1 = *y;
+                }
             }
             _ => {}
         }
