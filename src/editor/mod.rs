@@ -1,9 +1,9 @@
 mod ui;
 use ui::Draw;
 mod core;
+use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
-use crate::{buff::Buffer, log_message};
 use core::{action::Action, mode::Mode};
 
 use anyhow::{Ok, Result};
@@ -32,6 +32,7 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
+    pub undo_actions: Vec<Action>,
 }
 
 impl Editor {
@@ -49,7 +50,12 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewport,
+            undo_actions: vec![],
         })
+    }
+
+    pub fn v_cursor(&self) -> (u16, u16) {
+        self.viewport.viewport_cursor(&self.cursor)
     }
 
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
@@ -102,149 +108,27 @@ impl Editor {
             let event = read()?;
 
             if let event::Event::Resize(width, height) = event {
-                self.viewport.vwidth = width;
-                self.viewport.vheight = height;
-                self.size = (width, height);
-                self.stdout
-                    .queue(terminal::Clear(terminal::ClearType::All))?;
+                self.resize(width, height)?;
                 continue;
             }
 
             if let Some(action) = self.handle_action(event)? {
-                match action {
-                    Action::Quit => break,
-                    Action::MoveUp => {
-                        self.move_prev_line();
-                    }
-
-                    Action::MoveRight => {
-                        // we clear the buffer because to overwrite it if needed;
-                        self.clear_buffer_x_cursor();
-                        // if we are at the end of the line_len - 1 move to next line
-                        let line_len = match self.viewport.get_line_len(&self.cursor) {
-                            0 => 0,
-                            ll => ll - TERMINAL_LINE_LEN_MINUS,
-                        };
-                        match line_len > self.cursor.0 {
-                            true => self.cursor.0 += 1,
-                            false if MOVE_PREV_OR_NEXT_LINE => {
-                                // if we are at the end of the line go ot the next line if exist
-                                // and move the cursor to the start of the line
-                                self.move_next_line();
-                                self.cursor.0 = 0;
-                            }
-                            false => (),
-                        }
-                    }
-                    Action::MoveLeft => {
-                        // we clear the buffer because to overwrite it if needed;
-                        self.clear_buffer_x_cursor();
-                        if self.cursor.0 > 0 {
-                            self.cursor.0 -= 1;
-                        } else if self.cursor.0 == 0
-                            && (self.cursor.1 > 0 || self.viewport.top > 0)
-                            && MOVE_PREV_OR_NEXT_LINE
-                        {
-                            // if we are at the start of the line go ot the prev line if exist
-                            // and move the cursor to the end of the line
-                            self.move_prev_line();
-                            self.cursor.0 = self.viewport.get_line_len(&self.cursor);
-                        }
-                    }
-
-                    Action::MoveDown => {
-                        self.move_next_line();
-                    }
-                    Action::AddChar(c) => {
-                        let cursor_viewport =
-                            self.viewport.get_cursor_viewport_position(&self.cursor);
-                        self.viewport.buffer.add_char(c, cursor_viewport);
-                        self.cursor.0 += 1;
-                    }
-                    Action::RemoveCharCursorPosition => {
-                        let cursor_viewport =
-                            self.viewport.get_cursor_viewport_position(&self.cursor);
-                        if self.viewport.get_line_len(&cursor_viewport) > 0 {
-                            self.viewport.buffer.remove_char(cursor_viewport);
-                        }
-                    }
-                    Action::RemoveChar => {
-                        let cursor_viewport =
-                            self.viewport.get_cursor_viewport_position(&self.cursor);
-                        match cursor_viewport.0 > 0 {
-                            true => {
-                                self.cursor.0 -= 1;
-                                self.viewport
-                                    .buffer
-                                    .remove_char((cursor_viewport.0 - 1, cursor_viewport.1));
-                            }
-                            false if cursor_viewport.1 > 0 => {
-                                // we get the size of the prev line before change
-                                // because we want the text that will be added behind the cursor
-                                let new_x_pos = self
-                                    .viewport
-                                    .get_line_len(&(self.cursor.0, self.cursor.1 - 1));
-                                self.viewport.buffer.remove_char_line(cursor_viewport);
-                                self.move_prev_line();
-                                self.cursor.0 = new_x_pos;
-                            }
-                            _ => {}
-                        }
-                    }
-                    Action::EnterMode(mode) => {
-                        self.mode = mode;
-                    }
-                    Action::AddCommandChar(c) => {
-                        self.command.push(c);
-                    }
-                    Action::NewLine(is_enter) => {
-                        let v_cursor = self.viewport.get_cursor_viewport_position(&self.cursor);
-                        self.viewport.buffer.new_line(v_cursor, is_enter);
-                        self.move_next_line();
-                    }
-                    Action::SaveFile => {
-                        self.viewport.buffer.save()?;
-                    }
-                    Action::PageUp => {
-                        self.viewport.page_up();
-                    }
-                    Action::StartOfLine => {
-                        self.clear_buffer_x_cursor();
-                        self.cursor.0 = 0;
-                    }
-                    Action::EndOfLine => {
-                        self.clear_buffer_x_cursor();
-                        self.cursor.0 = self.viewport.get_line_len(&self.cursor) - 1;
-                    }
-                    Action::PageDown => {
-                        self.viewport.page_down(&self.cursor);
-                    }
-                    Action::WaitingCmd(c) => {
-                        self.stdout
-                            .queue(cursor::SetCursorStyle::BlinkingUnderScore)?;
-                        self.waiting_command = Some(c);
-                    }
-                    Action::DeleteLine => {
-                        let (_, y) = self.viewport.get_cursor_viewport_position(&self.cursor);
-                        self.viewport.buffer.remove(y as usize);
-                    }
-                    Action::DeleteWord => {
-                        log_message!("Delete Word");
-                        self.viewport
-                            .buffer
-                            .remove_word(self.viewport.get_cursor_viewport_position(&self.cursor))
-                    }
-                    Action::StartOfFile => {
-                        self.viewport.move_top();
-                        self.cursor.1 = 0;
-                    }
-                    Action::EndOfFile => {
-                        self.viewport.move_end();
-                        self.cursor.1 = self.viewport.vheight - 1;
-                    }
+                if matches!(action, Action::Quit) {
+                    break;
                 }
+                action.execute(self)?;
             }
         }
+        Ok(())
+    }
+
+    fn resize(&mut self, w: u16, h: u16) -> Result<()> {
+        self.viewport.vwidth = w;
+        self.viewport.vheight = h;
+        self.size = (w, h);
+        self.stdout
+            .queue(terminal::Clear(terminal::ClearType::All))?;
+
         Ok(())
     }
 
@@ -257,15 +141,11 @@ impl Editor {
 
     fn move_next_line(&mut self) {
         if self.viewport.is_under_buffer_len(&self.cursor) {
-            match self.max_cursor_viewport_height() {
+            match self.cursor.1 >= (self.viewport.vheight - 1) {
                 true => self.viewport.scroll_down(),
                 false => self.cursor.1 += 1,
             }
         }
-    }
-
-    fn max_cursor_viewport_height(&self) -> bool {
-        self.cursor.1 >= (self.viewport.vheight - 1)
     }
 
     fn handle_action(&mut self, event: Event) -> Result<Option<Action>> {
@@ -298,6 +178,7 @@ impl Editor {
         }
         Ok(None)
     }
+
     fn handle_waiting_command(&mut self, c: char, code: &KeyCode) -> Option<Action> {
         match c {
             'd' => match code {
@@ -307,6 +188,10 @@ impl Editor {
             },
             'g' => match code {
                 KeyCode::Char('g') => Some(Action::StartOfFile),
+                _ => None,
+            },
+            'z' => match code {
+                KeyCode::Char('z') => Some(Action::CenterLine),
                 _ => None,
             },
             _ => None,
@@ -335,6 +220,8 @@ impl Editor {
         modifiers: &KeyModifiers,
     ) -> Result<Option<Action>> {
         let action = match code {
+            KeyCode::Char('z') => Some(Action::WaitingCmd('z')),
+            KeyCode::Char('u') => Some(Action::Undo),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
 
             // Insert Action
@@ -436,7 +323,7 @@ impl Draw for Editor {
         self.stdout
             .queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS))?;
 
-        let cursor_viewport = self.viewport.get_cursor_viewport_position(&self.cursor);
+        let cursor_viewport = self.viewport.viewport_cursor(&self.cursor);
 
         let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);

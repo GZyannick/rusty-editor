@@ -6,7 +6,7 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::{buff::Buffer, log_message, theme::colors};
+use crate::{buff::Buffer, editor, log_message, theme::colors};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -40,7 +40,7 @@ impl Viewport {
         for i in 0..self.vheight {
             let line: String = self
                 .buffer
-                .get_line(self.top as usize + i as usize)
+                .get(self.top as usize + i as usize)
                 .unwrap_or_default();
 
             // See if this is the best opt
@@ -70,15 +70,16 @@ impl Viewport {
         Ok(())
     }
 
+    // retrieve the len of the line
     pub fn get_line_len(&self, cursor: &(u16, u16)) -> u16 {
-        let (_, y) = self.get_cursor_viewport_position(cursor);
-        match self.buffer.get_line(y as usize) {
+        let (_, y) = self.viewport_cursor(cursor);
+        match self.buffer.get(y as usize) {
             Some(line) => line.len() as u16,
             None => 0,
         }
     }
 
-    pub fn get_cursor_viewport_position(&self, cursor: &(u16, u16)) -> (u16, u16) {
+    pub fn viewport_cursor(&self, cursor: &(u16, u16)) -> (u16, u16) {
         (cursor.0 + self.left, cursor.1 + self.top)
     }
 
@@ -127,7 +128,43 @@ impl Viewport {
         if self.buffer.lines.is_empty() {
             return false;
         }
-        let (_, y) = self.get_cursor_viewport_position(cursor);
+        let (_, y) = self.viewport_cursor(cursor);
         (y as usize) < (self.buffer.lines.len() - 1_usize)
+    }
+
+    pub fn center_line(&mut self, cursor: &mut (u16, u16)) {
+        let c_y = cursor.1;
+
+        let half = self.vheight / 2;
+        let v_cursor = self.viewport_cursor(cursor);
+        match (c_y) < half {
+            true => {
+                // top half
+                let move_len = half - c_y;
+
+                if v_cursor.1 > half {
+                    cursor.1 = half;
+                    self.top -= move_len;
+                }
+            }
+            false => {
+                // bottom half
+                let move_len = c_y - half;
+                let buffer_len = self.get_buffer_len();
+                if let Some(max_down) = buffer_len.checked_sub(v_cursor.1 as usize) {
+                    if max_down > half as usize {
+                        cursor.1 = half;
+                        self.top += move_len;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_buffer_len(&self) -> usize {
+        if self.buffer.lines.is_empty() {
+            return 0;
+        }
+        self.buffer.lines.len()
     }
 }

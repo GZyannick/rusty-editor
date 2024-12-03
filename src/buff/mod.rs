@@ -63,7 +63,7 @@ impl Buffer {
         }
     }
 
-    pub fn get_line(&self, n: usize) -> Option<String> {
+    pub fn get(&self, n: usize) -> Option<String> {
         self.lines.get(n).cloned()
     }
 
@@ -140,7 +140,7 @@ impl Buffer {
 
     pub fn remove_char_line(&mut self, cursor: (u16, u16)) {
         let mut buf = String::new();
-        if let Some(line) = self.get_line(cursor.1 as usize) {
+        if let Some(line) = self.get(cursor.1 as usize) {
             buf = line.clone();
             self.lines.remove(cursor.1 as usize);
         }
