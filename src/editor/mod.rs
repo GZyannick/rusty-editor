@@ -16,10 +16,10 @@ use std::io::{Stdout, Write};
 
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
-pub const TERMINAL_LINE_LEN_MINUS: u16 = 0;
+pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
 pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
-pub const MOVE_PREV_OR_NEXT_LINE: bool = false; // on true allow us to activate the feature where if we
-                                                // are at the end of the line or start move to next or prev line
+pub const MOVE_PREV_OR_NEXT_LINE: bool = true; // on true allow us to activate the feature where if we
+                                               // are at the end of the line or start move to next or prev line
 
 #[derive(Debug)]
 pub struct Editor {
@@ -32,7 +32,6 @@ pub struct Editor {
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
     pub undo_actions: Vec<Action>,
-    pub buffer_actions: Vec<Action>,
 }
 
 impl Editor {
@@ -51,7 +50,6 @@ impl Editor {
             waiting_command: None,
             viewport,
             undo_actions: vec![],
-            buffer_actions: vec![],
         })
     }
 
@@ -77,10 +75,7 @@ impl Editor {
     }
 
     fn check_bounds(&mut self) {
-        let line_len = match self.viewport.get_line_len(&self.cursor) {
-            0 => 0,
-            ll => ll - TERMINAL_LINE_LEN_MINUS,
-        };
+        let line_len = self.get_specific_line_len_by_mode();
 
         if self.cursor.0 >= line_len {
             if self.buffer_x_cursor == 0 {
@@ -306,6 +301,16 @@ impl Editor {
         };
 
         Ok(action)
+    }
+
+    fn get_specific_line_len_by_mode(&mut self) -> u16 {
+        // ive created this fn because the ll is different by the mode we are in
+        // != Mode::Insert = ll - 1
+        match self.viewport.get_line_len(&self.cursor) {
+            0 => 0,
+            ll if matches!(self.mode, Mode::Insert) => ll,
+            ll => ll - TERMINAL_LINE_LEN_MINUS,
+        }
     }
 }
 

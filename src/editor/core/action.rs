@@ -1,9 +1,7 @@
-use std::usize;
-
 use crossterm::{cursor, QueueableCommand};
 
 use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
-use crate::{buff, log_message, viewport};
+use crate::log_message;
 
 use super::super::Editor;
 use super::mode::Mode;
@@ -50,10 +48,7 @@ impl Action {
                 // we clear the buffer because to overwrite it if needed;
                 editor.clear_buffer_x_cursor();
                 // if we are at the end of the line_len - 1 move to next line
-                let line_len = match editor.viewport.get_line_len(&editor.cursor) {
-                    0 => 0,
-                    ll => ll - TERMINAL_LINE_LEN_MINUS,
-                };
+                let line_len = editor.get_specific_line_len_by_mode();
                 match line_len > editor.cursor.0 {
                     true => editor.cursor.0 += 1,
                     false if MOVE_PREV_OR_NEXT_LINE => {
@@ -119,6 +114,10 @@ impl Action {
                 }
             }
             Action::EnterMode(mode) => {
+                match matches!(mode, Mode::Insert) {
+                    true => editor.stdout.queue(cursor::SetCursorStyle::SteadyBar)?,
+                    false => editor.stdout.queue(cursor::SetCursorStyle::SteadyBlock)?,
+                };
                 editor.mode = *mode;
             }
             Action::AddCommandChar(c) => {
@@ -137,6 +136,7 @@ impl Action {
             Action::NewLine => {
                 let v_cursor = editor.v_cursor();
                 editor.viewport.buffer.new_line(v_cursor, true);
+                editor.cursor.0 = 0;
                 editor.move_next_line();
             }
             Action::SaveFile => {
@@ -214,7 +214,6 @@ impl Action {
                 let cy = y + top;
                 editor.viewport.buffer.remove(cy as usize);
                 editor.viewport.top = *top;
-                let buffer_len = editor.viewport.get_buffer_len();
                 editor.cursor.1 = *y;
             }
             _ => {}
