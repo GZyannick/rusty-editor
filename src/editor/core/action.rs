@@ -173,11 +173,6 @@ impl Action {
                     editor.viewport.top,
                     content,
                 ));
-
-                let buffer_len = editor.viewport.get_buffer_len();
-                if y as usize >= buffer_len {
-                    editor.cursor.1 -= 1;
-                }
             }
             Action::DeleteWord => editor.viewport.buffer.remove_word(editor.v_cursor()),
             Action::StartOfFile => {
@@ -220,11 +215,7 @@ impl Action {
                 editor.viewport.buffer.remove(cy as usize);
                 editor.viewport.top = *top;
                 let buffer_len = editor.viewport.get_buffer_len();
-                if cy as usize >= buffer_len {
-                    editor.cursor.1 = *y - 1;
-                } else {
-                    editor.cursor.1 = *y;
-                }
+                editor.cursor.1 = *y;
             }
             _ => {}
         }

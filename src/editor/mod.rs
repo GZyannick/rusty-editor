@@ -100,6 +100,10 @@ impl Editor {
                 }
             }
         }
+
+        if self.v_cursor().1 as usize >= self.viewport.get_buffer_len() {
+            self.cursor.1 -= 1;
+        }
     }
 
     pub fn run(&mut self) -> Result<()> {
