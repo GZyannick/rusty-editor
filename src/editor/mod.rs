@@ -234,7 +234,8 @@ impl Editor {
             KeyCode::Char('d') => Some(Action::WaitingCmd('d')),
 
             // Create Action
-            KeyCode::Char('o') => Some(Action::NewLineInsertion),
+            KeyCode::Char('o') => Some(Action::NewLineInsertionBelowCursor),
+            KeyCode::Char('O') => Some(Action::NewLineInsertionAtCursor),
 
             //Movement Action
             KeyCode::PageUp => Some(Action::PageUp),

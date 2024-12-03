@@ -32,8 +32,9 @@ pub enum Action {
     CenterLine,
     Undo,
     Quit,
-    NewLineInsertion,
+    NewLineInsertionBelowCursor,
     UndoNewLine(u16, u16),
+    NewLineInsertionAtCursor,
 }
 
 impl Action {
@@ -123,10 +124,21 @@ impl Action {
             Action::AddCommandChar(c) => {
                 editor.command.push(*c);
             }
-            Action::NewLineInsertion => {
+            Action::NewLineInsertionAtCursor => {
                 let v_cursor = editor.v_cursor();
                 editor.viewport.buffer.new_line(v_cursor, false);
+                editor.mode = Mode::Insert;
+                editor.cursor.0 = 0;
+
+                editor
+                    .undo_actions
+                    .push(Action::UndoNewLine(editor.cursor.1, editor.viewport.top));
+            }
+            Action::NewLineInsertionBelowCursor => {
+                let (v_x, v_y) = editor.v_cursor();
+                editor.viewport.buffer.new_line((v_x, v_y + 1), false);
                 editor.move_next_line();
+                editor.cursor.0 = 0;
                 editor.mode = Mode::Insert;
 
                 editor
@@ -134,8 +146,8 @@ impl Action {
                     .push(Action::UndoNewLine(editor.cursor.1, editor.viewport.top));
             }
             Action::NewLine => {
-                let v_cursor = editor.v_cursor();
-                editor.viewport.buffer.new_line(v_cursor, true);
+                let (v_x, v_y) = editor.v_cursor();
+                editor.viewport.buffer.new_line((v_x, v_y + 1), false);
                 editor.cursor.0 = 0;
                 editor.move_next_line();
             }
