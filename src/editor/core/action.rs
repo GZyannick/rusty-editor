@@ -132,7 +132,9 @@ impl Action {
                 if matches!(editor.mode, Mode::Insert) && !matches!(mode, Mode::Insert) {
                     editor.stdout.execute(cursor::SetCursorStyle::SteadyBlock)?;
                     let actions = std::mem::take(&mut editor.undo_insert_actions);
-                    editor.undo_actions.push(Action::UndoMultiple(actions));
+                    if !editor.undo_insert_actions.is_empty() {
+                        editor.undo_actions.push(Action::UndoMultiple(actions));
+                    }
                 }
 
                 editor.mode = *mode;
