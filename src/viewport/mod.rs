@@ -1,12 +1,19 @@
+mod core;
 mod ui;
+
+use core::ColorHighligter;
+
+use streaming_iterator::StreamingIterator;
 
 use crossterm::{
     cursor,
-    style::{PrintStyledContent, Stylize},
+    style::{Print, PrintStyledContent, StyledContent, Stylize},
     QueueableCommand,
 };
+use tree_sitter::{Language, Parser, Query, QueryCursor, Tree};
+use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
-use crate::{buff::Buffer, editor, log_message, theme::colors};
+use crate::{buff::Buffer, log_message, theme::colors};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -29,30 +36,98 @@ impl Viewport {
         }
     }
 
+    pub fn highlight(&self, code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
+        let language = tree_sitter_rust::LANGUAGE;
+        let mut colors: Vec<ColorHighligter> = vec![];
+        let mut parser = Parser::new();
+        parser.set_language(&language.into())?;
+
+        let tree = parser.parse(code, None).expect("tree_sitter couldnt parse");
+
+        let query = Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error");
+        let mut query_cursor = QueryCursor::new();
+        let mut query_matches = query_cursor.matches(&query, tree.root_node(), code.as_bytes());
+
+        while let Some(m) = query_matches.next() {
+            for cap in m.captures {
+                let node = cap.node;
+                let start = node.start_byte();
+                let end = node.end_byte();
+                //
+                let punctuation = query.capture_names()[cap.index as usize];
+                colors.push(ColorHighligter::new_from_capture(start, end, punctuation))
+            }
+        }
+
+        Ok(colors)
+    }
+
+    fn viewport(&self) -> String {
+        if self.buffer.lines.is_empty() {
+            return String::new();
+        }
+
+        let height = std::cmp::min((self.top + self.vheight) as usize, self.get_buffer_len());
+        let vec = &self.buffer.lines;
+        vec[self.top as usize..height].join("\n")
+    }
+
     pub fn draw(&mut self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
         if self.buffer.lines.is_empty() {
             return Ok(());
         }
-
         let v_width = self.vwidth;
         stdout.queue(cursor::MoveTo(0, 0))?;
+        let viewport_buffer = self.viewport();
+        let colors = self.highlight(&viewport_buffer)?;
 
-        for i in 0..self.vheight {
-            let line: String = self
-                .buffer
-                .get(self.top as usize + i as usize)
-                .unwrap_or_default();
-
-            // See if this is the best opt
-            // to move it at 3 instead or 0
-
-            // self.draw_line_number(stdout, i)?;
-            stdout
-                .queue(cursor::MoveTo(0, i))?
-                .queue(PrintStyledContent(
-                    format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
+        let mut y: usize = 0;
+        let mut x: usize = 0;
+        let mut colorhighligter = None;
+        for (pos, c) in viewport_buffer.chars().enumerate() {
+            if c == '\n' {
+                x = 0;
+                y += 1;
+                stdout.queue(PrintStyledContent(
+                    format!("{c:<width$}", width = (v_width as usize - x)).on(colors::BG_0),
                 ))?;
+                continue;
+            }
+            if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
+                colorhighligter = Some(colorh);
+            }
+
+            if let Some(_) = colors.iter().find(|ch| pos == ch.end) {
+                colorhighligter = None
+            }
+
+            let styled_text = match colorhighligter {
+                Some(ch) => format!("{c}").on(colors::BG_0).with(ch.color),
+                None => format!("{c}",).on(colors::BG_0),
+            };
+
+            x += 1;
+            stdout
+                .queue(cursor::MoveTo(x as u16, y as u16))?
+                .queue(PrintStyledContent(styled_text))?;
         }
+
+        // for i in 0..self.vheight {
+        //     let line: String = self
+        //         .buffer
+        //         .get(self.top as usize + i as usize)
+        //         .unwrap_or_default();
+        //
+        //     // See if this is the best opt
+        //     // to move it at 3 instead or 0
+        //
+        //     // self.draw_line_number(stdout, i)?;
+        //     stdout
+        //         .queue(cursor::MoveTo(0, i))?
+        //         .queue(PrintStyledContent(
+        //             format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
+        //         ))?;
+        // }
 
         Ok(())
     }
