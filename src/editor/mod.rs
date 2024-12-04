@@ -5,7 +5,10 @@ use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use anyhow::{Ok, Result};
-use core::{action::Action, mode::Mode};
+use core::{
+    action::{self, Action},
+    mode::Mode,
+};
 use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode, KeyModifiers},
@@ -31,7 +34,11 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
-    pub undo_actions: Vec<Action>,
+    pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
+    pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
+    pub undo_insert_actions: Vec<Action>, // when we are in insert mode all the undo at the same
+                                     // place
+                                     // PS i could do better on comment
 }
 
 impl Editor {
@@ -49,7 +56,9 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewport,
+            buffer_actions: vec![],
             undo_actions: vec![],
+            undo_insert_actions: vec![],
         })
     }
 
@@ -230,7 +239,7 @@ impl Editor {
             //cursor right 1 time
 
             // Delete Action
-            KeyCode::Char('x') => Some(Action::RemoveCharCursorPosition),
+            KeyCode::Char('x') => Some(Action::RemoveCharAt(self.v_cursor())),
             KeyCode::Char('d') => Some(Action::WaitingCmd('d')),
 
             // Create Action

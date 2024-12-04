@@ -1,4 +1,4 @@
-use crossterm::{cursor, QueueableCommand};
+use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
 use crate::log_message;
@@ -15,7 +15,7 @@ pub enum Action {
     EnterMode(Mode),
     AddChar(char),
     RemoveChar,
-    RemoveCharCursorPosition,
+    RemoveCharAt((u16, u16)),
     WaitingCmd(char),
     DeleteLine,
     DeleteWord,
@@ -28,13 +28,16 @@ pub enum Action {
     SaveFile,
     EndOfFile,
     StartOfFile,
-    UndoDeleteLine(u16, u16, Option<String>), //cursor.1 , top, content
     CenterLine,
     Undo,
     Quit,
     NewLineInsertionBelowCursor,
-    UndoNewLine(u16, u16),
     NewLineInsertionAtCursor,
+
+    // TODO: later add a way to use command and use :13 to move to line and dont pass it args
+    UndoDeleteLine(u16, u16, Option<String>), //cursor.1 , top, content
+    UndoNewLine(u16, u16),
+    UndoMultiple(Vec<Action>),
 }
 
 impl Action {
@@ -82,13 +85,17 @@ impl Action {
             }
             Action::AddChar(c) => {
                 let cursor_viewport = editor.v_cursor();
+                // editor.undo_insert_actions();
+                editor
+                    .undo_insert_actions
+                    .push(Action::RemoveCharAt(cursor_viewport));
+
                 editor.viewport.buffer.add_char(*c, cursor_viewport);
                 editor.cursor.0 += 1;
             }
-            Action::RemoveCharCursorPosition => {
-                let cursor_viewport = editor.v_cursor();
-                if editor.viewport.get_line_len(&cursor_viewport) > 0 {
-                    editor.viewport.buffer.remove_char(cursor_viewport);
+            Action::RemoveCharAt(cursor) => {
+                if editor.viewport.get_line_len(cursor) > 0 {
+                    editor.viewport.buffer.remove_char(*cursor);
                 }
             }
             Action::RemoveChar => {
@@ -115,10 +122,19 @@ impl Action {
                 }
             }
             Action::EnterMode(mode) => {
-                match matches!(mode, Mode::Insert) {
-                    true => editor.stdout.queue(cursor::SetCursorStyle::SteadyBar)?,
-                    false => editor.stdout.queue(cursor::SetCursorStyle::SteadyBlock)?,
-                };
+                // if we enter insert mode
+                if !matches!(editor.mode, Mode::Insert) && matches!(mode, Mode::Insert) {
+                    editor.stdout.execute(cursor::SetCursorStyle::SteadyBar)?;
+                    editor.undo_insert_actions = vec![];
+                }
+
+                // if we leave insert mode
+                if matches!(editor.mode, Mode::Insert) && !matches!(mode, Mode::Insert) {
+                    editor.stdout.execute(cursor::SetCursorStyle::SteadyBlock)?;
+                    let actions = std::mem::take(&mut editor.undo_insert_actions);
+                    editor.undo_actions.push(Action::UndoMultiple(actions));
+                }
+
                 editor.mode = *mode;
             }
             Action::AddCommandChar(c) => {
@@ -127,7 +143,7 @@ impl Action {
             Action::NewLineInsertionAtCursor => {
                 let v_cursor = editor.v_cursor();
                 editor.viewport.buffer.new_line(v_cursor, false);
-                editor.mode = Mode::Insert;
+                editor.buffer_actions.push(Action::EnterMode(Mode::Insert));
                 editor.cursor.0 = 0;
 
                 editor
@@ -139,7 +155,8 @@ impl Action {
                 editor.viewport.buffer.new_line((v_x, v_y + 1), false);
                 editor.move_next_line();
                 editor.cursor.0 = 0;
-                editor.mode = Mode::Insert;
+
+                editor.buffer_actions.push(Action::EnterMode(Mode::Insert));
 
                 editor
                     .undo_actions
@@ -197,6 +214,7 @@ impl Action {
             Action::Undo => {
                 if let Some(action) = editor.undo_actions.pop() {
                     action.execute(editor)?;
+                    // TODO: i think this is undo wo need to move the cursor where it was before
                 }
             }
             Action::UndoDeleteLine(y, top, Some(content)) => {
@@ -227,7 +245,19 @@ impl Action {
                 editor.viewport.top = *top;
                 editor.cursor.1 = *y;
             }
+            Action::UndoMultiple(actions) => {
+                for action in actions.iter().rev() {
+                    action.execute(editor)?;
+                }
+            }
             _ => {}
+        }
+        //TODO: check if the match put some action in the buffer to be executed
+        // not sure if this is the best place because it could cause an infinite loop
+        if !editor.buffer_actions.is_empty() {
+            if let Some(action) = editor.buffer_actions.pop() {
+                action.execute(editor)?;
+            }
         }
         Ok(())
     }
