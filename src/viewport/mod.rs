@@ -1,12 +1,23 @@
+mod core;
 mod ui;
+
+use core::ColorHighligter;
+
+use streaming_iterator::StreamingIterator;
 
 use crossterm::{
     cursor,
-    style::{PrintStyledContent, Stylize},
+    style::{Print, PrintStyledContent, StyledContent, Stylize},
     QueueableCommand,
 };
+use tree_sitter::{Language, Parser, Query, QueryCursor, Tree};
+use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
-use crate::{buff::Buffer, log_message, theme::colors};
+use crate::{
+    buff::Buffer,
+    log_message,
+    theme::colors::{self, BG_0},
+};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -16,44 +27,98 @@ pub struct Viewport {
     pub top: u16,
     pub vwidth: u16,
     pub vheight: u16,
+    pub query: Query,
+    pub language: Language,
 }
 
 impl Viewport {
     pub fn new(buffer: Buffer, vwidth: u16, vheight: u16) -> Viewport {
+        let language = tree_sitter_rust::LANGUAGE;
+        // i am in obligation to put the Query::new in viewport or it will make lag the app
+        // and make it unspossible to use tree_sitter without delay in the input
         Viewport {
             buffer,
             vwidth,
             vheight,
             left: 0,
             top: 0,
+            language: language.into(),
+            query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
         }
+    }
+
+    pub fn highlight(&self, code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
+        let mut colors: Vec<ColorHighligter> = vec![];
+        let mut parser = Parser::new();
+        parser.set_language(&self.language)?;
+
+        let tree = parser.parse(code, None).expect("tree_sitter couldnt parse");
+
+        let mut query_cursor = QueryCursor::new();
+        let mut query_matches =
+            query_cursor.matches(&self.query, tree.root_node(), code.as_bytes());
+        //
+        while let Some(m) = query_matches.next() {
+            for cap in m.captures {
+                let node = cap.node;
+                let punctuation = self.query.capture_names()[cap.index as usize];
+                colors.push(ColorHighligter::new_from_capture(
+                    node.start_byte(),
+                    node.end_byte(),
+                    punctuation,
+                ))
+            }
+        }
+
+        Ok(colors)
+    }
+
+    fn viewport(&self) -> String {
+        if self.buffer.lines.is_empty() {
+            return String::new();
+        }
+
+        let height = std::cmp::min((self.top + self.vheight) as usize, self.get_buffer_len());
+        let vec = &self.buffer.lines;
+        vec[self.top as usize..height].join("\n")
     }
 
     pub fn draw(&mut self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
         if self.buffer.lines.is_empty() {
             return Ok(());
         }
-
         let v_width = self.vwidth;
         stdout.queue(cursor::MoveTo(0, 0))?;
+        let viewport_buffer = self.viewport();
+        let colors = self.highlight(&viewport_buffer)?;
 
-        for i in 0..self.vheight {
-            let line: String = self
-                .buffer
-                .get_line(self.top as usize + i as usize)
-                .unwrap_or_default();
+        let mut y: usize = 0;
+        let mut x: usize = 0;
+        let mut colorhighligter = None;
 
-            // See if this is the best opt
-            // to move it at 3 instead or 0
+        for (pos, c) in viewport_buffer.chars().enumerate() {
+            if c == '\n' {
+                x = 0;
+                y += 1;
+                stdout.queue(PrintStyledContent(" ".repeat(v_width as usize).on(BG_0)))?;
+                continue;
+            }
+            if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
+                colorhighligter = Some(colorh);
+            } else if colors.iter().find(|ch| pos == ch.end).is_some() {
+                colorhighligter = None
+            }
 
-            // self.draw_line_number(stdout, i)?;
+            let styled_text = match colorhighligter {
+                Some(ch) => format!("{c}").on(colors::BG_0).with(ch.color),
+                None => format!("{c}",).on(colors::BG_0),
+            };
+
+            x += 1;
             stdout
-                .queue(cursor::MoveTo(0, i))?
-                .queue(PrintStyledContent(
-                    format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
-                ))?;
+                .queue(cursor::MoveTo(x as u16, y as u16))?
+                .queue(PrintStyledContent(styled_text))?;
         }
-
         Ok(())
     }
 
@@ -70,15 +135,16 @@ impl Viewport {
         Ok(())
     }
 
+    // retrieve the len of the line
     pub fn get_line_len(&self, cursor: &(u16, u16)) -> u16 {
-        let (_, y) = self.get_cursor_viewport_position(cursor);
-        match self.buffer.get_line(y as usize) {
+        let (_, y) = self.viewport_cursor(cursor);
+        match self.buffer.get(y as usize) {
             Some(line) => line.len() as u16,
             None => 0,
         }
     }
 
-    pub fn get_cursor_viewport_position(&self, cursor: &(u16, u16)) -> (u16, u16) {
+    pub fn viewport_cursor(&self, cursor: &(u16, u16)) -> (u16, u16) {
         (cursor.0 + self.left, cursor.1 + self.top)
     }
 
@@ -104,8 +170,15 @@ impl Viewport {
         self.top = 0;
     }
 
-    pub fn move_end(&mut self) {
-        self.top = (self.buffer.lines.len() as u16) - self.vheight;
+    pub fn move_end(&mut self, cursor: &mut (u16, u16)) {
+        let buffer_len = self.get_buffer_len() as u16;
+        let vheight = self.vheight;
+        if buffer_len > vheight {
+            self.top = buffer_len - vheight;
+            cursor.1 = vheight - 1;
+        } else {
+            cursor.1 = buffer_len - 1;
+        }
     }
 
     pub fn page_down(&mut self, cursor: &(u16, u16)) {
@@ -127,7 +200,41 @@ impl Viewport {
         if self.buffer.lines.is_empty() {
             return false;
         }
-        let (_, y) = self.get_cursor_viewport_position(cursor);
+        let (_, y) = self.viewport_cursor(cursor);
         (y as usize) < (self.buffer.lines.len() - 1_usize)
+    }
+
+    pub fn center_line(&mut self, cursor: &mut (u16, u16)) {
+        let c_y = cursor.1;
+        let half = self.vheight / 2;
+        let v_cursor = self.viewport_cursor(cursor);
+        match (c_y) < half {
+            true => {
+                // top half
+                let move_len = half - c_y;
+                if v_cursor.1 > half {
+                    cursor.1 = half;
+                    self.top -= move_len;
+                }
+            }
+            false => {
+                // bottom half
+                let move_len = c_y - half;
+                let buffer_len = self.get_buffer_len();
+                if let Some(max_down) = buffer_len.checked_sub(v_cursor.1 as usize) {
+                    if max_down > half as usize {
+                        cursor.1 = half;
+                        self.top += move_len;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_buffer_len(&self) -> usize {
+        if self.buffer.lines.is_empty() {
+            return 0;
+        }
+        self.buffer.lines.len()
     }
 }
