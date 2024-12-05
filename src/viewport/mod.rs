@@ -13,7 +13,11 @@ use crossterm::{
 use tree_sitter::{Language, Parser, Query, QueryCursor, Tree};
 use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
-use crate::{buff::Buffer, log_message, theme::colors};
+use crate::{
+    buff::Buffer,
+    log_message,
+    theme::colors::{self, BG_0},
+};
 
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
@@ -23,39 +27,46 @@ pub struct Viewport {
     pub top: u16,
     pub vwidth: u16,
     pub vheight: u16,
+    pub query: Query,
+    pub language: Language,
 }
 
 impl Viewport {
     pub fn new(buffer: Buffer, vwidth: u16, vheight: u16) -> Viewport {
+        let language = tree_sitter_rust::LANGUAGE;
+        // i am in obligation to put the Query::new in viewport or it will make lag the app
+        // and make it unspossible to use tree_sitter without delay in the input
         Viewport {
             buffer,
             vwidth,
             vheight,
             left: 0,
             top: 0,
+            language: language.into(),
+            query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
         }
     }
 
     pub fn highlight(&self, code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
-        let language = tree_sitter_rust::LANGUAGE;
         let mut colors: Vec<ColorHighligter> = vec![];
         let mut parser = Parser::new();
-        parser.set_language(&language.into())?;
+        parser.set_language(&self.language)?;
 
         let tree = parser.parse(code, None).expect("tree_sitter couldnt parse");
 
-        let query = Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error");
         let mut query_cursor = QueryCursor::new();
-        let mut query_matches = query_cursor.matches(&query, tree.root_node(), code.as_bytes());
-
+        let mut query_matches =
+            query_cursor.matches(&self.query, tree.root_node(), code.as_bytes());
+        //
         while let Some(m) = query_matches.next() {
             for cap in m.captures {
                 let node = cap.node;
-                let start = node.start_byte();
-                let end = node.end_byte();
-                //
-                let punctuation = query.capture_names()[cap.index as usize];
-                colors.push(ColorHighligter::new_from_capture(start, end, punctuation))
+                let punctuation = self.query.capture_names()[cap.index as usize];
+                colors.push(ColorHighligter::new_from_capture(
+                    node.start_byte(),
+                    node.end_byte(),
+                    punctuation,
+                ))
             }
         }
 
@@ -84,20 +95,17 @@ impl Viewport {
         let mut y: usize = 0;
         let mut x: usize = 0;
         let mut colorhighligter = None;
+
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
                 x = 0;
                 y += 1;
-                stdout.queue(PrintStyledContent(
-                    format!("{c:<width$}", width = (v_width as usize - x)).on(colors::BG_0),
-                ))?;
+                stdout.queue(PrintStyledContent(" ".repeat(v_width as usize).on(BG_0)))?;
                 continue;
             }
             if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
                 colorhighligter = Some(colorh);
-            }
-
-            if let Some(_) = colors.iter().find(|ch| pos == ch.end) {
+            } else if colors.iter().find(|ch| pos == ch.end).is_some() {
                 colorhighligter = None
             }
 
@@ -111,24 +119,6 @@ impl Viewport {
                 .queue(cursor::MoveTo(x as u16, y as u16))?
                 .queue(PrintStyledContent(styled_text))?;
         }
-
-        // for i in 0..self.vheight {
-        //     let line: String = self
-        //         .buffer
-        //         .get(self.top as usize + i as usize)
-        //         .unwrap_or_default();
-        //
-        //     // See if this is the best opt
-        //     // to move it at 3 instead or 0
-        //
-        //     // self.draw_line_number(stdout, i)?;
-        //     stdout
-        //         .queue(cursor::MoveTo(0, i))?
-        //         .queue(PrintStyledContent(
-        //             format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
-        //         ))?;
-        // }
-
         Ok(())
     }
 
