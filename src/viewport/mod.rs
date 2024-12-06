@@ -1,8 +1,6 @@
 mod core;
 mod ui;
 
-use core::ColorHighligter;
-
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -16,7 +14,10 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 use crate::{
     buff::Buffer,
     log_message,
-    theme::colors::{self, BG_0},
+    theme::{
+        color_highligther::ColorHighligter,
+        colors::{self, BG_0},
+    },
 };
 
 // to implement scrolling and showing text of the size of our current terminal
