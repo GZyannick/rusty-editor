@@ -4,6 +4,7 @@ use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
 use crate::log_message;
 
 use super::super::Editor;
+use super::command::Command;
 use super::mode::Mode;
 
 #[derive(Debug, Clone)]
@@ -38,6 +39,8 @@ pub enum Action {
     UndoDeleteLine(u16, u16, Option<String>), //cursor.1 , top, content
     UndoNewLine(u16, u16),
     UndoMultiple(Vec<Action>),
+    ExecuteCommand,
+    RemoveCommandChar,
 }
 
 impl Action {
@@ -137,6 +140,10 @@ impl Action {
                     }
                 }
 
+                if matches!(editor.mode, Mode::Command) && !matches!(mode, Mode::Command) {
+                    editor.command = String::new();
+                }
+
                 editor.mode = *mode;
             }
             Action::AddCommandChar(c) => {
@@ -222,7 +229,6 @@ impl Action {
             Action::UndoDeleteLine(y, top, Some(content)) => {
                 let cy = y + top;
                 let buffer_len = editor.viewport.get_buffer_len();
-                log_message!("cy: {cy} buff_len: {buffer_len}");
                 if cy as usize >= buffer_len {
                     editor.viewport.buffer.lines.push(content.clone());
                     editor.cursor.1 += 1;
@@ -252,10 +258,20 @@ impl Action {
                     action.execute(editor)?;
                 }
             }
+            Action::ExecuteCommand => {
+                let cmd = editor.command.as_str();
+                if let Some(action) = Command::execute(cmd) {
+                    editor.buffer_actions.push(action);
+                }
+                editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
+            }
+            Action::RemoveCommandChar => {
+                if !editor.command.is_empty() {
+                    editor.command.pop();
+                }
+            }
             _ => {}
         }
-        //TODO: check if the match put some action in the buffer to be executed
-        // not sure if this is the best place because it could cause an infinite loop
         if !editor.buffer_actions.is_empty() {
             if let Some(action) = editor.buffer_actions.pop() {
                 action.execute(editor)?;

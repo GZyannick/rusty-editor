@@ -25,6 +25,7 @@ pub const MOVE_PREV_OR_NEXT_LINE: bool = true; // on true allow us to activate t
                                                // are at the end of the line or start move to next or prev line
 
 #[derive(Debug)]
+// TODO: FIND THE BUG WHERE THE LAST LINE OF THE VIEWPORT BEING BAD DRAW
 pub struct Editor {
     pub mode: Mode,
     pub command: String,
@@ -276,9 +277,16 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
-            KeyCode::Char('q') => Some(Action::Quit),
-            KeyCode::Char('w') => Some(Action::SaveFile),
+            // KeyCode::Char('w') => Some(Action::SaveFile),
             KeyCode::Char(c) => Some(Action::AddCommandChar(*c)),
+            KeyCode::Enter => {
+                // handle the quit here to break the loop
+                if self.command.as_str() == "q" {
+                    return Ok(Some(Action::Quit));
+                }
+                Some(Action::ExecuteCommand)
+            }
+            KeyCode::Backspace => Some(Action::RemoveCommandChar),
             _ => None,
         };
 
@@ -383,10 +391,13 @@ impl Draw for Editor {
     }
 
     fn draw_command_line(&mut self) -> Result<()> {
-        if !self.command.is_empty() {
-            self.stdout.queue(cursor::MoveTo(0, self.size.1 - 1))?;
-            self.stdout.queue(Print(format!(":{}", self.command)))?;
-        }
+        let cmd = &self.command;
+        let r_width = self.size.0 as usize - cmd.len();
+        self.stdout
+            .queue(cursor::MoveTo(0, self.size.1 - 1))?
+            .queue(PrintStyledContent(
+                format!(":{cmd:<width$}", width = r_width - 1).on(colors::BG_0),
+            ))?;
         Ok(())
     }
 }
