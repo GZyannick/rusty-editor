@@ -3,8 +3,9 @@ use crossterm::style::Color;
 use crate::log_message;
 
 use super::colors::{
-    BRIGHT_GREEN, BRIGHT_ORANGE, BRIGHT_RED, BRIGHT_WHITE, BRIGHT_YELLOW, FADED_BLUE, FADED_GREEN,
-    FADED_ORANGE, FADED_PURPLE, FADED_RED, GRAY_245, NEUTRAL_BLUE, NEUTRAL_GREEN, NEUTRAL_ORANGE,
+    BRIGHT_BLUE, BRIGHT_GREEN, BRIGHT_ORANGE, BRIGHT_PURPLE, BRIGHT_RED, BRIGHT_WHITE,
+    BRIGHT_YELLOW, FADED_BLUE, FADED_GREEN, FADED_ORANGE, FADED_PURPLE, FADED_RED, GRAY_245,
+    NEUTRAL_BLUE, NEUTRAL_GREEN, NEUTRAL_ORANGE, NEUTRAL_RED, NEUTRAL_YELLOW,
 };
 
 #[derive(Debug)]
@@ -25,28 +26,37 @@ impl ColorHighligter {
 
     fn get_color_from_punctuation(punctuation: &str) -> Color {
         let color = match punctuation {
-            "punctuation.function" => NEUTRAL_GREEN,
-            "function" => NEUTRAL_GREEN,
-            "property" => BRIGHT_RED,
-            "attribute" => NEUTRAL_BLUE,
-            "constant.builtin" => BRIGHT_RED,
-            "type.builtin" => BRIGHT_YELLOW,
-            "variable.builtin" => BRIGHT_WHITE,
-            "variable.parameter" => BRIGHT_YELLOW,
+            "keyword" => NEUTRAL_RED,
+            "punctuation.delimiter" => NEUTRAL_YELLOW,
+            "punctuation.bracket" => NEUTRAL_YELLOW,
             "comment" => GRAY_245,
-            "punctuation.bracket" => FADED_ORANGE,
-            "punctuation.delimiter" => BRIGHT_ORANGE,
-            "function.method" => BRIGHT_RED,
-            "function.macro" => BRIGHT_GREEN,
-            "punctuation.macro" => FADED_GREEN,
-            "punctuation.builtin" => BRIGHT_GREEN,
-            "keyword" => FADED_BLUE,
-            "constructor" => FADED_RED,
+            "property" => BRIGHT_BLUE,
             "type" => BRIGHT_YELLOW,
-            "operator" => NEUTRAL_ORANGE,
-            "label" => FADED_PURPLE,
-            "string" => FADED_GREEN,
-            s => BRIGHT_WHITE,
+            "type.builtin" => BRIGHT_YELLOW,
+            "constructor" => BRIGHT_PURPLE,
+            // "identifier" => NEUTRAL_RED,
+            // "punctuation.function" => NEUTRAL_GREEN,
+            // "function" => NEUTRAL_GREEN,
+            // "property" => BRIGHT_RED,
+            // "attribute" => NEUTRAL_BLUE,
+            // "constant.builtin" => BRIGHT_RED,
+            // "type.builtin" => BRIGHT_YELLOW,
+            // "variable.builtin" => BRIGHT_WHITE,
+            // "variable.parameter" => BRIGHT_YELLOW,
+            // "comment" => GRAY_245,
+            // "punctuation.bracket" => FADED_ORANGE,
+            // "punctuation.delimiter" => BRIGHT_ORANGE,
+            // "function.method" => BRIGHT_RED,
+            // "function.macro" => BRIGHT_GREEN,
+            // "punctuation.macro" => FADED_GREEN,
+            // "punctuation.builtin" => BRIGHT_GREEN,
+            // "keyword" => FADED_BLUE,
+            // "constructor" => FADED_RED,
+            // "type" => BRIGHT_YELLOW,
+            // "operator" => NEUTRAL_ORANGE,
+            // "label" => FADED_PURPLE,
+            // "string" => FADED_GREEN,
+            _ => BRIGHT_WHITE,
         };
 
         ColorHighligter::get_color(color)

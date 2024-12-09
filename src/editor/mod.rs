@@ -16,7 +16,6 @@ use crossterm::{
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::io::{Stdout, Write};
-
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
@@ -26,6 +25,8 @@ pub const MOVE_PREV_OR_NEXT_LINE: bool = true; // on true allow us to activate t
 
 #[derive(Debug)]
 // TODO: FIND THE BUG WHERE THE LAST LINE OF THE VIEWPORT BEING BAD DRAW
+// TODO: FIND WHY THE CURSOR IS NOT AT A GOOD POSITION THERE IS A PROBLEME  WHY DRAW OR HOW I CALCULATE THE CURSOR POSITION
+// With the old function to draw in viewport there a no problem with the cursor and how it draw the file,
 pub struct Editor {
     pub mode: Mode,
     pub command: String,

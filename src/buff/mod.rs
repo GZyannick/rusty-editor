@@ -67,6 +67,10 @@ impl Buffer {
         self.lines.get(n).cloned()
     }
 
+    pub fn get_line(&self, n: usize) -> Option<String> {
+        self.lines.get(n).cloned()
+    }
+
     pub fn new_line(&mut self, cursor: (u16, u16), is_take_text: bool) {
         let y_pos: usize = cursor.1 as usize;
         let mut new_line = String::new();

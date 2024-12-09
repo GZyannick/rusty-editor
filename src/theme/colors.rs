@@ -52,10 +52,3 @@ pub const FADED_AQUA: (usize, usize, usize) = (66, 123, 88);
 pub const FADED_ORANGE: (usize, usize, usize) = (175, 58, 3);
 
 pub const BRIGHT_WHITE: (usize, usize, usize) = (255, 255, 255);
-// const LIGHT0_HARD: (usize, usize, usize) = (249, 245, 215);
-// const LIGHT0: (usize, usize, usize) = (253, 244, 193);
-// const LIGHT0_SOFT: (usize, usize, usize) = (242, 229, 188);
-// const LIGHT1: (usize, usize, usize) = (235, 219, 178);
-// const LIGHT2: (usize, usize, usize) = (213, 196, 161);
-// const LIGHT3: (usize, usize, usize) = (189, 174, 147);
-// const LIGHT4: (usize, usize, usize) = (168, 153, 132);

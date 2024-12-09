@@ -1,6 +1,8 @@
 mod core;
 mod ui;
 
+use ::core::panic;
+
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -54,15 +56,14 @@ impl Viewport {
         parser.set_language(&self.language)?;
 
         let tree = parser.parse(code, None).expect("tree_sitter couldnt parse");
-
         let mut query_cursor = QueryCursor::new();
         let mut query_matches =
             query_cursor.matches(&self.query, tree.root_node(), code.as_bytes());
-        //
         while let Some(m) = query_matches.next() {
             for cap in m.captures {
                 let node = cap.node;
                 let punctuation = self.query.capture_names()[cap.index as usize];
+
                 colors.push(ColorHighligter::new_from_capture(
                     node.start_byte(),
                     node.end_byte(),
@@ -70,7 +71,6 @@ impl Viewport {
                 ))
             }
         }
-
         Ok(colors)
     }
 
@@ -88,6 +88,7 @@ impl Viewport {
         if self.buffer.lines.is_empty() {
             return Ok(());
         }
+
         let v_width = self.vwidth;
         stdout.queue(cursor::MoveTo(0, 0))?;
         let viewport_buffer = self.viewport();
@@ -98,6 +99,9 @@ impl Viewport {
         let mut colorhighligter = None;
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
+            // TODO: ESEQUE LA DERNIERE LIGNE NEST PAS NETTOYER PAR \n a la fin
+            // TODO: C'EST MIEUX DE NE PAS SAVE LE HIGHLIGHTER OU DE LE SAVE EST
+            // QUAND IL Y A UN CHANGEMENT DANS LE FICHIER DE LE REFAIRE TOURNER
             if c == '\n' {
                 x = 0;
                 y += 1;
@@ -120,6 +124,20 @@ impl Viewport {
                 .queue(cursor::MoveTo(x as u16, y as u16))?
                 .queue(PrintStyledContent(styled_text))?;
         }
+        // for i in 0..self.vheight {
+        //     let line: String = self
+        //         .buffer
+        //         .get_line(self.top as usize + i as usize)
+        //         .unwrap_or_default();
+        //
+        //     // self.draw_line_number(stdout, i)?;
+        //     stdout
+        //         .queue(cursor::MoveTo(0, i))?
+        //         .queue(PrintStyledContent(
+        //             format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
+        //         ))?;
+        // }
+
         Ok(())
     }
 
