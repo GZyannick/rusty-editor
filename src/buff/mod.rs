@@ -40,6 +40,7 @@ pub struct Buffer {
     pub file: Option<File>,
     pub path: String,
     pub lines: Vec<String>,
+    pub highlighter: String,
 }
 
 impl Buffer {
@@ -59,6 +60,7 @@ impl Buffer {
         Buffer {
             file: None,
             lines: vec![],
+            highlighter: String::new(),
             path: "Empty".to_string(),
         }
     }
@@ -166,7 +168,12 @@ impl Buffer {
             path = f_path.to_string();
         }
 
-        Buffer { file, lines, path }
+        Buffer {
+            file,
+            lines,
+            path,
+            highlighter: String::new(),
+        }
     }
 
     fn from_dir(_f_path: &str) -> Buffer {
@@ -174,6 +181,7 @@ impl Buffer {
             file: None,
             lines: vec!["".to_string()],
             path: "Empty".to_string(),
+            highlighter: String::new(),
         }
     }
 
