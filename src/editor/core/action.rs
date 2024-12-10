@@ -8,13 +8,13 @@ use super::mode::Mode;
 
 #[derive(Debug, Clone)]
 pub struct OldCursorPosition {
-    pub y: u16,
+    pub cursor: (u16, u16),
     pub top: u16,
 }
 
 impl OldCursorPosition {
-    pub fn new(y: u16, top: u16) -> Self {
-        OldCursorPosition { y, top }
+    pub fn new(cursor: (u16, u16), top: u16) -> Self {
+        OldCursorPosition { cursor, top }
     }
 }
 
@@ -50,6 +50,7 @@ pub enum Action {
     UndoDeleteLine(OldCursorPosition, Option<String>), //cursor.1 , top, content
     UndoNewLine(OldCursorPosition),
     UndoMultiple(Vec<Action>),
+    UndoCharAt(OldCursorPosition, (u16, u16)),
     ExecuteCommand,
     RemoveCommandChar,
 }
@@ -100,9 +101,10 @@ impl Action {
             Action::AddChar(c) => {
                 let cursor_viewport = editor.v_cursor();
                 // editor.undo_insert_actions();
-                editor
-                    .undo_insert_actions
-                    .push(Action::RemoveCharAt(cursor_viewport));
+                editor.undo_insert_actions.push(Action::UndoCharAt(
+                    OldCursorPosition::new(editor.cursor, editor.viewport.top),
+                    cursor_viewport,
+                ));
 
                 editor.viewport.buffer.add_char(*c, cursor_viewport);
                 editor.cursor.0 += 1;
@@ -111,6 +113,10 @@ impl Action {
                 if editor.viewport.get_line_len(cursor) > 0 {
                     editor.viewport.buffer.remove_char(*cursor);
                 }
+            }
+            Action::UndoCharAt(old_cursor, v_cursor) => {
+                editor.buffer_actions.push(Action::RemoveCharAt(*v_cursor));
+                editor.cursor = old_cursor.cursor;
             }
             Action::RemoveChar => {
                 let cursor_viewport = editor.v_cursor();
@@ -169,7 +175,7 @@ impl Action {
                 editor
                     .undo_actions
                     .push(Action::UndoNewLine(OldCursorPosition::new(
-                        editor.cursor.1,
+                        editor.cursor,
                         editor.viewport.top,
                     )));
             }
@@ -184,7 +190,7 @@ impl Action {
                 editor
                     .undo_actions
                     .push(Action::UndoNewLine(OldCursorPosition::new(
-                        editor.cursor.1,
+                        editor.cursor,
                         editor.viewport.top,
                     )));
             }
@@ -224,7 +230,7 @@ impl Action {
                 editor.viewport.buffer.remove(y as usize);
 
                 editor.undo_actions.push(Action::UndoDeleteLine(
-                    OldCursorPosition::new(editor.cursor.1, editor.viewport.top),
+                    OldCursorPosition::new(editor.cursor, editor.viewport.top),
                     content,
                 ));
             }
@@ -239,11 +245,10 @@ impl Action {
             Action::Undo => {
                 if let Some(action) = editor.undo_actions.pop() {
                     action.execute(editor)?;
-                    // TODO: i think this is undo wo need to move the cursor where it was before
                 }
             }
             Action::UndoDeleteLine(old_cursor, Some(content)) => {
-                let cy = old_cursor.y + old_cursor.top;
+                let cy = old_cursor.cursor.1 + old_cursor.top;
                 let buffer_len = editor.viewport.get_buffer_len();
                 if cy as usize >= buffer_len {
                     editor.viewport.buffer.lines.push(content.clone());
@@ -256,7 +261,7 @@ impl Action {
                         .insert(cy as usize, content.clone());
                 }
                 editor.viewport.top = old_cursor.top;
-                editor.cursor.1 = old_cursor.y;
+                editor.cursor.1 = old_cursor.cursor.1;
 
                 // put the line at the center of screen if possible
                 editor.viewport.center_line(&mut editor.cursor);
@@ -265,10 +270,10 @@ impl Action {
                 editor.viewport.center_line(&mut editor.cursor);
             }
             Action::UndoNewLine(old_cursor) => {
-                let cy = old_cursor.y + old_cursor.top;
+                let cy = old_cursor.cursor.1 + old_cursor.top;
                 editor.viewport.buffer.remove(cy as usize);
                 editor.viewport.top = old_cursor.top;
-                editor.cursor.1 = old_cursor.y;
+                editor.cursor.1 = old_cursor.cursor.1;
             }
             Action::UndoMultiple(actions) => {
                 for action in actions.iter().rev() {
