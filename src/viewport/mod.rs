@@ -91,13 +91,11 @@ impl Viewport {
         stdout.queue(cursor::MoveTo(0, 0))?;
         let viewport_buffer = self.viewport();
         let colors = self.highlight(&viewport_buffer)?;
-        // let colors = &self.buffer.highlighter;
 
         let mut y: u16 = 0;
         let mut x: u16 = 0;
         let mut colorhighligter = None;
 
-        stdout.queue(cursor::MoveTo(0, 0))?;
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
                 stdout

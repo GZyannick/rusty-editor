@@ -1,50 +1,13 @@
 use std::{
-    clone,
     fs::{File, OpenOptions},
     io::{Read, Write},
-    usize,
 };
-
-use streaming_iterator::StreamingIterator;
-use tree_sitter::{Parser, Point, Query, QueryCursor};
-use tree_sitter_rust::HIGHLIGHTS_QUERY;
-
-use crate::{log_message, theme::color_highligther::ColorHighligter};
-
-// #[derive(PartialEq, Debug)]
-// enum WordType {
-//     AlphaNumeric,
-//     WhiteSpace,
-//     Punctuation,
-// }
-//
-// impl WordType {
-//     pub fn get_type(c: &char) -> Option<WordType> {
-//         match c {
-//             c if c.is_whitespace() => Some(WordType::WhiteSpace),
-//             c if c.is_ascii_punctuation() => Some(WordType::Punctuation),
-//             c if c.is_alphanumeric() => Some(WordType::AlphaNumeric),
-//             _ => None,
-//         }
-//     }
-//
-//     pub fn is_match(&self, c: &char) -> bool {
-//         if let Some(c_type) = WordType::get_type(c) {
-//             log_message!("{:?}, {:?}", self, c_type);
-//             if self == &c_type {
-//                 return true;
-//             }
-//         }
-//         false
-//     }
-// }
 
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
     pub path: String,
     pub lines: Vec<String>,
-    pub highlighter: Vec<ColorHighligter>,
 }
 
 impl Buffer {
@@ -64,7 +27,6 @@ impl Buffer {
         Buffer {
             file: None,
             lines: vec![],
-            highlighter: vec![],
             path: "Empty".to_string(),
         }
     }
@@ -72,14 +34,6 @@ impl Buffer {
     pub fn get(&self, n: usize) -> Option<String> {
         self.lines.get(n).cloned()
     }
-
-    pub fn get_line(&self, n: usize) -> Option<String> {
-        self.lines.get(n).cloned()
-    }
-
-    // pub fn get_highlight_line(&self, n: usize) -> Option<ColorHighligter> {
-    //     self.highlighter.get(n).cloned()
-    // }
 
     pub fn new_line(&mut self, cursor: (u16, u16), is_take_text: bool) {
         let y_pos: usize = cursor.1 as usize;
@@ -125,31 +79,7 @@ impl Buffer {
     }
 
     pub fn remove_word(&mut self, cursor: (u16, u16)) {
-        // if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-        //     let chars: Vec<char> = line.clone().chars().collect();
-        //     let line_len = line.len() - 1;
-        //     let i = cursor.0 as usize;
-        //     // let slice_len = &line.
-        //     if i < line_len {
-        //         if let Some(first_type_char) = WordType::get_type(&chars[i]) {
-        //             let mut word_end = i + 1;
-        //
-        //             if word_end < chars.len() {
-        //                 while word_end < chars.len() && first_type_char.is_match(&chars[word_end])
-        //                     || chars[word_end] == '_'
-        //                     || chars[word_end] == ' '
-        //                 {
-        //                     word_end += 1;
-        //                 }
-        //                 line.replace_range(i..word_end, "");
-        //             } else if word_end == chars.len() {
-        //                 line.remove(word_end);
-        //             }
-        //         };
-        //     } else if i == line_len {
-        //         line.remove(i);
-        //     }
-        // }
+        todo!()
     }
 
     pub fn remove_char_line(&mut self, cursor: (u16, u16)) {
@@ -163,61 +93,20 @@ impl Buffer {
         }
     }
 
-    fn highlight(code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
-        let mut colors: Vec<ColorHighligter> = vec![];
-        if code.is_empty() {
-            return Ok(colors);
-        }
-
-        let language = tree_sitter_rust::LANGUAGE;
-        let query = Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error");
-        let mut query_cursor = QueryCursor::new();
-        let mut parser = Parser::new();
-        parser.set_language(&language.into())?;
-
-        let tree = parser.parse(code, None).expect("tree_sitter couldnt parse");
-
-        // log_message!("{:#?}", tree.root_node().to_sexp());
-        let mut query_matches = query_cursor.matches(&query, tree.root_node(), code.as_bytes());
-        while let Some(m) = query_matches.next() {
-            for cap in m.captures {
-                let node = cap.node;
-                let punctuation = query.capture_names()[cap.index as usize];
-
-                colors.push(ColorHighligter::new_from_capture(
-                    node.start_byte(),
-                    node.end_byte(),
-                    punctuation,
-                ))
-            }
-        }
-        // todo!();
-        Ok(colors)
-    }
-
     fn from_file(f_path: &str) -> Buffer {
         let mut file = None;
         let mut lines: Vec<String> = Vec::new();
         let mut path = String::from("Empty");
-        let mut file_content = String::new();
 
         if let Ok(mut c_file) = File::open(f_path) {
             let mut buf = String::new();
             c_file.read_to_string(&mut buf).unwrap();
             file = Some(c_file);
-            file_content = buf.clone();
             lines = buf.lines().map(|s| s.to_string()).collect();
             path = f_path.to_string();
         }
 
-        let highlighter = Buffer::highlight(&file_content).unwrap_or_default();
-
-        Buffer {
-            file,
-            lines,
-            path,
-            highlighter,
-        }
+        Buffer { file, lines, path }
     }
 
     fn from_dir(_f_path: &str) -> Buffer {
@@ -225,7 +114,6 @@ impl Buffer {
             file: None,
             lines: vec!["".to_string()],
             path: "Empty".to_string(),
-            highlighter: vec![],
         }
     }
 
