@@ -5,19 +5,15 @@ use streaming_iterator::StreamingIterator;
 
 use crossterm::{
     cursor,
-    style::{Print, PrintStyledContent, StyledContent, Stylize},
+    style::{Color, PrintStyledContent, Stylize},
     QueueableCommand,
 };
-use tree_sitter::{Language, Parser, Query, QueryCursor, Tree};
+use tree_sitter::{Language, Parser, Query, QueryCursor};
 use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
-    log_message,
-    theme::{
-        color_highligther::ColorHighligter,
-        colors::{self, BG_0},
-    },
+    theme::{color_highligther::ColorHighligter, colors},
 };
 
 // to implement scrolling and showing text of the size of our current terminal
@@ -48,11 +44,7 @@ impl Viewport {
         }
     }
 
-    pub fn highlight(
-        &self,
-        code: &String,
-        tmp_cursor: &(u16, u16),
-    ) -> anyhow::Result<Vec<ColorHighligter>> {
+    pub fn highlight(&self, code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
         let mut colors: Vec<ColorHighligter> = vec![];
         let mut parser = Parser::new();
         parser.set_language(&self.language)?;
@@ -70,7 +62,6 @@ impl Viewport {
                     node.start_byte(),
                     node.end_byte(),
                     punctuation,
-                    tmp_cursor,
                 ))
             }
         }
@@ -87,11 +78,7 @@ impl Viewport {
         vec[self.top as usize..height].join("\n")
     }
 
-    pub fn draw(
-        &mut self,
-        stdout: &mut std::io::Stdout,
-        tmp_cursor: &(u16, u16),
-    ) -> anyhow::Result<()> {
+    pub fn draw(&mut self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
         if self.buffer.lines.is_empty() {
             return Ok(());
         }
@@ -99,50 +86,38 @@ impl Viewport {
         let v_width = self.vwidth;
         stdout.queue(cursor::MoveTo(0, 0))?;
         let viewport_buffer = self.viewport();
-        let colors = self.highlight(&viewport_buffer, tmp_cursor)?;
+        let colors = self.highlight(&viewport_buffer)?;
 
-        let mut y: usize = 0;
-        let mut x: usize = 0;
-        // let mut colorhighligter = None;
+        let mut y: u16 = 0;
+        let mut x: u16 = 0;
+        let mut colorhighligter = None;
 
-        // for (pos, c) in viewport_buffer.chars().enumerate() {
-        //     // TODO: ESEQUE LA DERNIERE LIGNE NEST PAS NETTOYER PAR \n a la fin
-        //     // TODO: C'EST MIEUX DE NE PAS SAVE LE HIGHLIGHTER OU DE LE SAVE EST
-        //     // QUAND IL Y A UN CHANGEMENT DANS LE FICHIER DE LE REFAIRE TOURNER
-        //     if c == '\n' {
-        //         x = 0;
-        //         y += 1;
-        //         stdout.queue(PrintStyledContent(" ".repeat(v_width as usize).on(BG_0)))?;
-        //         continue;
-        //     }
-        //     if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
-        //         colorhighligter = Some(colorh);
-        //     } else if colors.iter().find(|ch| pos == ch.end).is_some() {
-        //         colorhighligter = None
-        //     }
-        //
-        //     let styled_text = match colorhighligter {
-        //         Some(ch) => format!("{c}").on(colors::BG_0).with(ch.color),
-        //         None => format!("{c}",).on(colors::BG_0),
-        //     };
-        //
-        //     x += 1;
-        //     stdout
-        //         .queue(cursor::MoveTo(x as u16, y as u16))?
-        //         .queue(PrintStyledContent(styled_text))?;
-        // }
-        for i in 0..self.vheight {
-            let line: String = self
-                .buffer
-                .get_line(self.top as usize + i as usize)
-                .unwrap_or_default();
+        for (pos, c) in viewport_buffer.chars().enumerate() {
+            if c == '\n' {
+                stdout
+                    .queue(cursor::MoveTo(x, y))?
+                    .queue(PrintStyledContent(
+                        " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
+                    ))?;
+                x = 0;
+                y += 1;
+                continue;
+            }
+            if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
+                colorhighligter = Some(colorh);
+            } else if colors.iter().find(|ch| pos == ch.end).is_some() {
+                colorhighligter = None
+            }
 
-            // self.draw_line_number(stdout, i)?;
+            let styled_char = match colorhighligter {
+                Some(ch) => format!("{c}").on(Color::from(colors::DARK0)).with(ch.color),
+                None => format!("{c}",).on(Color::from(colors::DARK0)),
+            };
+
             stdout
-                .queue(cursor::MoveTo(0, i))?
-                .queue(PrintStyledContent(
-                    format!("{line:<width$}", width = v_width as usize).on(colors::BG_0),
-                ))?;
+                .queue(cursor::MoveTo(x, y))?
+                .queue(PrintStyledContent(styled_char))?;
+            x += 1;
         }
 
         Ok(())
@@ -155,7 +130,7 @@ impl Viewport {
         stdout
             .queue(cursor::MoveTo(0, i))?
             .queue(PrintStyledContent(
-                format!("{pos:>width$}", width = l_width).on(colors::BG_0),
+                format!("{pos:>width$}", width = l_width).on(Color::from(colors::DARK0)),
             ))?;
 
         Ok(())

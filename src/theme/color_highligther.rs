@@ -1,17 +1,15 @@
 use core::panic;
 
 use crossterm::style::Color;
-use tree_sitter::{Node, QueryCapture};
 
 use crate::log_message;
 
 use super::colors::{
-    BRIGHT_AQUA, BRIGHT_BLUE, BRIGHT_GREEN, BRIGHT_ORANGE, BRIGHT_PURPLE, BRIGHT_RED, BRIGHT_WHITE,
-    BRIGHT_YELLOW, FADED_BLUE, FADED_GREEN, FADED_ORANGE, FADED_PURPLE, FADED_RED, GRAY_245,
-    NEUTRAL_AQUA, NEUTRAL_BLUE, NEUTRAL_GREEN, NEUTRAL_ORANGE, NEUTRAL_RED, NEUTRAL_YELLOW,
+    BRIGHT_AQUA, BRIGHT_BLUE, BRIGHT_GREEN, BRIGHT_PURPLE, BRIGHT_RED, BRIGHT_WHITE, BRIGHT_YELLOW,
+    GRAY_245, NEUTRAL_AQUA, NEUTRAL_GREEN, NEUTRAL_RED, NEUTRAL_YELLOW,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct ColorHighligter {
     pub start: usize,
     pub end: usize,
@@ -19,15 +17,7 @@ pub struct ColorHighligter {
 }
 
 impl ColorHighligter {
-    fn get_color(colors: (usize, usize, usize)) -> Color {
-        Color::Rgb {
-            r: colors.0 as u8,
-            g: colors.1 as u8,
-            b: colors.2 as u8,
-        }
-    }
-
-    fn get_color_from_punctuation(punctuation: &str, tmp_val: &(u16, u16)) -> Color {
+    fn get_color_from_punctuation(punctuation: &str) -> Color {
         let color = match punctuation {
             "keyword" => NEUTRAL_RED,
             "punctuation.delimiter" => NEUTRAL_YELLOW,
@@ -63,22 +53,17 @@ impl ColorHighligter {
             // "constructor" => FADED_RED,
             // "type" => BRIGHT_YELLOW,
             _ => {
-                log_message!("not used: {punctuation} at {tmp_val:?}");
+                log_message!("not used: {punctuation}");
                 panic!();
                 BRIGHT_WHITE
             }
         };
 
-        ColorHighligter::get_color(color)
+        Color::from(color)
     }
 
-    pub fn new_from_capture(
-        start: usize,
-        end: usize,
-        punctuation: &str,
-        tmp_val: &(u16, u16),
-    ) -> Self {
-        let color = Self::get_color_from_punctuation(punctuation, tmp_val);
-        Self { start, end, color }
+    pub fn new_from_capture(start: usize, end: usize, punctuation: &str) -> ColorHighligter {
+        let color = Self::get_color_from_punctuation(punctuation);
+        ColorHighligter { start, end, color }
     }
 }

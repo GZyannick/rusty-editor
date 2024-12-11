@@ -5,14 +5,11 @@ use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use anyhow::{Ok, Result};
-use core::{
-    action::{self, Action},
-    mode::Mode,
-};
+use core::{action::Action, mode::Mode};
 use crossterm::{
     cursor,
     event::{self, read, Event, KeyCode, KeyModifiers},
-    style::{Color, Print, PrintStyledContent, Stylize},
+    style::{Color, PrintStyledContent, Stylize},
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::io::{Stdout, Write};
@@ -24,9 +21,6 @@ pub const MOVE_PREV_OR_NEXT_LINE: bool = true; // on true allow us to activate t
                                                // are at the end of the line or start move to next or prev line
 
 #[derive(Debug)]
-// TODO: FIND THE BUG WHERE THE LAST LINE OF THE VIEWPORT BEING BAD DRAW
-// TODO: FIND WHY THE CURSOR IS NOT AT A GOOD POSITION THERE IS A PROBLEME  WHY DRAW OR HOW I CALCULATE THE CURSOR POSITION
-// With the old function to draw in viewport there a no problem with the cursor and how it draw the file,
 pub struct Editor {
     pub mode: Mode,
     pub command: String,
@@ -71,7 +65,9 @@ impl Editor {
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
         crossterm::terminal::enable_raw_mode()?;
         self.stdout
-            .execute(crossterm::style::SetBackgroundColor(colors::BG_0))?;
+            .execute(crossterm::style::SetBackgroundColor(Color::from(
+                colors::DARK0,
+            )))?;
         self.stdout.execute(terminal::EnterAlternateScreen)?;
         self.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?;
@@ -338,8 +334,7 @@ impl Draw for Editor {
         // some terminal line windows default show the cursor when drawing the tui so hide and show
         // it at the end of draw
         self.stdout.queue(cursor::Hide)?;
-        let tmp_cursor = self.v_cursor();
-        self.viewport.draw(&mut self.stdout, &tmp_cursor)?;
+        self.viewport.draw(&mut self.stdout)?;
         self.draw_bottom()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
@@ -373,12 +368,16 @@ impl Draw for Editor {
 
     fn draw_status_line(&mut self, mode: String, filename: String) -> Result<()> {
         self.stdout.queue(PrintStyledContent(
-            mode.with(Color::White).bold().on(colors::STATUS_BG),
+            mode.with(Color::White)
+                .bold()
+                .on(Color::from(colors::FADED_PURPLE)),
         ))?;
 
         //print the filename
         self.stdout.queue(PrintStyledContent(
-            filename.with(Color::White).on(colors::FILE_STATUS_BG),
+            filename
+                .with(Color::White)
+                .on(Color::from(colors::DARK0_SOFT)),
         ))?;
         Ok(())
     }
@@ -386,7 +385,7 @@ impl Draw for Editor {
     fn draw_line_counter(&mut self, pos: String) -> Result<()> {
         // print the cursor position
         self.stdout.queue(PrintStyledContent(
-            pos.with(Color::White).on(colors::STATUS_BG),
+            pos.with(Color::Black).on(Color::from(colors::BRIGHT_GREEN)),
         ))?;
 
         Ok(())
@@ -398,7 +397,7 @@ impl Draw for Editor {
         self.stdout
             .queue(cursor::MoveTo(0, self.size.1 - 1))?
             .queue(PrintStyledContent(
-                format!(":{cmd:<width$}", width = r_width - 1).on(colors::BG_0),
+                format!(":{cmd:<width$}", width = r_width - 1).on(Color::from(colors::DARK0)),
             ))?;
         Ok(())
     }
