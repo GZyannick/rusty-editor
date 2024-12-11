@@ -11,7 +11,7 @@ use super::colors::{
     NEUTRAL_AQUA, NEUTRAL_BLUE, NEUTRAL_GREEN, NEUTRAL_ORANGE, NEUTRAL_RED, NEUTRAL_YELLOW,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct ColorHighligter {
     pub start: usize,
     pub end: usize,
@@ -27,7 +27,7 @@ impl ColorHighligter {
         }
     }
 
-    fn get_color_from_punctuation(punctuation: &str, tmp_val: &(u16, u16)) -> Color {
+    fn get_color_from_punctuation(punctuation: &str) -> Color {
         let color = match punctuation {
             "keyword" => NEUTRAL_RED,
             "punctuation.delimiter" => NEUTRAL_YELLOW,
@@ -63,7 +63,7 @@ impl ColorHighligter {
             // "constructor" => FADED_RED,
             // "type" => BRIGHT_YELLOW,
             _ => {
-                log_message!("not used: {punctuation} at {tmp_val:?}");
+                log_message!("not used: {punctuation}");
                 panic!();
                 BRIGHT_WHITE
             }
@@ -72,13 +72,8 @@ impl ColorHighligter {
         ColorHighligter::get_color(color)
     }
 
-    pub fn new_from_capture(
-        start: usize,
-        end: usize,
-        punctuation: &str,
-        tmp_val: &(u16, u16),
-    ) -> Self {
-        let color = Self::get_color_from_punctuation(punctuation, tmp_val);
+    pub fn new_from_capture(start: usize, end: usize, punctuation: &str) -> Self {
+        let color = Self::get_color_from_punctuation(punctuation);
         Self { start, end, color }
     }
 }

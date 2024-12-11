@@ -338,8 +338,7 @@ impl Draw for Editor {
         // some terminal line windows default show the cursor when drawing the tui so hide and show
         // it at the end of draw
         self.stdout.queue(cursor::Hide)?;
-        let tmp_cursor = self.v_cursor();
-        self.viewport.draw(&mut self.stdout, &tmp_cursor)?;
+        self.viewport.draw(&mut self.stdout)?;
         self.draw_bottom()?;
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;

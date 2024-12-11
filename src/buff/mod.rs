@@ -5,7 +5,11 @@ use std::{
     usize,
 };
 
-use crate::log_message;
+use streaming_iterator::StreamingIterator;
+use tree_sitter::{Parser, Point, Query, QueryCursor};
+use tree_sitter_rust::HIGHLIGHTS_QUERY;
+
+use crate::{log_message, theme::color_highligther::ColorHighligter};
 
 // #[derive(PartialEq, Debug)]
 // enum WordType {
@@ -40,7 +44,7 @@ pub struct Buffer {
     pub file: Option<File>,
     pub path: String,
     pub lines: Vec<String>,
-    pub highlighter: String,
+    pub highlighter: Vec<ColorHighligter>,
 }
 
 impl Buffer {
@@ -60,7 +64,7 @@ impl Buffer {
         Buffer {
             file: None,
             lines: vec![],
-            highlighter: String::new(),
+            highlighter: vec![],
             path: "Empty".to_string(),
         }
     }
@@ -72,6 +76,10 @@ impl Buffer {
     pub fn get_line(&self, n: usize) -> Option<String> {
         self.lines.get(n).cloned()
     }
+
+    // pub fn get_highlight_line(&self, n: usize) -> Option<ColorHighligter> {
+    //     self.highlighter.get(n).cloned()
+    // }
 
     pub fn new_line(&mut self, cursor: (u16, u16), is_take_text: bool) {
         let y_pos: usize = cursor.1 as usize;
@@ -155,24 +163,60 @@ impl Buffer {
         }
     }
 
+    fn highlight(code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
+        let mut colors: Vec<ColorHighligter> = vec![];
+        if code.is_empty() {
+            return Ok(colors);
+        }
+
+        let language = tree_sitter_rust::LANGUAGE;
+        let query = Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error");
+        let mut query_cursor = QueryCursor::new();
+        let mut parser = Parser::new();
+        parser.set_language(&language.into())?;
+
+        let tree = parser.parse(code, None).expect("tree_sitter couldnt parse");
+
+        // log_message!("{:#?}", tree.root_node().to_sexp());
+        let mut query_matches = query_cursor.matches(&query, tree.root_node(), code.as_bytes());
+        while let Some(m) = query_matches.next() {
+            for cap in m.captures {
+                let node = cap.node;
+                let punctuation = query.capture_names()[cap.index as usize];
+
+                colors.push(ColorHighligter::new_from_capture(
+                    node.start_byte(),
+                    node.end_byte(),
+                    punctuation,
+                ))
+            }
+        }
+        // todo!();
+        Ok(colors)
+    }
+
     fn from_file(f_path: &str) -> Buffer {
         let mut file = None;
         let mut lines: Vec<String> = Vec::new();
         let mut path = String::from("Empty");
+        let mut file_content = String::new();
 
         if let Ok(mut c_file) = File::open(f_path) {
             let mut buf = String::new();
             c_file.read_to_string(&mut buf).unwrap();
             file = Some(c_file);
+            file_content = buf.clone();
             lines = buf.lines().map(|s| s.to_string()).collect();
             path = f_path.to_string();
         }
+
+        let highlighter = Buffer::highlight(&file_content).unwrap_or_default();
 
         Buffer {
             file,
             lines,
             path,
-            highlighter: String::new(),
+            highlighter,
         }
     }
 
@@ -181,7 +225,7 @@ impl Buffer {
             file: None,
             lines: vec!["".to_string()],
             path: "Empty".to_string(),
-            highlighter: String::new(),
+            highlighter: vec![],
         }
     }
 
