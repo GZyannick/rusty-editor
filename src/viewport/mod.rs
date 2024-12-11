@@ -5,19 +5,15 @@ use streaming_iterator::StreamingIterator;
 
 use crossterm::{
     cursor,
-    style::{Print, PrintStyledContent, StyledContent, Stylize},
+    style::{Color, PrintStyledContent, Stylize},
     QueueableCommand,
 };
-use tree_sitter::{Language, Parser, Query, QueryCursor, Tree};
+use tree_sitter::{Language, Parser, Query, QueryCursor};
 use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
-    log_message,
-    theme::{
-        color_highligther::{self, ColorHighligter},
-        colors::{self, BG_0},
-    },
+    theme::{color_highligther::ColorHighligter, colors},
 };
 
 // to implement scrolling and showing text of the size of our current terminal
@@ -100,7 +96,9 @@ impl Viewport {
             if c == '\n' {
                 stdout
                     .queue(cursor::MoveTo(x, y))?
-                    .queue(PrintStyledContent(" ".repeat(v_width as usize).on(BG_0)))?;
+                    .queue(PrintStyledContent(
+                        " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
+                    ))?;
                 x = 0;
                 y += 1;
                 continue;
@@ -112,8 +110,8 @@ impl Viewport {
             }
 
             let styled_char = match colorhighligter {
-                Some(ch) => format!("{c}").on(colors::BG_0).with(ch.color),
-                None => format!("{c}",).on(colors::BG_0),
+                Some(ch) => format!("{c}").on(Color::from(colors::DARK0)).with(ch.color),
+                None => format!("{c}",).on(Color::from(colors::DARK0)),
             };
 
             stdout
@@ -132,7 +130,7 @@ impl Viewport {
         stdout
             .queue(cursor::MoveTo(0, i))?
             .queue(PrintStyledContent(
-                format!("{pos:>width$}", width = l_width).on(colors::BG_0),
+                format!("{pos:>width$}", width = l_width).on(Color::from(colors::DARK0)),
             ))?;
 
         Ok(())

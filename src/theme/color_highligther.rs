@@ -1,14 +1,12 @@
 use core::panic;
 
 use crossterm::style::Color;
-use tree_sitter::{Node, QueryCapture};
 
 use crate::log_message;
 
 use super::colors::{
-    BRIGHT_AQUA, BRIGHT_BLUE, BRIGHT_GREEN, BRIGHT_ORANGE, BRIGHT_PURPLE, BRIGHT_RED, BRIGHT_WHITE,
-    BRIGHT_YELLOW, FADED_BLUE, FADED_GREEN, FADED_ORANGE, FADED_PURPLE, FADED_RED, GRAY_245,
-    NEUTRAL_AQUA, NEUTRAL_BLUE, NEUTRAL_GREEN, NEUTRAL_ORANGE, NEUTRAL_RED, NEUTRAL_YELLOW,
+    BRIGHT_AQUA, BRIGHT_BLUE, BRIGHT_GREEN, BRIGHT_PURPLE, BRIGHT_RED, BRIGHT_WHITE, BRIGHT_YELLOW,
+    GRAY_245, NEUTRAL_AQUA, NEUTRAL_GREEN, NEUTRAL_RED, NEUTRAL_YELLOW,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -19,14 +17,6 @@ pub struct ColorHighligter {
 }
 
 impl ColorHighligter {
-    fn get_color(colors: (usize, usize, usize)) -> Color {
-        Color::Rgb {
-            r: colors.0 as u8,
-            g: colors.1 as u8,
-            b: colors.2 as u8,
-        }
-    }
-
     fn get_color_from_punctuation(punctuation: &str) -> Color {
         let color = match punctuation {
             "keyword" => NEUTRAL_RED,
@@ -69,11 +59,11 @@ impl ColorHighligter {
             }
         };
 
-        ColorHighligter::get_color(color)
+        Color::from(color)
     }
 
-    pub fn new_from_capture(start: usize, end: usize, punctuation: &str) -> Self {
+    pub fn new_from_capture(start: usize, end: usize, punctuation: &str) -> ColorHighligter {
         let color = Self::get_color_from_punctuation(punctuation);
-        Self { start, end, color }
+        ColorHighligter { start, end, color }
     }
 }
