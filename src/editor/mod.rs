@@ -17,8 +17,8 @@ use std::io::{Stdout, Write};
 // 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
 pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
-pub const MOVE_PREV_OR_NEXT_LINE: bool = true; // on true allow us to activate the feature where if we
-                                               // are at the end of the line or start move to next or prev line
+pub const MOVE_PREV_OR_NEXT_LINE: bool = false; // on true allow us to activate the feature where if we
+                                                // are at the end of the line or start move to next or prev line
 
 #[derive(Debug)]
 pub struct Editor {
