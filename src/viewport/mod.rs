@@ -128,6 +128,19 @@ impl Viewport {
         Ok(())
     }
 
+    pub fn clear_draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
+        stdout.queue(cursor::MoveTo(0, 0))?;
+        for i in 0..self.vheight {
+            stdout
+                .queue(PrintStyledContent(
+                    " ".repeat(self.vwidth as usize)
+                        .on(Color::from(colors::DARK0)),
+                ))?
+                .queue(cursor::MoveTo(0, i))?;
+        }
+        Ok(())
+    }
+
     fn draw_line_number(&self, stdout: &mut std::io::Stdout, i: u16) -> anyhow::Result<()> {
         let pos = self.top as usize + i as usize;
 

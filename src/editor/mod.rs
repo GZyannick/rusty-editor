@@ -1,4 +1,5 @@
 mod ui;
+use crossterm::terminal::Clear;
 use ui::Draw;
 mod core;
 use crate::log_message;

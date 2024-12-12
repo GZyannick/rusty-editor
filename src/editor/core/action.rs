@@ -302,7 +302,7 @@ impl Action {
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
                 if let Some(path) = editor.viewport.buffer.get(y as usize) {
-                    editor.stdout.queue(Clear(ClearType::All))?; // TODO: Replace make the ui
+                    editor.viewport.clear_draw(&mut editor.stdout)?;
                     editor.reset_cursor();
                     match metadata(&path)?.is_dir() {
                         true => {
@@ -316,7 +316,7 @@ impl Action {
                 }
             }
             Action::SwapBufferToExplorer => {
-                editor.stdout.queue(Clear(ClearType::All))?; // TODO: Replace make the ui
+                editor.viewport.clear_draw(&mut editor.stdout)?;
                 editor.reset_cursor();
                 std::mem::swap(
                     &mut editor.viewport,

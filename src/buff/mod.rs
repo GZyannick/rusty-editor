@@ -55,7 +55,7 @@ impl Buffer {
     }
 
     fn from_dir(path: &str) -> Buffer {
-        let mut lines: Vec<String> = vec![String::from("../")];
+        let mut lines: Vec<String> = vec![String::from("..")];
         if let Ok(entries) = fs::read_dir(path) {
             for entry in entries {
                 let path = entry.unwrap().path();
