@@ -1,9 +1,11 @@
+use std::fs::metadata;
+
 use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
 use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
-use crate::log_message;
+use crate::{log_message, viewport};
 
 use super::super::Editor;
 use super::command::Command;
@@ -57,6 +59,7 @@ pub enum Action {
     ExecuteCommand,
     RemoveCommandChar,
     EnterFileOrDirectory,
+    SwapBufferToExplorer,
 }
 
 impl Action {
@@ -299,11 +302,26 @@ impl Action {
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
                 if let Some(path) = editor.viewport.buffer.get(y as usize) {
-                    editor.stdout.queue(Clear(ClearType::All))?; // TODO: Replace make the
-                                                                 // ui bug a little bit
+                    editor.stdout.queue(Clear(ClearType::All))?; // TODO: Replace make the ui
                     editor.reset_cursor();
-                    editor.viewport.buffer = Buffer::new(Some(path));
+                    match metadata(&path)?.is_dir() {
+                        true => {
+                            editor.viewport.buffer = Buffer::new(Some(path));
+                        }
+                        false => {
+                            editor.buffer_viewport_or_explorer.buffer = Buffer::new(Some(path));
+                            editor.buffer_actions.push(Action::SwapBufferToExplorer);
+                        }
+                    }
                 }
+            }
+            Action::SwapBufferToExplorer => {
+                editor.stdout.queue(Clear(ClearType::All))?; // TODO: Replace make the ui
+                editor.reset_cursor();
+                std::mem::swap(
+                    &mut editor.viewport,
+                    &mut editor.buffer_viewport_or_explorer,
+                );
             }
             _ => {}
         }

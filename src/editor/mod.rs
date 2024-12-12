@@ -1,9 +1,10 @@
 mod ui;
 use ui::Draw;
 mod core;
-use crate::buff::Buffer;
+use crate::log_message;
 use crate::theme::colors;
 use crate::viewport::Viewport;
+use crate::{buff::Buffer, viewport};
 use anyhow::{Ok, Result};
 use core::{action::Action, mode::Mode};
 use crossterm::{
@@ -30,6 +31,7 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
+    pub buffer_viewport_or_explorer: Viewport, // allow us to store the file explorer or the file
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
     pub undo_insert_actions: Vec<Action>, // when we are in insert mode all the undo at the same
@@ -40,7 +42,17 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
+        let buffer_viewport_or_explorer = match buffer.is_directory {
+            true => Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS),
+            false => Viewport::new(
+                Buffer::new(Some(String::from("."))),
+                size.0,
+                size.1 - TERMINAL_SIZE_MINUS,
+            ),
+        };
         let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
+
+        // for line to show
         // let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
 
         Ok(Editor {
@@ -52,6 +64,7 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewport,
+            buffer_viewport_or_explorer,
             buffer_actions: vec![],
             undo_actions: vec![],
             undo_insert_actions: vec![],
@@ -201,6 +214,10 @@ impl Editor {
                 KeyCode::Char('z') => Some(Action::CenterLine),
                 _ => None,
             },
+            ' ' => match code {
+                KeyCode::Char('e') => Some(Action::SwapBufferToExplorer),
+                _ => None,
+            },
             _ => None,
         }
     }
@@ -228,6 +245,7 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Char('z') => Some(Action::WaitingCmd('z')),
+            KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
             KeyCode::Char('u') => Some(Action::Undo),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
             KeyCode::Enter if self.viewport.buffer.is_directory => {
