@@ -13,6 +13,7 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
+    log_message,
     theme::{color_highligther::ColorHighligter, colors},
 };
 
@@ -103,6 +104,7 @@ impl Viewport {
                 y += 1;
                 continue;
             }
+
             if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
                 colorhighligter = Some(colorh);
             } else if colors.iter().find(|ch| pos == ch.end).is_some() {
@@ -119,6 +121,9 @@ impl Viewport {
                 .queue(PrintStyledContent(styled_char))?;
             x += 1;
         }
+        stdout.queue(PrintStyledContent(
+            " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
+        ))?;
 
         Ok(())
     }
