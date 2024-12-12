@@ -1,6 +1,9 @@
+use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
+use crate::buff::Buffer;
 use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
+use crate::log_message;
 
 use super::super::Editor;
 use super::command::Command;
@@ -53,6 +56,7 @@ pub enum Action {
     UndoCharAt(OldCursorPosition, (u16, u16)),
     ExecuteCommand,
     RemoveCommandChar,
+    EnterFileOrDirectory,
 }
 
 impl Action {
@@ -290,6 +294,15 @@ impl Action {
             Action::RemoveCommandChar => {
                 if !editor.command.is_empty() {
                     editor.command.pop();
+                }
+            }
+            Action::EnterFileOrDirectory => {
+                let (_, y) = editor.v_cursor();
+                if let Some(path) = editor.viewport.buffer.get(y as usize) {
+                    editor.stdout.queue(Clear(ClearType::All))?; // TODO: Replace make the
+                                                                 // ui bug a little bit
+                    editor.reset_cursor();
+                    editor.viewport.buffer = Buffer::new(Some(path));
                 }
             }
             _ => {}

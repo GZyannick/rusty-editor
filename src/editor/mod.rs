@@ -230,6 +230,9 @@ impl Editor {
             KeyCode::Char('z') => Some(Action::WaitingCmd('z')),
             KeyCode::Char('u') => Some(Action::Undo),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+            KeyCode::Enter if self.viewport.buffer.is_directory => {
+                Some(Action::EnterFileOrDirectory)
+            }
 
             // Insert Action
             KeyCode::Char('i') => Some(Action::EnterMode(Mode::Insert)),
@@ -326,6 +329,12 @@ impl Editor {
             ll if matches!(self.mode, Mode::Insert) => ll,
             ll => ll - TERMINAL_LINE_LEN_MINUS,
         }
+    }
+
+    fn reset_cursor(&mut self) {
+        self.cursor = (0, 0);
+        self.viewport.top = 0;
+        self.viewport.left = 0;
     }
 }
 
