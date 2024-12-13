@@ -1,11 +1,10 @@
-mod ui;
-use crossterm::terminal::Clear;
+pub mod ui;
+use ui::popup::Popup;
 use ui::Draw;
 mod core;
-use crate::log_message;
+use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
-use crate::{buff::Buffer, viewport};
 use anyhow::{Ok, Result};
 use core::{action::Action, mode::Mode};
 use crossterm::{
@@ -32,6 +31,7 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
+    pub popup: Option<Popup>,
     pub buffer_viewport_or_explorer: Viewport, // allow us to store the file explorer or the file
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
@@ -65,6 +65,7 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewport,
+            popup: None,
             buffer_viewport_or_explorer,
             buffer_actions: vec![],
             undo_actions: vec![],
@@ -217,6 +218,7 @@ impl Editor {
             },
             ' ' => match code {
                 KeyCode::Char('e') => Some(Action::SwapBufferToExplorer),
+                KeyCode::Char('-') => Some(Action::ShowPopup),
                 _ => None,
             },
             _ => None,
@@ -364,6 +366,11 @@ impl Draw for Editor {
         self.stdout.queue(cursor::Hide)?;
         self.viewport.draw(&mut self.stdout)?;
         self.draw_bottom()?;
+
+        if let Some(popup) = self.popup.as_mut() {
+            popup.draw(&mut self.stdout)?;
+        }
+
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
 

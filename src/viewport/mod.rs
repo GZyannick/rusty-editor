@@ -1,6 +1,7 @@
 mod core;
 mod ui;
 
+use anyhow::Result;
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -13,6 +14,7 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
+    editor::ui::clear::ClearDraw,
     log_message,
     theme::{color_highligther::ColorHighligter, colors},
 };
@@ -29,6 +31,7 @@ pub struct Viewport {
     pub language: Language,
 }
 
+// impl ClearDraw for Viewport {}
 impl Viewport {
     pub fn new(buffer: Buffer, vwidth: u16, vheight: u16) -> Viewport {
         let language = tree_sitter_rust::LANGUAGE;
@@ -128,19 +131,6 @@ impl Viewport {
         Ok(())
     }
 
-    pub fn clear_draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
-        stdout.queue(cursor::MoveTo(0, 0))?;
-        for i in 0..self.vheight {
-            stdout
-                .queue(PrintStyledContent(
-                    " ".repeat(self.vwidth as usize)
-                        .on(Color::from(colors::DARK0)),
-                ))?
-                .queue(cursor::MoveTo(0, i))?;
-        }
-        Ok(())
-    }
-
     fn draw_line_number(&self, stdout: &mut std::io::Stdout, i: u16) -> anyhow::Result<()> {
         let pos = self.top as usize + i as usize;
 
@@ -151,6 +141,23 @@ impl Viewport {
                 format!("{pos:>width$}", width = l_width).on(Color::from(colors::DARK0)),
             ))?;
 
+        Ok(())
+    }
+
+    pub fn clear_draw(&mut self, stdout: &mut std::io::Stdout) -> Result<()> {
+        stdout.queue(cursor::MoveTo(0, 0))?;
+
+        for i in 0..self.vheight {
+            // let clear_width = start.0.wrapping_sub(end.0);
+            stdout
+                .queue(PrintStyledContent(
+                    " ".repeat(self.vwidth as usize)
+                        .on(Color::from(colors::DARK0)),
+                ))?
+                .queue(cursor::MoveTo(0, i))?;
+        }
+
+        // self.clear_at(stdout, &(0, 0), &(self.vwidth, self.vheight))?;
         Ok(())
     }
 
