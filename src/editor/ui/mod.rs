@@ -1,4 +1,6 @@
 // i use this trait to separate the draw part of the editor and the keyHandling Part
+pub mod clear;
+pub mod popup;
 use anyhow::Result;
 pub trait Draw {
     fn draw(&mut self) -> Result<()>;

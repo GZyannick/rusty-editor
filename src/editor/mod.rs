@@ -1,4 +1,5 @@
-mod ui;
+pub mod ui;
+use ui::popup::Popup;
 use ui::Draw;
 mod core;
 use crate::buff::Buffer;
@@ -30,6 +31,8 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
+    pub popup: Option<Popup>,
+    pub buffer_viewport_or_explorer: Viewport, // allow us to store the file explorer or the file
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
     pub undo_insert_actions: Vec<Action>, // when we are in insert mode all the undo at the same
@@ -40,7 +43,17 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
+        let buffer_viewport_or_explorer = match buffer.is_directory {
+            true => Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS),
+            false => Viewport::new(
+                Buffer::new(Some(String::from("."))),
+                size.0,
+                size.1 - TERMINAL_SIZE_MINUS,
+            ),
+        };
         let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
+
+        // for line to show
         // let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
 
         Ok(Editor {
@@ -52,6 +65,8 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewport,
+            popup: None,
+            buffer_viewport_or_explorer,
             buffer_actions: vec![],
             undo_actions: vec![],
             undo_insert_actions: vec![],
@@ -201,6 +216,11 @@ impl Editor {
                 KeyCode::Char('z') => Some(Action::CenterLine),
                 _ => None,
             },
+            ' ' => match code {
+                KeyCode::Char('e') => Some(Action::SwapBufferToExplorer),
+                KeyCode::Char('-') => Some(Action::ShowPopup),
+                _ => None,
+            },
             _ => None,
         }
     }
@@ -228,8 +248,12 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Char('z') => Some(Action::WaitingCmd('z')),
+            KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
             KeyCode::Char('u') => Some(Action::Undo),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+            KeyCode::Enter if self.viewport.buffer.is_directory => {
+                Some(Action::EnterFileOrDirectory)
+            }
 
             // Insert Action
             KeyCode::Char('i') => Some(Action::EnterMode(Mode::Insert)),
@@ -327,6 +351,12 @@ impl Editor {
             ll => ll - TERMINAL_LINE_LEN_MINUS,
         }
     }
+
+    fn reset_cursor(&mut self) {
+        self.cursor = (0, 0);
+        self.viewport.top = 0;
+        self.viewport.left = 0;
+    }
 }
 
 impl Draw for Editor {
@@ -336,6 +366,11 @@ impl Draw for Editor {
         self.stdout.queue(cursor::Hide)?;
         self.viewport.draw(&mut self.stdout)?;
         self.draw_bottom()?;
+
+        if let Some(popup) = self.popup.as_mut() {
+            popup.draw(&mut self.stdout)?;
+        }
+
         self.stdout
             .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
 

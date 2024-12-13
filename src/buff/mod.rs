@@ -1,11 +1,12 @@
 use std::{
-    fs::{File, OpenOptions},
+    fs::{self, File, OpenOptions},
     io::{Read, Write},
 };
 
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
+    pub is_directory: bool,
     pub path: String,
     pub lines: Vec<String>,
 }
@@ -26,8 +27,50 @@ impl Buffer {
 
         Buffer {
             file: None,
-            lines: vec![],
+            is_directory: false,
+            lines: vec![String::new()],
             path: "Empty".to_string(),
+        }
+    }
+
+    fn from_file(f_path: &str) -> Buffer {
+        let mut file = None;
+        let mut lines: Vec<String> = Vec::new();
+        let mut path = String::from("Empty");
+
+        if let Ok(mut c_file) = File::open(f_path) {
+            let mut buf = String::new();
+            c_file.read_to_string(&mut buf).unwrap();
+            file = Some(c_file);
+            lines = buf.lines().map(|s| s.to_string()).collect();
+            path = f_path.to_string();
+        }
+
+        Buffer {
+            file,
+            is_directory: false,
+            lines,
+            path,
+        }
+    }
+
+    fn from_dir(path: &str) -> Buffer {
+        let mut lines: Vec<String> = vec![String::from("..")];
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries {
+                let path = entry.unwrap().path();
+
+                if let Some(path_str) = path.to_str() {
+                    lines.push(String::from(path_str));
+                }
+            }
+        }
+
+        Buffer {
+            file: None,
+            is_directory: true,
+            lines,
+            path: "File_explorer".to_string(),
         }
     }
 
@@ -90,30 +133,6 @@ impl Buffer {
         }
         if let Some(prev_line) = self.lines.get_mut(cursor.1 as usize - 1) {
             prev_line.push_str(buf.as_str());
-        }
-    }
-
-    fn from_file(f_path: &str) -> Buffer {
-        let mut file = None;
-        let mut lines: Vec<String> = Vec::new();
-        let mut path = String::from("Empty");
-
-        if let Ok(mut c_file) = File::open(f_path) {
-            let mut buf = String::new();
-            c_file.read_to_string(&mut buf).unwrap();
-            file = Some(c_file);
-            lines = buf.lines().map(|s| s.to_string()).collect();
-            path = f_path.to_string();
-        }
-
-        Buffer { file, lines, path }
-    }
-
-    fn from_dir(_f_path: &str) -> Buffer {
-        Buffer {
-            file: None,
-            lines: vec!["".to_string()],
-            path: "Empty".to_string(),
         }
     }
 
