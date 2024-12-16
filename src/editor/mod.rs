@@ -2,9 +2,9 @@ pub mod ui;
 use ui::popup::Popup;
 use ui::Draw;
 mod core;
+use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
-use crate::{buff::Buffer, viewport};
 use anyhow::{Ok, Result};
 use core::{action::Action, mode::Mode};
 use crossterm::{
@@ -43,24 +43,18 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
+
         // will give an viewport with file_buffer or file_explorer
         let buffer_viewport_or_explorer = match buffer.is_directory {
-            true => Viewport::new(
-                Buffer::new(None),
-                size.0,
-                size.1 - TERMINAL_SIZE_MINUS,
-                0,
-                0,
-            ),
+            true => Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS, 0),
             false => Viewport::new(
                 Buffer::new(Some(String::from("."))),
                 size.0,
                 size.1 - TERMINAL_SIZE_MINUS,
                 0,
-                0,
             ),
         };
-        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0, 0);
+        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
 
         Ok(Editor {
             mode: Mode::Normal,

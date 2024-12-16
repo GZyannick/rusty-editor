@@ -21,7 +21,6 @@ pub struct Viewport {
     pub left: u16,
     pub top: u16,
     pub min_vwidth: u16,
-    pub min_vheight: u16,
     pub vwidth: u16,
     pub vheight: u16,
     pub query: Query,
@@ -30,13 +29,7 @@ pub struct Viewport {
 
 // impl ClearDraw for Viewport {}
 impl Viewport {
-    pub fn new(
-        buffer: Buffer,
-        vwidth: u16,
-        vheight: u16,
-        min_vwidth: u16,
-        min_vheight: u16,
-    ) -> Viewport {
+    pub fn new(buffer: Buffer, vwidth: u16, vheight: u16, min_vwidth: u16) -> Viewport {
         let language = tree_sitter_rust::LANGUAGE;
         // i am in obligation to put the Query::new in viewport or it will make lag the app
         // and make it unspossible to use tree_sitter without delay in the input
@@ -46,7 +39,6 @@ impl Viewport {
             vwidth,
             vheight,
             min_vwidth,
-            min_vheight,
             left: 0,
             top: 0,
             language: language.into(),
