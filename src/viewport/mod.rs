@@ -1,4 +1,3 @@
-use anyhow::Result;
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -11,8 +10,6 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
-    editor::ui::clear::ClearDraw,
-    log_message,
     theme::{color_highligther::ColorHighligter, colors},
 };
 
@@ -22,6 +19,8 @@ pub struct Viewport {
     pub buffer: Buffer,
     pub left: u16,
     pub top: u16,
+    pub min_vwidth: u16,
+    pub min_vheight: u16,
     pub vwidth: u16,
     pub vheight: u16,
     pub query: Query,
@@ -30,7 +29,13 @@ pub struct Viewport {
 
 // impl ClearDraw for Viewport {}
 impl Viewport {
-    pub fn new(buffer: Buffer, vwidth: u16, vheight: u16) -> Viewport {
+    pub fn new(
+        buffer: Buffer,
+        vwidth: u16,
+        vheight: u16,
+        min_vwidth: u16,
+        min_vheight: u16,
+    ) -> Viewport {
         let language = tree_sitter_rust::LANGUAGE;
         // i am in obligation to put the Query::new in viewport or it will make lag the app
         // and make it unspossible to use tree_sitter without delay in the input
@@ -38,6 +43,8 @@ impl Viewport {
             buffer,
             vwidth,
             vheight,
+            min_vwidth,
+            min_vheight,
             left: 0,
             top: 0,
             language: language.into(),
@@ -85,7 +92,6 @@ impl Viewport {
         }
 
         let v_width = self.vwidth;
-        stdout.queue(cursor::MoveTo(0, 0))?;
         let viewport_buffer = self.viewport();
         let colors = self.highlight(&viewport_buffer)?;
 
@@ -96,7 +102,7 @@ impl Viewport {
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
                 stdout
-                    .queue(cursor::MoveTo(x, y))?
+                    .queue(cursor::MoveTo(x + self.min_vwidth, y))?
                     .queue(PrintStyledContent(
                         " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
                     ))?;
@@ -117,7 +123,7 @@ impl Viewport {
             };
 
             stdout
-                .queue(cursor::MoveTo(x, y))?
+                .queue(cursor::MoveTo(x + self.min_vwidth, y))?
                 .queue(PrintStyledContent(styled_char))?;
             x += 1;
         }
@@ -141,30 +147,14 @@ impl Viewport {
         Ok(())
     }
 
-    pub fn clear_draw(&mut self, stdout: &mut std::io::Stdout) -> Result<()> {
-        stdout.queue(cursor::MoveTo(0, 0))?;
-
-        for i in 0..self.vheight {
-            // let clear_width = start.0.wrapping_sub(end.0);
-            stdout
-                .queue(PrintStyledContent(
-                    " ".repeat(self.vwidth as usize)
-                        .on(Color::from(colors::DARK0)),
-                ))?
-                .queue(cursor::MoveTo(0, i))?;
-        }
-
-        // self.clear_at(stdout, &(0, 0), &(self.vwidth, self.vheight))?;
-        Ok(())
-    }
-
     // retrieve the len of the line
     pub fn get_line_len(&self, cursor: &(u16, u16)) -> u16 {
         let (_, y) = self.viewport_cursor(cursor);
-        match self.buffer.get(y as usize) {
+        let size = match self.buffer.get(y as usize) {
             Some(line) => line.len() as u16,
             None => 0,
-        }
+        };
+        size
     }
 
     pub fn viewport_cursor(&self, cursor: &(u16, u16)) -> (u16, u16) {
@@ -255,9 +245,9 @@ impl Viewport {
     }
 
     pub fn get_buffer_len(&self) -> usize {
-        if self.buffer.lines.is_empty() {
-            return 0;
+        match self.buffer.lines.is_empty() {
+            true => 0,
+            false => self.buffer.lines.len(),
         }
-        self.buffer.lines.len()
     }
 }

@@ -2,9 +2,9 @@ pub mod ui;
 use ui::popup::Popup;
 use ui::Draw;
 mod core;
-use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
+use crate::{buff::Buffer, viewport};
 use anyhow::{Ok, Result};
 use core::{action::Action, mode::Mode};
 use crossterm::{
@@ -43,18 +43,24 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
+        // will give an empty buffer or file_explorer
         let buffer_viewport_or_explorer = match buffer.is_directory {
-            true => Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS),
+            true => Viewport::new(
+                Buffer::new(None),
+                size.0,
+                size.1 - TERMINAL_SIZE_MINUS,
+                0,
+                0,
+            ),
             false => Viewport::new(
                 Buffer::new(Some(String::from("."))),
                 size.0,
                 size.1 - TERMINAL_SIZE_MINUS,
+                0,
+                0,
             ),
         };
-        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
-
-        // for line to show
-        // let viewport = Viewport::new(buffer, size.0 - 3, size.1 - TERMINAL_SIZE_MINUS);
+        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 50, 0);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -100,7 +106,7 @@ impl Editor {
         let line_len = self.get_specific_line_len_by_mode();
 
         if self.cursor.0 >= line_len {
-            if self.buffer_x_cursor == 0 {
+            if self.buffer_x_cursor == self.viewport.min_vwidth {
                 self.buffer_x_cursor = self.cursor.0;
             }
             self.cursor.0 = line_len;
@@ -342,6 +348,7 @@ impl Editor {
         Ok(action)
     }
 
+    // we have to take the min size of the viewport in condition
     fn get_specific_line_len_by_mode(&mut self) -> u16 {
         // ive created this fn because the ll is different by the mode we are in
         // != Mode::Insert = ll - 1
@@ -371,8 +378,10 @@ impl Draw for Editor {
             popup.draw(&mut self.stdout)?;
         }
 
-        self.stdout
-            .queue(cursor::MoveTo(self.cursor.0, self.cursor.1))?;
+        self.stdout.queue(cursor::MoveTo(
+            self.cursor.0 + self.viewport.min_vwidth,
+            self.cursor.1,
+        ))?;
 
         self.stdout.queue(cursor::Show)?;
         self.stdout.flush()?;
