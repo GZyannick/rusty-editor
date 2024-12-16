@@ -121,7 +121,7 @@ impl Buffer {
         }
     }
 
-    pub fn remove_word(&mut self, cursor: (u16, u16)) {
+    pub fn remove_word(&mut self, _cursor: (u16, u16)) {
         todo!()
     }
 
