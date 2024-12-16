@@ -43,7 +43,7 @@ pub struct Editor {
 impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
-        // will give an empty buffer or file_explorer
+        // will give an viewport with file_buffer or file_explorer
         let buffer_viewport_or_explorer = match buffer.is_directory {
             true => Viewport::new(
                 Buffer::new(None),
@@ -60,7 +60,7 @@ impl Editor {
                 0,
             ),
         };
-        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 50, 0);
+        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0, 0);
 
         Ok(Editor {
             mode: Mode::Normal,

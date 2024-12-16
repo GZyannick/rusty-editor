@@ -13,6 +13,7 @@ use crate::{
     theme::{color_highligther::ColorHighligter, colors},
 };
 
+const LINE_NUMBERS_WIDTH: u16 = 5;
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
 pub struct Viewport {
@@ -39,6 +40,7 @@ impl Viewport {
         let language = tree_sitter_rust::LANGUAGE;
         // i am in obligation to put the Query::new in viewport or it will make lag the app
         // and make it unspossible to use tree_sitter without delay in the input
+        let min_vwidth = min_vwidth + LINE_NUMBERS_WIDTH;
         Viewport {
             buffer,
             vwidth,
@@ -101,6 +103,7 @@ impl Viewport {
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
+                self.draw_line_number(stdout, y)?;
                 stdout
                     .queue(cursor::MoveTo(x + self.min_vwidth, y))?
                     .queue(PrintStyledContent(
@@ -127,6 +130,7 @@ impl Viewport {
                 .queue(PrintStyledContent(styled_char))?;
             x += 1;
         }
+        self.draw_line_number(stdout, y)?;
         stdout.queue(PrintStyledContent(
             " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
         ))?;
@@ -136,10 +140,9 @@ impl Viewport {
 
     fn draw_line_number(&self, stdout: &mut std::io::Stdout, i: u16) -> anyhow::Result<()> {
         let pos = self.top as usize + i as usize;
-
-        let l_width = 4;
+        let l_width = LINE_NUMBERS_WIDTH as usize - 1;
         stdout
-            .queue(cursor::MoveTo(0, i))?
+            .queue(cursor::MoveTo(self.min_vwidth - LINE_NUMBERS_WIDTH, i))?
             .queue(PrintStyledContent(
                 format!("{pos:>width$}", width = l_width).on(Color::from(colors::DARK0)),
             ))?;
@@ -150,11 +153,10 @@ impl Viewport {
     // retrieve the len of the line
     pub fn get_line_len(&self, cursor: &(u16, u16)) -> u16 {
         let (_, y) = self.viewport_cursor(cursor);
-        let size = match self.buffer.get(y as usize) {
+        match self.buffer.get(y as usize) {
             Some(line) => line.len() as u16,
             None => 0,
-        };
-        size
+        }
     }
 
     pub fn viewport_cursor(&self, cursor: &(u16, u16)) -> (u16, u16) {
