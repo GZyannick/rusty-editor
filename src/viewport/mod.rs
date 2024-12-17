@@ -1,4 +1,4 @@
-pub mod core;
+mod core;
 
 use streaming_iterator::StreamingIterator;
 

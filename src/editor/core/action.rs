@@ -347,7 +347,7 @@ impl Action {
             }
 
             // TODO: Remove  show popup this is test purpose
-            Action::ShowPopup => {}
+            Action::ShowPopup => editor.viewport.to_popup(),
             _ => {}
         }
         if !editor.buffer_actions.is_empty() {
