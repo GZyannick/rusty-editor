@@ -4,7 +4,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
-use crate::editor::ui::popup::Popup;
 use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
 use crate::viewport::Viewport;
 
@@ -25,7 +24,6 @@ impl OldCursorPosition {
 }
 
 impl ClearDraw for Viewport {}
-impl ClearDraw for Popup {}
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -349,22 +347,7 @@ impl Action {
             }
 
             // TODO: Remove  show popup this is test purpose
-            Action::ShowPopup => {
-                editor.popup = match editor.popup.as_mut() {
-                    Some(popup) => {
-                        // popup.clear_draw(&mut editor.stdout)?;
-                        popup.clear_at(
-                            &mut editor.stdout,
-                            popup.left,
-                            popup.top,
-                            popup.width,
-                            popup.height,
-                        )?;
-                        None
-                    }
-                    None => Some(Popup::new(&editor.size)?),
-                };
-            }
+            Action::ShowPopup => {}
             _ => {}
         }
         if !editor.buffer_actions.is_empty() {

@@ -1,10 +1,9 @@
 pub mod ui;
-use ui::popup::Popup;
 use ui::Draw;
 mod core;
-use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
+use crate::{buff::Buffer, viewport::core::Popup};
 use anyhow::{Ok, Result};
 use core::{action::Action, mode::Mode};
 use crossterm::{
@@ -20,6 +19,7 @@ pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
 pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
 pub const MOVE_PREV_OR_NEXT_LINE: bool = false; // on true allow us to activate the feature where if we
                                                 // are at the end of the line or start move to next or prev line
+impl Popup for Viewport {}
 
 #[derive(Debug)]
 pub struct Editor {
@@ -31,7 +31,6 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewport: Viewport,
-    pub popup: Option<Popup>,
     pub buffer_viewport_or_explorer: Viewport, // allow us to store the file explorer or the file
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
@@ -54,7 +53,8 @@ impl Editor {
                 0,
             ),
         };
-        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
+        let viewport = Viewport::popup(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
+        // let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -65,7 +65,6 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewport,
-            popup: None,
             buffer_viewport_or_explorer,
             buffer_actions: vec![],
             undo_actions: vec![],
@@ -368,13 +367,9 @@ impl Draw for Editor {
         self.viewport.draw(&mut self.stdout)?;
         self.draw_bottom()?;
 
-        if let Some(popup) = self.popup.as_mut() {
-            popup.draw(&mut self.stdout)?;
-        }
-
         self.stdout.queue(cursor::MoveTo(
             self.cursor.0 + self.viewport.min_vwidth,
-            self.cursor.1,
+            self.cursor.1 + self.viewport.min_vheight,
         ))?;
 
         self.stdout.queue(cursor::Show)?;
