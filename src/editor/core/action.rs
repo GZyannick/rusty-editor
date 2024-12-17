@@ -4,7 +4,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
-use crate::editor::ui::popup::Popup;
 use crate::editor::{MOVE_PREV_OR_NEXT_LINE, TERMINAL_LINE_LEN_MINUS};
 use crate::viewport::Viewport;
 
@@ -25,7 +24,6 @@ impl OldCursorPosition {
 }
 
 impl ClearDraw for Viewport {}
-impl ClearDraw for Popup {}
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -65,6 +63,7 @@ pub enum Action {
     EnterFileOrDirectory,
     SwapBufferToExplorer,
     ShowPopup,
+    SwapBufferToPopup,
 }
 
 impl Action {
@@ -308,11 +307,13 @@ impl Action {
                 let (_, y) = editor.v_cursor();
                 if let Some(path) = editor.viewport.buffer.get(y as usize) {
                     // editor.viewport.clear_draw(&mut editor.stdout)?;
-                    let vwidth = editor.viewport.vwidth;
-                    let vheight = editor.viewport.vheight;
-                    editor
-                        .viewport
-                        .clear_at(&mut editor.stdout, 0, 0, vwidth, vheight)?;
+                    editor.viewport.clear_at(
+                        &mut editor.stdout,
+                        editor.viewport.min_vwidth,
+                        editor.viewport.min_vheight,
+                        editor.viewport.vwidth,
+                        editor.viewport.vheight,
+                    )?;
                     editor.reset_cursor();
                     match metadata(&path)?.is_dir() {
                         true => {
@@ -326,21 +327,12 @@ impl Action {
                 }
             }
             Action::SwapBufferToExplorer => {
-                // editor.viewport.clear_draw(&mut editor.stdout)?;
-
                 let vwidth = editor.viewport.vwidth;
                 let vheight = editor.viewport.vheight;
                 editor
                     .viewport
                     .clear_at(&mut editor.stdout, 0, 0, vwidth, vheight)?;
 
-                // self.clear_at(stdout, &(0, 0), &(self.vwidth, self.vheight))?;
-                // editor.viewport.clear_at(
-                //     &mut editor.stdout,
-                //     &(0, 0),
-                //     &(editor.viewport.vwidth, editor.viewport.vheight),
-                // )?;
-                //
                 editor.reset_cursor();
                 std::mem::swap(
                     &mut editor.viewport,
@@ -348,23 +340,17 @@ impl Action {
                 );
             }
 
-            // TODO: Remove  show popup this is test purpose
-            Action::ShowPopup => {
-                editor.popup = match editor.popup.as_mut() {
-                    Some(popup) => {
-                        // popup.clear_draw(&mut editor.stdout)?;
-                        popup.clear_at(
-                            &mut editor.stdout,
-                            popup.left,
-                            popup.top,
-                            popup.width,
-                            popup.height,
-                        )?;
-                        None
-                    }
-                    None => Some(Popup::new(&editor.size)?),
-                };
+            Action::SwapBufferToPopup => {
+                editor.reset_cursor();
+                std::mem::swap(
+                    &mut editor.viewport,
+                    &mut editor.buffer_viewport_or_explorer,
+                );
+                editor.viewport.as_popup()
             }
+
+            // TODO: Remove  show popup this is test purpose
+            Action::ShowPopup => editor.viewport.as_popup(),
             _ => {}
         }
         if !editor.buffer_actions.is_empty() {

@@ -1,3 +1,5 @@
+mod core;
+
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -10,7 +12,10 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
-    theme::{color_highligther::ColorHighligter, colors},
+    theme::{
+        color_highligther::ColorHighligter,
+        colors::{self, DARK0},
+    },
 };
 
 const LINE_NUMBERS_WIDTH: u16 = 5;
@@ -21,13 +26,14 @@ pub struct Viewport {
     pub left: u16,
     pub top: u16,
     pub min_vwidth: u16,
+    pub min_vheight: u16,
     pub vwidth: u16,
     pub vheight: u16,
     pub query: Query,
     pub language: Language,
+    pub bg_color: Color,
 }
 
-// impl ClearDraw for Viewport {}
 impl Viewport {
     pub fn new(buffer: Buffer, vwidth: u16, vheight: u16, min_vwidth: u16) -> Viewport {
         let language = tree_sitter_rust::LANGUAGE;
@@ -39,10 +45,12 @@ impl Viewport {
             vwidth,
             vheight,
             min_vwidth,
+            min_vheight: 0,
             left: 0,
             top: 0,
             language: language.into(),
             query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
+            bg_color: Color::from(DARK0),
         }
     }
 
@@ -89,9 +97,11 @@ impl Viewport {
         let viewport_buffer = self.viewport();
         let colors = self.highlight(&viewport_buffer)?;
 
-        let mut y: u16 = 0;
+        let mut y: u16 = self.min_vheight;
         let mut x: u16 = 0;
         let mut colorhighligter = None;
+
+        let chars_len = viewport_buffer.len() - 1;
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
@@ -99,7 +109,7 @@ impl Viewport {
                 stdout
                     .queue(cursor::MoveTo(x + self.min_vwidth, y))?
                     .queue(PrintStyledContent(
-                        " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
+                        " ".repeat(v_width as usize - x as usize).on(self.bg_color),
                     ))?;
                 x = 0;
                 y += 1;
@@ -113,20 +123,24 @@ impl Viewport {
             }
 
             let styled_char = match colorhighligter {
-                Some(ch) => format!("{c}").on(Color::from(colors::DARK0)).with(ch.color),
-                None => format!("{c}",).on(Color::from(colors::DARK0)),
+                Some(ch) => format!("{c}").on(self.bg_color).with(ch.color),
+                None => format!("{c}",).on(self.bg_color),
             };
 
             stdout
                 .queue(cursor::MoveTo(x + self.min_vwidth, y))?
                 .queue(PrintStyledContent(styled_char))?;
-            x += 1;
-        }
-        self.draw_line_number(stdout, y)?;
-        stdout.queue(PrintStyledContent(
-            " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
-        ))?;
 
+            x += 1;
+            if pos == chars_len {
+                self.draw_line_number(stdout, y)?;
+                stdout
+                    .queue(cursor::MoveTo(x + self.min_vwidth, y))?
+                    .queue(PrintStyledContent(
+                        " ".repeat(v_width as usize - x as usize).on(self.bg_color),
+                    ))?;
+            }
+        }
         Ok(())
     }
 
@@ -136,7 +150,7 @@ impl Viewport {
         stdout
             .queue(cursor::MoveTo(self.min_vwidth - LINE_NUMBERS_WIDTH, i))?
             .queue(PrintStyledContent(
-                format!("{pos:>width$}", width = l_width).on(Color::from(colors::DARK0)),
+                format!("{pos:>width$}", width = l_width).on(self.bg_color),
             ))?;
 
         Ok(())
