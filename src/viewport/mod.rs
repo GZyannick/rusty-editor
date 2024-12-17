@@ -1,3 +1,5 @@
+use core::panic;
+
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -10,6 +12,7 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
+    log_message,
     theme::{color_highligther::ColorHighligter, colors},
 };
 
@@ -93,6 +96,8 @@ impl Viewport {
         let mut x: u16 = 0;
         let mut colorhighligter = None;
 
+        let chars_len = viewport_buffer.len() - 1;
+
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
                 self.draw_line_number(stdout, y)?;
@@ -120,13 +125,17 @@ impl Viewport {
             stdout
                 .queue(cursor::MoveTo(x + self.min_vwidth, y))?
                 .queue(PrintStyledContent(styled_char))?;
-            x += 1;
-        }
-        self.draw_line_number(stdout, y)?;
-        stdout.queue(PrintStyledContent(
-            " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
-        ))?;
 
+            x += 1;
+            if pos == chars_len {
+                self.draw_line_number(stdout, y)?;
+                stdout
+                    .queue(cursor::MoveTo(x + self.min_vwidth, y))?
+                    .queue(PrintStyledContent(
+                        " ".repeat(v_width as usize).on(Color::from(colors::DARK0)),
+                    ))?;
+            }
+        }
         Ok(())
     }
 
