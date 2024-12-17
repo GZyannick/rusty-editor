@@ -10,7 +10,6 @@ pub trait ClearDraw {
     fn clear_at(
         &mut self,
         stdout: &mut std::io::Stdout,
-
         start_x: u16,
         start_y: u16,
         width: u16,
