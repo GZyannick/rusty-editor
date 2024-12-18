@@ -49,7 +49,12 @@ impl Viewport {
             is_popup: false,
         }
     }
+    // let us know if the viewport is the file_explorer.
+    fn is_file_explorer(&self) -> bool {
+        self.buffer.is_directory
+    }
 
+    // return a string with the size of the viewport
     fn viewport(&self) -> String {
         if self.buffer.lines.is_empty() {
             return String::new();
@@ -69,10 +74,12 @@ impl Viewport {
         }
     }
 
+    // return the viewport cursor
     pub fn viewport_cursor(&self, cursor: &(u16, u16)) -> (u16, u16) {
         (cursor.0 + self.left, cursor.1 + self.top)
     }
 
+    // let us know is the cursor is under the buffer max len
     pub fn is_under_buffer_len(&self, cursor: &(u16, u16)) -> bool {
         if self.buffer.lines.is_empty() {
             return false;
@@ -81,6 +88,7 @@ impl Viewport {
         (y as usize) < (self.buffer.lines.len() - 1_usize)
     }
 
+    // return the buffer len
     pub fn get_buffer_len(&self) -> usize {
         match self.buffer.lines.is_empty() {
             true => 0,
