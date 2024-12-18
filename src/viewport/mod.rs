@@ -1,7 +1,5 @@
 mod core;
 
-use core::popup::Popup;
-
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -14,11 +12,7 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
-    log_message,
-    theme::{
-        color_highligther::ColorHighligter,
-        colors::{self, DARK0},
-    },
+    theme::{color_highligther::ColorHighligter, colors::DARK0},
 };
 
 const LINE_NUMBERS_WIDTH: u16 = 5;
@@ -129,7 +123,7 @@ impl Viewport {
 
             if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
                 colorhighligter = Some(colorh);
-            } else if colors.iter().find(|ch| pos == ch.end).is_some() {
+            } else if colors.iter().any(|ch| pos == ch.end) {
                 colorhighligter = None
             }
 
