@@ -61,9 +61,8 @@ pub enum Action {
     ExecuteCommand,
     RemoveCommandChar,
     EnterFileOrDirectory,
-    SwapBufferToExplorer,
-    ShowPopup,
-    SwapBufferToPopup,
+    SwapViewportToExplorer,
+    SwapViewportToPopupExplorer,
 }
 
 impl Action {
@@ -321,12 +320,12 @@ impl Action {
                         }
                         false => {
                             editor.buffer_viewport_or_explorer.buffer = Buffer::new(Some(path));
-                            editor.buffer_actions.push(Action::SwapBufferToExplorer);
+                            editor.buffer_actions.push(Action::SwapViewportToExplorer);
                         }
                     }
                 }
             }
-            Action::SwapBufferToExplorer => {
+            Action::SwapViewportToExplorer => {
                 let vwidth = editor.viewport.vwidth;
                 let vheight = editor.viewport.vheight;
                 editor
@@ -340,17 +339,28 @@ impl Action {
                 );
             }
 
-            Action::SwapBufferToPopup => {
+            Action::SwapViewportToPopupExplorer => {
                 editor.reset_cursor();
-                std::mem::swap(
-                    &mut editor.viewport,
-                    &mut editor.buffer_viewport_or_explorer,
-                );
-                editor.viewport.as_popup()
+
+                match editor.viewport.is_popup {
+                    true => {
+                        editor.viewport.as_normal();
+
+                        std::mem::swap(
+                            &mut editor.viewport,
+                            &mut editor.buffer_viewport_or_explorer,
+                        );
+                    }
+                    false => {
+                        std::mem::swap(
+                            &mut editor.viewport,
+                            &mut editor.buffer_viewport_or_explorer,
+                        );
+                        editor.viewport.as_popup()
+                    }
+                }
             }
 
-            // TODO: Remove  show popup this is test purpose
-            Action::ShowPopup => editor.viewport.as_popup(),
             _ => {}
         }
         if !editor.buffer_actions.is_empty() {

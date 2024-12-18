@@ -215,8 +215,8 @@ impl Editor {
                 _ => None,
             },
             ' ' => match code {
-                KeyCode::Char('e') => Some(Action::SwapBufferToPopup),
-                KeyCode::Char('-') => Some(Action::SwapBufferToExplorer),
+                KeyCode::Char('e') => Some(Action::SwapViewportToPopupExplorer),
+                KeyCode::Char('-') => Some(Action::SwapViewportToExplorer),
                 _ => None,
             },
             _ => None,
