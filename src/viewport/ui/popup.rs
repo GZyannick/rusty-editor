@@ -15,7 +15,6 @@ pub struct Popup {
     pub height: u16,
     pub top: u16,
     pub left: u16,
-    pub bg_color: Color,
 }
 
 impl Popup {
@@ -38,13 +37,13 @@ impl Popup {
             height,
             top,
             left,
-            bg_color: Color::from(DARK1),
         }
     }
 }
 
 impl Viewport {
-    pub fn popup(buffer: Buffer, width: u16, height: u16) -> Viewport {
+    // Can be used later
+    pub fn _popup(buffer: Buffer, width: u16, height: u16) -> Viewport {
         let language = tree_sitter_rust::LANGUAGE;
         let popup = Popup::new(width, height);
 
