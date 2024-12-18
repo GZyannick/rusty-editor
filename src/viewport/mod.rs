@@ -14,6 +14,7 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
+    log_message,
     theme::{
         color_highligther::ColorHighligter,
         colors::{self, DARK0},
@@ -107,6 +108,7 @@ impl Viewport {
         let colors = self.highlight(&viewport_buffer)?;
 
         let mut y: u16 = self.min_vheight;
+
         let mut x: u16 = 0;
         let mut colorhighligter = None;
 
@@ -148,8 +150,22 @@ impl Viewport {
                     .queue(PrintStyledContent(
                         " ".repeat(v_width as usize - x as usize).on(self.bg_color),
                     ))?;
+                y += 1
             }
         }
+
+        if self.is_popup && y < self.vheight {
+            while y < self.vheight {
+                self.draw_line_number(stdout, y)?;
+                stdout
+                    .queue(cursor::MoveTo(self.min_vwidth, y))?
+                    .queue(PrintStyledContent(
+                        " ".repeat(v_width as usize).on(self.bg_color),
+                    ))?;
+                y += 1;
+            }
+        }
+
         Ok(())
     }
 
