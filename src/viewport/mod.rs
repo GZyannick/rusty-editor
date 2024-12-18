@@ -155,17 +155,22 @@ impl Viewport {
         }
 
         if self.is_popup && y < self.vheight {
-            while y < self.vheight {
-                self.draw_line_number(stdout, y)?;
-                stdout
-                    .queue(cursor::MoveTo(self.min_vwidth, y))?
-                    .queue(PrintStyledContent(
-                        " ".repeat(v_width as usize).on(self.bg_color),
-                    ))?;
-                y += 1;
-            }
+            self.draw_popup_end(y, stdout)?;
         }
 
+        Ok(())
+    }
+
+    fn draw_popup_end(&self, mut y: u16, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
+        while y < self.vheight {
+            self.draw_line_number(stdout, y)?;
+            stdout
+                .queue(cursor::MoveTo(self.min_vwidth, y))?
+                .queue(PrintStyledContent(
+                    " ".repeat(self.vwidth as usize).on(self.bg_color),
+                ))?;
+            y += 1;
+        }
         Ok(())
     }
 
