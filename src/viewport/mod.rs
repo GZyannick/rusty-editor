@@ -1,5 +1,7 @@
 mod core;
 
+use core::popup::Popup;
+
 use streaming_iterator::StreamingIterator;
 
 use crossterm::{
@@ -27,11 +29,16 @@ pub struct Viewport {
     pub top: u16,
     pub min_vwidth: u16,
     pub min_vheight: u16,
+    // buffer position is when viewport change from its original position like popup, left -> right
+    // and if we want to retrieve its old position we use the buffer_position
+    //                    vw , vh , mvw, mvh
+    pub buffer_position: (u16, u16, u16, u16),
     pub vwidth: u16,
     pub vheight: u16,
     pub query: Query,
     pub language: Language,
     pub bg_color: Color,
+    pub is_popup: bool,
 }
 
 impl Viewport {
@@ -48,9 +55,11 @@ impl Viewport {
             min_vheight: 0,
             left: 0,
             top: 0,
+            buffer_position: (0, 0, 0, 0),
             language: language.into(),
             query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
             bg_color: Color::from(DARK0),
+            is_popup: false,
         }
     }
 
