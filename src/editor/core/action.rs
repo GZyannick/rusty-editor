@@ -280,13 +280,10 @@ impl Action {
                 editor.viewports.c_mut_viewport().move_top();
                 editor.cursor.1 = 0;
             }
-            Action::EndOfFile => {
-                // DEV_ERROR
-                editor
-                    .viewports
-                    .c_mut_viewport()
-                    .move_end(&mut editor.cursor);
-            }
+            Action::EndOfFile => editor
+                .viewports
+                .c_mut_viewport()
+                .move_end(&mut editor.cursor),
             Action::Undo => {
                 if let Some(action) = editor.undo_actions.pop() {
                     action.execute(editor)?;
@@ -317,12 +314,10 @@ impl Action {
                 // put the line at the center of screen if possible
                 editor.buffer_actions.push(Action::CenterLine)
             }
-            Action::CenterLine => {
-                editor
-                    .viewports
-                    .c_mut_viewport()
-                    .center_line(&mut editor.cursor);
-            }
+            Action::CenterLine => editor
+                .viewports
+                .c_mut_viewport()
+                .center_line(&mut editor.cursor),
             Action::UndoNewLine(old_cursor) => {
                 let cy = old_cursor.cursor.1 + old_cursor.top;
                 let c_mut_viewport = editor.viewports.c_mut_viewport();
@@ -350,27 +345,26 @@ impl Action {
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
                 if let Some(path) = editor.viewports.c_viewport().buffer.get(y as usize) {
-                    // editor.viewport.clear_draw(&mut editor.stdout)?;
-                    {
-                        // DEV_ERROR
-                        // let c_mut_viewport = editor.viewports.c_mut_viewport();
-                        // c_mut_viewport.clear_at(
-                        //     &mut editor.stdout,
-                        //     c_mut_viewport.min_vwidth,
-                        //     c_mut_viewport.min_vheight,
-                        //     c_mut_viewport.vwidth,
-                        //     c_mut_viewport.vheight,
-                        // )?;
-                    }
+                    let c_mut_viewport = editor.viewports.c_mut_viewport();
+                    c_mut_viewport.clear_at(
+                        &mut editor.stdout,
+                        c_mut_viewport.min_vwidth,
+                        c_mut_viewport.min_vheight,
+                        c_mut_viewport.vwidth,
+                        c_mut_viewport.vheight,
+                    )?;
                     editor.reset_cursor();
+
+                    // if this is a directory we only change the content of it to the new dir
+                    // if its a file we swap to the viewport of file
                     match metadata(&path)?.is_dir() {
                         true => {
                             editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));
                         }
                         false => {
-                            // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
-                            // editor.buffer_viewport_or_explorer.buffer = Buffer::new(Some(path));
-                            editor.buffer_actions.push(Action::SwapViewportToExplorer);
+                            editor.viewports.c_mut_viewport().as_normal();
+                            editor.viewports.set_current_to_original_viewport();
+                            editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));
                         }
                     }
                 }
@@ -380,38 +374,28 @@ impl Action {
                 let vwidth = c_mut_viewport.vwidth;
                 let vheight = c_mut_viewport.vheight;
 
-                // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
                 c_mut_viewport.clear_at(&mut editor.stdout, 0, 0, vwidth, vheight)?;
 
                 editor.reset_cursor();
 
-                // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
-                // std::mem::swap(
-                //     &mut editor.viewport,
-                //     &mut editor.buffer_viewport_or_explorer,
-                // );
+                match editor.viewports.c_viewport().is_file_explorer() {
+                    true => editor.viewports.set_current_to_original_viewport(),
+                    false => editor.viewports.set_current_to_file_explorer_viewport(),
+                }
             }
 
             Action::SwapViewportToPopupExplorer => {
                 editor.reset_cursor();
 
-                match editor.viewports.c_viewport().is_popup {
+                let c_mut_viewport = editor.viewports.c_mut_viewport();
+                match c_mut_viewport.is_file_explorer() {
                     true => {
-                        editor.viewports.c_mut_viewport().as_normal();
-
-                        // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
-                        // std::mem::swap(
-                        //     &mut editor.viewport,
-                        //     &mut editor.buffer_viewport_or_explorer,
-                        // );
+                        c_mut_viewport.as_normal();
+                        editor.viewports.set_current_to_original_viewport();
                     }
                     false => {
-                        // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
-                        // std::mem::swap(
-                        //     &mut editor.viewport,
-                        //     &mut editor.buffer_viewport_or_explorer,
-                        // );
-                        editor.viewports.c_mut_viewport().as_popup()
+                        editor.viewports.set_current_to_file_explorer_viewport();
+                        editor.viewports.c_mut_viewport().as_popup();
                     }
                 }
             }

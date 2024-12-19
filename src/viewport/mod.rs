@@ -49,6 +49,9 @@ impl Viewport {
             is_popup: false,
         }
     }
+    pub fn is_file_explorer(&self) -> bool {
+        self.buffer.is_directory
+    }
 
     fn viewport(&self) -> String {
         if self.buffer.lines.is_empty() {
