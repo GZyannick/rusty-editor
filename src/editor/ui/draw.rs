@@ -21,7 +21,7 @@ impl Editor {
         self.draw_current_viewport()?;
         self.draw_bottom()?;
 
-        let c_viewport = self.c_viewport();
+        let c_viewport = self.viewports.c_viewport();
         self.stdout.queue(cursor::MoveTo(
             self.cursor.0 + c_viewport.min_vwidth,
             self.cursor.1 + c_viewport.min_vheight,
@@ -33,7 +33,10 @@ impl Editor {
     }
 
     fn draw_current_viewport(&mut self) -> anyhow::Result<()> {
-        // self.c_mut_viewport().draw(&mut self.stdout)?;
+        let current_viewport = self.viewports.c_viewport();
+        {
+            current_viewport.draw(&mut self.stdout)?;
+        }
         Ok(())
     }
 
@@ -41,12 +44,13 @@ impl Editor {
         self.stdout
             .queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS))?;
 
-        let c_viewport = self.c_viewport();
+        let c_viewport = self.viewports.c_viewport();
         let cursor_viewport = c_viewport.viewport_cursor(&self.cursor);
 
         let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);
         let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - TERMINAL_SIZE_MINUS;
+
         let filename = format!(
             " {:<width$} ",
             c_viewport.buffer.path,

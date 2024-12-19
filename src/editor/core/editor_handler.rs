@@ -91,7 +91,7 @@ impl Editor {
             KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
             KeyCode::Char('u') => Some(Action::Undo),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
-            KeyCode::Enter if self.c_viewport().buffer.is_directory => {
+            KeyCode::Enter if self.viewports.c_viewport().buffer.is_directory => {
                 Some(Action::EnterFileOrDirectory)
             }
 

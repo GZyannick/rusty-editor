@@ -37,7 +37,7 @@ impl Viewport {
         Ok(colors)
     }
 
-    pub fn draw(&mut self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
+    pub fn draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
         if self.buffer.lines.is_empty() {
             return Ok(());
         }

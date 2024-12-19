@@ -1,8 +1,8 @@
 mod core;
 pub mod ui;
-use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
+use crate::{buff::Buffer, viewports::Viewports};
 use anyhow::{Ok, Result};
 use core::{action::Action, mode::Mode};
 use crossterm::{
@@ -27,8 +27,8 @@ pub struct Editor {
     pub cursor: (u16, u16),
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
-    pub viewports: Vec<Viewport>,
-    pub current_vindex: usize,
+    pub viewports: Viewports,
+    pub current_v_index: usize,
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
     pub undo_insert_actions: Vec<Action>, // when we are in insert mode all the undo at the same
@@ -53,7 +53,9 @@ impl Editor {
         // let viewport = Viewport::popup(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
         let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
 
-        let viewports: Vec<Viewport> = vec![viewport, buffer_viewport_or_explorer];
+        let mut viewports = Viewports::new();
+        viewports.push(viewport);
+        viewports.push(buffer_viewport_or_explorer);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -64,22 +66,15 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewports,
-            current_vindex: 0,
+            current_v_index: 0,
             buffer_actions: vec![],
             undo_actions: vec![],
             undo_insert_actions: vec![],
         })
     }
 
-    pub fn c_viewport(&self) -> &Viewport {
-        self.viewports.get(self.current_vindex).unwrap()
-    }
-    pub fn c_mut_viewport(&mut self) -> &mut Viewport {
-        self.viewports.get_mut(self.current_vindex).unwrap()
-    }
-
     pub fn v_cursor(&self) -> (u16, u16) {
-        self.c_viewport().viewport_cursor(&self.cursor)
+        self.viewports.c_viewport().viewport_cursor(&self.cursor)
     }
 
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
@@ -105,7 +100,7 @@ impl Editor {
         let line_len = self.get_specific_line_len_by_mode();
 
         if self.cursor.0 >= line_len {
-            if self.buffer_x_cursor == self.c_viewport().min_vwidth {
+            if self.buffer_x_cursor == self.viewports.c_viewport().min_vwidth {
                 self.buffer_x_cursor = self.cursor.0;
             }
             self.cursor.0 = line_len;
@@ -123,7 +118,7 @@ impl Editor {
             }
         }
 
-        if self.v_cursor().1 as usize >= self.c_viewport().get_buffer_len() {
+        if self.v_cursor().1 as usize >= self.viewports.c_viewport().get_buffer_len() {
             self.cursor.1 -= 1;
         }
     }
@@ -150,7 +145,7 @@ impl Editor {
     }
 
     fn resize(&mut self, w: u16, h: u16) -> Result<()> {
-        let c_mut_viewport = self.c_mut_viewport();
+        let c_mut_viewport = self.viewports.c_mut_viewport();
         c_mut_viewport.vwidth = w;
         c_mut_viewport.vheight = h;
         self.size = (w, h);
@@ -163,14 +158,18 @@ impl Editor {
     fn move_prev_line(&mut self) {
         match self.cursor.1 > 0 {
             true => self.cursor.1 -= 1,
-            false => self.c_mut_viewport().scroll_up(),
+            false => self.viewports.c_mut_viewport().scroll_up(),
         }
     }
 
     fn move_next_line(&mut self) {
-        if self.c_viewport().is_under_buffer_len(&self.cursor) {
-            match self.cursor.1 >= (self.c_viewport().vheight - 1) {
-                true => self.c_mut_viewport().scroll_down(),
+        if self
+            .viewports
+            .c_viewport()
+            .is_under_buffer_len(&self.cursor)
+        {
+            match self.cursor.1 >= (self.viewports.c_viewport().vheight - 1) {
+                true => self.viewports.c_mut_viewport().scroll_down(),
                 false => self.cursor.1 += 1,
             }
         }
@@ -180,7 +179,7 @@ impl Editor {
     fn get_specific_line_len_by_mode(&mut self) -> u16 {
         // ive created this fn because the ll is different by the mode we are in
         // != Mode::Insert = ll - 1
-        match self.c_viewport().get_line_len(&self.cursor) {
+        match self.viewports.c_viewport().get_line_len(&self.cursor) {
             0 => 0,
             ll if matches!(self.mode, Mode::Insert) => ll,
             ll => ll - TERMINAL_LINE_LEN_MINUS,
@@ -190,7 +189,7 @@ impl Editor {
     fn reset_cursor(&mut self) {
         self.cursor = (0, 0);
 
-        let c_mut_viewport = self.c_mut_viewport();
+        let c_mut_viewport = self.viewports.c_mut_viewport();
         c_mut_viewport.top = 0;
         c_mut_viewport.left = 0;
     }
