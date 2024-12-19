@@ -40,12 +40,8 @@ impl Viewports {
         self.buffer_index = 0;
     }
 
-    pub fn get_file_explorer_viewport_mut(&mut self) -> Option<&mut Viewport> {
-        if let Some(pos) = self.values.iter().position(|v| v.is_file_explorer()) {
-            return self.get_by_index(pos);
-        }
-
-        None
+    pub fn get_original_viewport(&mut self) -> Option<&mut Viewport> {
+        self.get_by_index(self.buffer_index)
     }
 
     fn get_by_index(&mut self, index: usize) -> Option<&mut Viewport> {

@@ -67,7 +67,17 @@ impl Viewport {
         self.buffer_position = (self.vwidth, self.vheight, self.min_vwidth, self.min_vheight);
     }
 
+    pub fn as_full_size(&mut self) {
+        if self.is_popup {
+            self.as_normal()
+        }
+    }
+
     pub fn as_popup(&mut self) {
+        if self.is_popup {
+            return;
+        }
+
         let popup = Popup::new(self.vwidth, self.vheight);
         self.buffer_current_position();
 
@@ -80,6 +90,10 @@ impl Viewport {
     }
 
     pub fn as_normal(&mut self) {
+        if !self.is_popup {
+            return;
+        }
+
         self.vwidth = self.buffer_position.0;
         self.vheight = self.buffer_position.1;
         self.min_vwidth = self.buffer_position.2;
