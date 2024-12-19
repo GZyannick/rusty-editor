@@ -95,13 +95,13 @@ impl Action {
                 if editor.cursor.0 > 0 {
                     editor.cursor.0 -= 1;
                 } else if editor.cursor.0 == 0
-                    && (editor.cursor.1 > 0 || editor.viewport.top > 0)
+                    && (editor.cursor.1 > 0 || editor.c_viewport().top > 0)
                     && MOVE_PREV_OR_NEXT_LINE
                 {
                     // if we are at the start of the line go ot the prev line if exist
                     // and move the cursor to the end of the line
                     editor.move_prev_line();
-                    editor.cursor.0 = editor.viewport.get_line_len(&editor.cursor);
+                    editor.cursor.0 = editor.c_viewport().get_line_len(&editor.cursor);
                 }
             }
 
@@ -112,16 +112,16 @@ impl Action {
                 let cursor_viewport = editor.v_cursor();
                 // editor.undo_insert_actions();
                 editor.undo_insert_actions.push(Action::UndoCharAt(
-                    OldCursorPosition::new(editor.cursor, editor.viewport.top),
+                    OldCursorPosition::new(editor.cursor, editor.c_viewport().top),
                     cursor_viewport,
                 ));
 
-                editor.viewport.buffer.add_char(*c, cursor_viewport);
+                editor.c_mut_viewport().buffer.add_char(*c, cursor_viewport);
                 editor.cursor.0 += 1;
             }
             Action::RemoveCharAt(cursor) => {
-                if editor.viewport.get_line_len(cursor) > 0 {
-                    editor.viewport.buffer.remove_char(*cursor);
+                if editor.c_viewport().get_line_len(cursor) > 0 {
+                    editor.c_mut_viewport().buffer.remove_char(*cursor);
                 }
             }
             Action::UndoCharAt(old_cursor, v_cursor) => {
@@ -134,7 +134,7 @@ impl Action {
                     true => {
                         editor.cursor.0 -= 1;
                         editor
-                            .viewport
+                            .c_mut_viewport()
                             .buffer
                             .remove_char((cursor_viewport.0 - 1, cursor_viewport.1));
                     }
@@ -142,9 +142,12 @@ impl Action {
                         // we get the size of the prev line before change
                         // because we want the text that will be added behind the cursor
                         let new_x_pos = editor
-                            .viewport
+                            .c_viewport()
                             .get_line_len(&(editor.cursor.0, editor.cursor.1 - 1));
-                        editor.viewport.buffer.remove_char_line(cursor_viewport);
+                        editor
+                            .c_mut_viewport()
+                            .buffer
+                            .remove_char_line(cursor_viewport);
                         editor.move_prev_line();
                         editor.cursor.0 = new_x_pos;
                     }
@@ -178,7 +181,7 @@ impl Action {
             }
             Action::NewLineInsertionAtCursor => {
                 let v_cursor = editor.v_cursor();
-                editor.viewport.buffer.new_line(v_cursor, false);
+                editor.c_mut_viewport().buffer.new_line(v_cursor, false);
                 editor.buffer_actions.push(Action::EnterMode(Mode::Insert));
                 editor.cursor.0 = 0;
 
@@ -186,12 +189,15 @@ impl Action {
                     .undo_actions
                     .push(Action::UndoNewLine(OldCursorPosition::new(
                         editor.cursor,
-                        editor.viewport.top,
+                        editor.c_viewport().top,
                     )));
             }
             Action::NewLineInsertionBelowCursor => {
                 let (v_x, v_y) = editor.v_cursor();
-                editor.viewport.buffer.new_line((v_x, v_y + 1), false);
+                editor
+                    .c_mut_viewport()
+                    .buffer
+                    .new_line((v_x, v_y + 1), false);
                 editor.move_next_line();
                 editor.cursor.0 = 0;
 
@@ -201,20 +207,23 @@ impl Action {
                     .undo_actions
                     .push(Action::UndoNewLine(OldCursorPosition::new(
                         editor.cursor,
-                        editor.viewport.top,
+                        editor.c_viewport().top,
                     )));
             }
             Action::NewLine => {
                 let (v_x, v_y) = editor.v_cursor();
-                editor.viewport.buffer.new_line((v_x, v_y + 1), false);
+                editor
+                    .c_mut_viewport()
+                    .buffer
+                    .new_line((v_x, v_y + 1), false);
                 editor.cursor.0 = 0;
                 editor.move_next_line();
             }
             Action::SaveFile => {
-                editor.viewport.buffer.save()?;
+                editor.c_mut_viewport().buffer.save()?;
             }
             Action::PageUp => {
-                editor.viewport.page_up();
+                editor.c_mut_viewport().page_up();
             }
             Action::StartOfLine => {
                 editor.clear_buffer_x_cursor();
@@ -223,10 +232,11 @@ impl Action {
             Action::EndOfLine => {
                 editor.clear_buffer_x_cursor();
                 editor.cursor.0 =
-                    editor.viewport.get_line_len(&editor.cursor) - TERMINAL_LINE_LEN_MINUS;
+                    editor.c_viewport().get_line_len(&editor.cursor) - TERMINAL_LINE_LEN_MINUS;
             }
             Action::PageDown => {
-                editor.viewport.page_down(&editor.cursor);
+                let cursor = &editor.cursor.clone(); // TO REFACTO DEV_ERROR
+                editor.c_mut_viewport().page_down(cursor);
             }
             Action::WaitingCmd(c) => {
                 editor
@@ -236,21 +246,27 @@ impl Action {
             }
             Action::DeleteLine => {
                 let (_, y) = editor.v_cursor();
-                let content = editor.viewport.buffer.get(y as usize).clone();
-                editor.viewport.buffer.remove(y as usize);
+                let content = editor.c_viewport().buffer.get(y as usize).clone();
+                editor.c_mut_viewport().buffer.remove(y as usize);
 
                 editor.undo_actions.push(Action::UndoDeleteLine(
-                    OldCursorPosition::new(editor.cursor, editor.viewport.top),
+                    OldCursorPosition::new(editor.cursor, editor.c_viewport().top),
                     content,
                 ));
             }
-            Action::DeleteWord => editor.viewport.buffer.remove_word(editor.v_cursor()),
+            Action::DeleteWord => {
+                let v_cursor = editor.v_cursor();
+                editor.c_mut_viewport().buffer.remove_word(v_cursor)
+            }
             Action::StartOfFile => {
-                editor.viewport.move_top();
+                editor.c_mut_viewport().move_top();
                 editor.cursor.1 = 0;
             }
             Action::EndOfFile => {
-                editor.viewport.move_end(&mut editor.cursor);
+                // DEV_ERROR
+                let mut cursor = editor.cursor.clone();
+                editor.c_mut_viewport().move_end(&mut cursor);
+                editor.cursor = cursor;
             }
             Action::Undo => {
                 if let Some(action) = editor.undo_actions.pop() {
@@ -259,30 +275,33 @@ impl Action {
             }
             Action::UndoDeleteLine(old_cursor, Some(content)) => {
                 let cy = old_cursor.cursor.1 + old_cursor.top;
-                let buffer_len = editor.viewport.get_buffer_len();
+                let buffer_len = editor.c_viewport().get_buffer_len();
                 if cy as usize >= buffer_len {
-                    editor.viewport.buffer.lines.push(content.clone());
+                    editor.c_mut_viewport().buffer.lines.push(content.clone());
                     editor.cursor.1 += 1;
                 } else {
                     editor
-                        .viewport
+                        .c_mut_viewport()
                         .buffer
                         .lines
                         .insert(cy as usize, content.clone());
                 }
-                editor.viewport.top = old_cursor.top;
+                editor.c_mut_viewport().top = old_cursor.top;
                 editor.cursor.1 = old_cursor.cursor.1;
 
                 // put the line at the center of screen if possible
-                editor.viewport.center_line(&mut editor.cursor);
+                editor.buffer_actions.push(Action::CenterLine)
             }
             Action::CenterLine => {
-                editor.viewport.center_line(&mut editor.cursor);
+                let mut cursor = editor.cursor.clone();
+                editor.c_mut_viewport().center_line(&mut cursor);
+                editor.cursor = cursor;
             }
             Action::UndoNewLine(old_cursor) => {
                 let cy = old_cursor.cursor.1 + old_cursor.top;
-                editor.viewport.buffer.remove(cy as usize);
-                editor.viewport.top = old_cursor.top;
+                let c_mut_viewport = editor.c_mut_viewport();
+                c_mut_viewport.buffer.remove(cy as usize);
+                c_mut_viewport.top = old_cursor.top;
                 editor.cursor.1 = old_cursor.cursor.1;
             }
             Action::UndoMultiple(actions) => {
@@ -304,59 +323,69 @@ impl Action {
             }
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
-                if let Some(path) = editor.viewport.buffer.get(y as usize) {
+                if let Some(path) = editor.c_viewport().buffer.get(y as usize) {
                     // editor.viewport.clear_draw(&mut editor.stdout)?;
-                    editor.viewport.clear_at(
-                        &mut editor.stdout,
-                        editor.viewport.min_vwidth,
-                        editor.viewport.min_vheight,
-                        editor.viewport.vwidth,
-                        editor.viewport.vheight,
-                    )?;
+                    {
+                        // DEV_ERROR
+                        // let c_mut_viewport = editor.c_mut_viewport();
+                        // c_mut_viewport.clear_at(
+                        //     &mut editor.stdout,
+                        //     c_mut_viewport.min_vwidth,
+                        //     c_mut_viewport.min_vheight,
+                        //     c_mut_viewport.vwidth,
+                        //     c_mut_viewport.vheight,
+                        // )?;
+                    }
                     editor.reset_cursor();
                     match metadata(&path)?.is_dir() {
                         true => {
-                            editor.viewport.buffer = Buffer::new(Some(path));
+                            editor.c_mut_viewport().buffer = Buffer::new(Some(path));
                         }
                         false => {
-                            editor.buffer_viewport_or_explorer.buffer = Buffer::new(Some(path));
+                            // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
+                            // editor.buffer_viewport_or_explorer.buffer = Buffer::new(Some(path));
                             editor.buffer_actions.push(Action::SwapViewportToExplorer);
                         }
                     }
                 }
             }
             Action::SwapViewportToExplorer => {
-                let vwidth = editor.viewport.vwidth;
-                let vheight = editor.viewport.vheight;
-                editor
-                    .viewport
-                    .clear_at(&mut editor.stdout, 0, 0, vwidth, vheight)?;
+                let c_mut_viewport = editor.c_mut_viewport();
+                let vwidth = c_mut_viewport.vwidth;
+                let vheight = c_mut_viewport.vheight;
+
+                // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
+                // c_mut_viewport.clear_at(&mut editor.stdout, 0, 0, vwidth, vheight)?;
 
                 editor.reset_cursor();
-                std::mem::swap(
-                    &mut editor.viewport,
-                    &mut editor.buffer_viewport_or_explorer,
-                );
+
+                // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
+                // std::mem::swap(
+                //     &mut editor.viewport,
+                //     &mut editor.buffer_viewport_or_explorer,
+                // );
             }
 
             Action::SwapViewportToPopupExplorer => {
                 editor.reset_cursor();
 
-                match editor.viewport.is_popup {
+                match editor.c_viewport().is_popup {
                     true => {
-                        editor.viewport.as_normal();
+                        editor.c_mut_viewport().as_normal();
 
-                        std::mem::swap(
-                            &mut editor.viewport,
-                            &mut editor.buffer_viewport_or_explorer,
-                        );
+                        // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
+                        // std::mem::swap(
+                        //     &mut editor.viewport,
+                        //     &mut editor.buffer_viewport_or_explorer,
+                        // );
                     }
                     false => {
-                        std::mem::swap(
-                            &mut editor.viewport,
-                            &mut editor.buffer_viewport_or_explorer,
-                        );
-                        editor.viewport.as_popup()
+                        // DEV_ERROR: CHANGER ICI POUR TROUVER LE BON VIEWPORT
+                        // std::mem::swap(
+                        //     &mut editor.viewport,
+                        //     &mut editor.buffer_viewport_or_explorer,
+                        // );
+                        editor.c_mut_viewport().as_popup()
                     }
                 }
             }

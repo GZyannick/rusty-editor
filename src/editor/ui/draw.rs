@@ -3,6 +3,7 @@ use std::io::Write;
 use crate::{
     editor::{Editor, TERMINAL_SIZE_MINUS},
     theme::colors,
+    viewport::Viewport,
 };
 use anyhow::Result;
 use crossterm::{
@@ -16,12 +17,14 @@ impl Editor {
         // some terminal line windows default show the cursor when drawing the tui so hide and show
         // it at the end of draw
         self.stdout.queue(cursor::Hide)?;
-        self.viewport.draw(&mut self.stdout)?;
+
+        self.draw_current_viewport()?;
         self.draw_bottom()?;
 
+        let c_viewport = self.c_viewport();
         self.stdout.queue(cursor::MoveTo(
-            self.cursor.0 + self.viewport.min_vwidth,
-            self.cursor.1 + self.viewport.min_vheight,
+            self.cursor.0 + c_viewport.min_vwidth,
+            self.cursor.1 + c_viewport.min_vheight,
         ))?;
 
         self.stdout.queue(cursor::Show)?;
@@ -29,18 +32,24 @@ impl Editor {
         Ok(())
     }
 
+    fn draw_current_viewport(&mut self) -> anyhow::Result<()> {
+        // self.c_mut_viewport().draw(&mut self.stdout)?;
+        Ok(())
+    }
+
     fn draw_bottom(&mut self) -> anyhow::Result<()> {
         self.stdout
             .queue(cursor::MoveTo(0, self.size.1 - TERMINAL_SIZE_MINUS))?;
 
-        let cursor_viewport = self.viewport.viewport_cursor(&self.cursor);
+        let c_viewport = self.c_viewport();
+        let cursor_viewport = c_viewport.viewport_cursor(&self.cursor);
 
         let mode = format!(" {} ", self.mode);
         let pos = format!(" {}:{} ", cursor_viewport.0, cursor_viewport.1);
         let pad_width = self.size.0 - mode.len() as u16 - pos.len() as u16 - TERMINAL_SIZE_MINUS;
         let filename = format!(
             " {:<width$} ",
-            self.viewport.buffer.path,
+            c_viewport.buffer.path,
             width = pad_width as usize
         );
 
