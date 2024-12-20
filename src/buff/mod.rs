@@ -83,6 +83,8 @@ impl Buffer {
             Ok(path_buf) => match path_buf.parent() {
                 Some(parent_path) => {
                     let parent_path = parent_path.to_str().unwrap().to_string();
+                    // sometimes path_buf.parent return an empty so we check because
+                    // we cannot have an empty path in a viewport
                     if parent_path.is_empty() {
                         return None;
                     }
