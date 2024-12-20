@@ -100,6 +100,7 @@ impl Viewport {
             self.clear_end_of_viewport(stdout, y, v_width as usize)?;
         }
 
+        // draw the end of popup if the size of lines is under the popup size
         if self.is_popup && y < self.vheight {
             self.draw_popup_end(y, stdout)?;
         }
