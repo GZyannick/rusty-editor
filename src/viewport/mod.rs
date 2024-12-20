@@ -49,8 +49,9 @@ impl Viewport {
             is_popup: false,
         }
     }
+
     // let us know if the viewport is the file_explorer.
-    fn is_file_explorer(&self) -> bool {
+    pub fn is_file_explorer(&self) -> bool {
         self.buffer.is_directory
     }
 

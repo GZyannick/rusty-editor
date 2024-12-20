@@ -1,8 +1,8 @@
 mod core;
 pub mod ui;
-use crate::buff::Buffer;
 use crate::theme::colors;
 use crate::viewport::Viewport;
+use crate::{buff::Buffer, viewports::Viewports};
 use anyhow::{Ok, Result};
 use core::{action::Action, mode::Mode};
 use crossterm::{
@@ -10,7 +10,7 @@ use crossterm::{
     style::Color,
     terminal, ExecutableCommand, QueueableCommand,
 };
-use std::io::Stdout;
+use std::{borrow::Borrow, io::Stdout};
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
@@ -27,8 +27,8 @@ pub struct Editor {
     pub cursor: (u16, u16),
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
-    pub viewport: Viewport,
-    pub buffer_viewport_or_explorer: Viewport, // allow us to store the file explorer or the file
+    pub viewports: Viewports,
+    pub current_v_index: usize,
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
     pub undo_insert_actions: Vec<Action>, // when we are in insert mode all the undo at the same
@@ -53,6 +53,10 @@ impl Editor {
         // let viewport = Viewport::popup(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
         let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
 
+        let mut viewports = Viewports::new();
+        viewports.push(viewport);
+        viewports.push(buffer_viewport_or_explorer);
+
         Ok(Editor {
             mode: Mode::Normal,
             command: String::new(),
@@ -61,8 +65,8 @@ impl Editor {
             cursor: (0, 0),
             buffer_x_cursor: 0,
             waiting_command: None,
-            viewport,
-            buffer_viewport_or_explorer,
+            viewports,
+            current_v_index: 0,
             buffer_actions: vec![],
             undo_actions: vec![],
             undo_insert_actions: vec![],
@@ -70,7 +74,7 @@ impl Editor {
     }
 
     pub fn v_cursor(&self) -> (u16, u16) {
-        self.viewport.viewport_cursor(&self.cursor)
+        self.viewports.c_viewport().viewport_cursor(&self.cursor)
     }
 
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
@@ -96,7 +100,7 @@ impl Editor {
         let line_len = self.get_specific_line_len_by_mode();
 
         if self.cursor.0 >= line_len {
-            if self.buffer_x_cursor == self.viewport.min_vwidth {
+            if self.buffer_x_cursor == self.viewports.c_viewport().min_vwidth {
                 self.buffer_x_cursor = self.cursor.0;
             }
             self.cursor.0 = line_len;
@@ -114,7 +118,7 @@ impl Editor {
             }
         }
 
-        if self.v_cursor().1 as usize >= self.viewport.get_buffer_len() {
+        if self.v_cursor().1 as usize >= self.viewports.c_viewport().get_buffer_len() {
             self.cursor.1 -= 1;
         }
     }
@@ -141,8 +145,9 @@ impl Editor {
     }
 
     fn resize(&mut self, w: u16, h: u16) -> Result<()> {
-        self.viewport.vwidth = w;
-        self.viewport.vheight = h;
+        let c_mut_viewport = self.viewports.c_mut_viewport();
+        c_mut_viewport.vwidth = w;
+        c_mut_viewport.vheight = h;
         self.size = (w, h);
         self.stdout
             .queue(terminal::Clear(terminal::ClearType::All))?;
@@ -153,14 +158,18 @@ impl Editor {
     fn move_prev_line(&mut self) {
         match self.cursor.1 > 0 {
             true => self.cursor.1 -= 1,
-            false => self.viewport.scroll_up(),
+            false => self.viewports.c_mut_viewport().scroll_up(),
         }
     }
 
     fn move_next_line(&mut self) {
-        if self.viewport.is_under_buffer_len(&self.cursor) {
-            match self.cursor.1 >= (self.viewport.vheight - 1) {
-                true => self.viewport.scroll_down(),
+        if self
+            .viewports
+            .c_viewport()
+            .is_under_buffer_len(&self.cursor)
+        {
+            match self.cursor.1 >= (self.viewports.c_viewport().vheight - 1) {
+                true => self.viewports.c_mut_viewport().scroll_down(),
                 false => self.cursor.1 += 1,
             }
         }
@@ -170,7 +179,7 @@ impl Editor {
     fn get_specific_line_len_by_mode(&mut self) -> u16 {
         // ive created this fn because the ll is different by the mode we are in
         // != Mode::Insert = ll - 1
-        match self.viewport.get_line_len(&self.cursor) {
+        match self.viewports.c_viewport().get_line_len(&self.cursor) {
             0 => 0,
             ll if matches!(self.mode, Mode::Insert) => ll,
             ll => ll - TERMINAL_LINE_LEN_MINUS,
@@ -179,8 +188,10 @@ impl Editor {
 
     fn reset_cursor(&mut self) {
         self.cursor = (0, 0);
-        self.viewport.top = 0;
-        self.viewport.left = 0;
+
+        let c_mut_viewport = self.viewports.c_mut_viewport();
+        c_mut_viewport.top = 0;
+        c_mut_viewport.left = 0;
     }
 }
 
