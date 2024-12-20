@@ -94,43 +94,43 @@ impl Viewport {
             }
         }
 
-        // after draw line make sure that the rest of viewport is cleared
-        // without ghostty text
-        if y < self.vheight {
-            self.clear_end_of_viewport(stdout, y, v_width as usize)?;
-        }
-
-        // draw the end of popup if the size of lines is under the popup size
-        if self.is_popup && y < self.vheight {
-            self.draw_popup_end(y, stdout)?;
-        }
+        self.clear_end_of_viewport(stdout, y, v_width as usize)?;
+        self.draw_popup_end(y, stdout)?;
 
         Ok(())
     }
 
+    // after draw line make sure that the rest of viewport is cleared
+    // without ghostty text
     fn clear_end_of_viewport(
         &self,
         stdout: &mut std::io::Stdout,
         y: u16,
         width: usize,
     ) -> anyhow::Result<()> {
-        for i in y..self.vheight {
-            stdout
-                .queue(cursor::MoveTo(0, i))?
-                .queue(PrintStyledContent(" ".repeat(width).on(self.bg_color)))?;
+        if y < self.vheight {
+            for i in y..self.vheight {
+                stdout
+                    .queue(cursor::MoveTo(0, i))?
+                    .queue(PrintStyledContent(" ".repeat(width).on(self.bg_color)))?;
+            }
         }
+
         Ok(())
     }
 
+    // draw the end of popup if the size of lines is under the popup size
     fn draw_popup_end(&self, mut y: u16, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
-        while y < self.vheight {
-            self.draw_line_number(stdout, y)?;
-            stdout
-                .queue(cursor::MoveTo(self.min_vwidth, y))?
-                .queue(PrintStyledContent(
-                    " ".repeat(self.vwidth as usize).on(self.bg_color),
-                ))?;
-            y += 1;
+        if self.is_popup && y < self.vheight {
+            while y < self.vheight {
+                self.draw_line_number(stdout, y)?;
+                stdout
+                    .queue(cursor::MoveTo(self.min_vwidth, y))?
+                    .queue(PrintStyledContent(
+                        " ".repeat(self.vwidth as usize).on(self.bg_color),
+                    ))?;
+                y += 1;
+            }
         }
         Ok(())
     }
