@@ -7,6 +7,7 @@ use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
 use crate::{
+    log_message,
     theme::color_highligther::ColorHighligter,
     viewport::{Viewport, LINE_NUMBERS_WIDTH},
 };
@@ -93,10 +94,30 @@ impl Viewport {
             }
         }
 
+        // after draw line make sure that the rest of viewport is cleared
+        // without ghostty text
+        if y < self.vheight {
+            self.clear_end_of_viewport(stdout, y, v_width as usize)?;
+        }
+
         if self.is_popup && y < self.vheight {
             self.draw_popup_end(y, stdout)?;
         }
 
+        Ok(())
+    }
+
+    fn clear_end_of_viewport(
+        &self,
+        stdout: &mut std::io::Stdout,
+        y: u16,
+        width: usize,
+    ) -> anyhow::Result<()> {
+        for i in y..self.vheight {
+            stdout
+                .queue(cursor::MoveTo(0, i))?
+                .queue(PrintStyledContent(" ".repeat(width).on(self.bg_color)))?;
+        }
         Ok(())
     }
 
