@@ -1,6 +1,6 @@
 use crossterm::{
     cursor,
-    style::{PrintStyledContent, Stylize},
+    style::{Color, PrintStyledContent, Stylize},
     QueueableCommand,
 };
 use streaming_iterator::StreamingIterator;
@@ -38,11 +38,26 @@ impl Viewport {
         Ok(colors)
     }
 
-    pub fn draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
-        if self.buffer.lines.is_empty() {
-            return Ok(());
+    pub fn draw_file_explorer(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<u16> {
+        let mut y = self.min_vheight;
+        for line in self.buffer.lines.iter() {
+            self.draw_line_number(stdout, y)?;
+            let path = format!(
+                " {:<width$} ",
+                line,
+                width = self.vwidth as usize - self.min_vwidth as usize - 1
+            );
+            stdout
+                .queue(cursor::MoveTo(self.min_vwidth - 1, y))?
+                .queue(PrintStyledContent(
+                    path.with(Color::White).on(self.bg_color),
+                ))?;
+            y += 1;
         }
+        Ok(y)
+    }
 
+    pub fn draw_file(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<u16> {
         let v_width = self.vwidth;
         let viewport_buffer = self.viewport();
         let colors = self.highlight(&viewport_buffer)?;
@@ -93,8 +108,21 @@ impl Viewport {
                 y += 1
             }
         }
+        Ok(y)
+    }
 
-        self.clear_end_of_viewport(stdout, y, v_width as usize)?;
+    pub fn draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
+        if self.buffer.lines.is_empty() {
+            return Ok(());
+        }
+
+        //retrieve the last line position
+        let y = match self.is_file_explorer() {
+            true => self.draw_file_explorer(stdout)?,
+            false => self.draw_file(stdout)?,
+        };
+
+        self.clear_end_of_viewport(y, stdout)?;
         self.draw_popup_end(y, stdout)?;
 
         Ok(())
@@ -102,17 +130,14 @@ impl Viewport {
 
     // after draw line make sure that the rest of viewport is cleared
     // without ghostty text
-    fn clear_end_of_viewport(
-        &self,
-        stdout: &mut std::io::Stdout,
-        y: u16,
-        width: usize,
-    ) -> anyhow::Result<()> {
+    fn clear_end_of_viewport(&self, y: u16, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
         if y < self.vheight {
             for i in y..self.vheight {
                 stdout
                     .queue(cursor::MoveTo(0, i))?
-                    .queue(PrintStyledContent(" ".repeat(width).on(self.bg_color)))?;
+                    .queue(PrintStyledContent(
+                        " ".repeat(self.vwidth as usize).on(self.bg_color),
+                    ))?;
             }
         }
 
