@@ -42,11 +42,7 @@ impl Viewport {
         let mut y = self.min_vheight;
         for line in self.buffer.lines.iter() {
             self.draw_line_number(stdout, y)?;
-            let path = format!(
-                " {:<width$} ",
-                line,
-                width = self.vwidth as usize - self.min_vwidth as usize - 1
-            );
+            let path = format!(" {:<width$} ", line, width = self.vwidth as usize);
             stdout
                 .queue(cursor::MoveTo(self.min_vwidth - 1, y))?
                 .queue(PrintStyledContent(
@@ -123,7 +119,6 @@ impl Viewport {
         };
 
         self.clear_end_of_viewport(y, stdout)?;
-        self.draw_popup_end(y, stdout)?;
 
         Ok(())
     }
@@ -133,30 +128,15 @@ impl Viewport {
     fn clear_end_of_viewport(&self, y: u16, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
         if y < self.vheight {
             for i in y..self.vheight {
+                self.draw_line_number(stdout, i)?;
                 stdout
-                    .queue(cursor::MoveTo(0, i))?
+                    .queue(cursor::MoveTo(self.min_vwidth - 1, i))?
                     .queue(PrintStyledContent(
                         " ".repeat(self.vwidth as usize).on(self.bg_color),
                     ))?;
             }
         }
 
-        Ok(())
-    }
-
-    // draw the end of popup if the size of lines is under the popup size
-    fn draw_popup_end(&self, mut y: u16, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
-        if self.is_popup && y < self.vheight {
-            while y < self.vheight {
-                self.draw_line_number(stdout, y)?;
-                stdout
-                    .queue(cursor::MoveTo(self.min_vwidth, y))?
-                    .queue(PrintStyledContent(
-                        " ".repeat(self.vwidth as usize).on(self.bg_color),
-                    ))?;
-                y += 1;
-            }
-        }
         Ok(())
     }
 
