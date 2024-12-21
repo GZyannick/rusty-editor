@@ -1,7 +1,4 @@
-use crate::{
-    theme::colors::DARK1,
-    viewport::{Viewport, LINE_NUMBERS_WIDTH},
-};
+use crate::viewport::{Viewport, LINE_NUMBERS_WIDTH};
 use crossterm::style::Color;
 use tree_sitter::Query;
 use tree_sitter_rust::HIGHLIGHTS_QUERY;
@@ -65,12 +62,6 @@ impl Viewport {
 
     fn buffer_current_position(&mut self) {
         self.buffer_position = (self.vwidth, self.vheight, self.min_vwidth, self.min_vheight);
-    }
-
-    pub fn as_full_size(&mut self) {
-        if self.is_popup {
-            self.as_normal()
-        }
     }
 
     pub fn as_popup(&mut self) {

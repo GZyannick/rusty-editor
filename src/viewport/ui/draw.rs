@@ -7,7 +7,6 @@ use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
 use crate::{
-    log_message,
     theme::color_highligther::ColorHighligter,
     viewport::{Viewport, LINE_NUMBERS_WIDTH},
 };

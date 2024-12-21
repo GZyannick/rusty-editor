@@ -3,7 +3,6 @@ use std::io::Write;
 use crate::{
     editor::{Editor, TERMINAL_SIZE_MINUS},
     theme::colors,
-    viewport::Viewport,
 };
 use anyhow::Result;
 use crossterm::{

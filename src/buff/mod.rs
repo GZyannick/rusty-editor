@@ -5,8 +5,6 @@ use std::{
     str::FromStr,
 };
 
-use crate::log_message;
-
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
