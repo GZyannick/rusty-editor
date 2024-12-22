@@ -335,19 +335,7 @@ impl Action {
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
                 if let Some(path) = editor.viewports.c_viewport().buffer.get(y as usize) {
-                    let current_viewport = editor.viewports.c_mut_viewport();
-
-                    // clear the view
-                    current_viewport.clear_at(
-                        &mut editor.stdout,
-                        current_viewport.min_vwidth,
-                        current_viewport.min_vheight,
-                        current_viewport.vwidth,
-                        current_viewport.vheight,
-                    )?;
-
                     editor.reset_cursor();
-
                     // if this is a directory we only change the content of it to the new dir
                     // if its a file we swap to the viewport of file
                     match metadata(&path)?.is_dir() {
