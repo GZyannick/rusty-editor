@@ -7,6 +7,7 @@ use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
 use crate::{
+    log_message,
     theme::color_highligther::ColorHighligter,
     viewport::{Viewport, LINE_NUMBERS_WIDTH},
 };
@@ -41,7 +42,7 @@ impl Viewport {
         let mut y = self.min_vheight;
         for line in self.buffer.lines.iter() {
             self.draw_line_number(stdout, y)?;
-            let path = format!(" {:<width$} ", line, width = self.vwidth as usize);
+            let path = format!(" {:<width$} ", line, width = self.vwidth as usize - 2);
             stdout
                 .queue(cursor::MoveTo(self.min_vwidth - 1, y))?
                 .queue(PrintStyledContent(
@@ -62,7 +63,7 @@ impl Viewport {
         let mut x: u16 = 0;
         let mut colorhighligter = None;
 
-        let chars_len = viewport_buffer.len() - 1;
+        let chars_len = viewport_buffer.len().wrapping_sub(1);
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {

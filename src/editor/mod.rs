@@ -15,6 +15,7 @@ use std::io::Stdout;
 // 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
 pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
+                                        // are at the end of the line or start move to next or prev line
 
 #[derive(Debug)]
 pub struct Editor {
@@ -37,22 +38,35 @@ impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
 
-        // will give an viewport with file_buffer or file_explorer
-        let buffer_viewport_or_explorer = match buffer.is_directory {
-            true => Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS, 0),
-            false => Viewport::new(
-                Buffer::new(Some(String::from("."))),
+        let mut viewports = Viewports::new();
+        let mut explorer_viewport = Viewport::new(
+            Buffer::new(Some(String::from("."))),
+            size.0,
+            size.1 - TERMINAL_SIZE_MINUS,
+            0,
+        );
+
+        if buffer.is_directory {
+            explorer_viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
+
+            // this is an empty file viewport
+            viewports.push(Viewport::new(
+                Buffer::new(None),
                 size.0,
                 size.1 - TERMINAL_SIZE_MINUS,
                 0,
-            ),
-        };
-        // let viewport = Viewport::popup(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
-        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
+            ));
 
-        let mut viewports = Viewports::new();
-        viewports.push(viewport);
-        viewports.push(buffer_viewport_or_explorer);
+            // Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS, 0)
+        } else {
+            viewports.push(Viewport::new(
+                buffer,
+                size.0,
+                size.1 - TERMINAL_SIZE_MINUS,
+                0,
+            ));
+        }
+        viewports.push(explorer_viewport);
 
         Ok(Editor {
             mode: Mode::Normal,
