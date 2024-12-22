@@ -10,13 +10,12 @@ use crossterm::{
     style::Color,
     terminal, ExecutableCommand, QueueableCommand,
 };
-use std::{borrow::Borrow, io::Stdout};
+use std::io::Stdout;
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
 pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
-pub const MOVE_PREV_OR_NEXT_LINE: bool = false; // on true allow us to activate the feature where if we
-                                                // are at the end of the line or start move to next or prev line
+                                        // are at the end of the line or start move to next or prev line
 
 #[derive(Debug)]
 pub struct Editor {
@@ -28,7 +27,6 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewports: Viewports,
-    pub current_v_index: usize,
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
     pub undo_insert_actions: Vec<Action>, // when we are in insert mode all the undo at the same
@@ -40,22 +38,35 @@ impl Editor {
     pub fn new(buffer: Buffer) -> Result<Editor> {
         let size = terminal::size()?;
 
-        // will give an viewport with file_buffer or file_explorer
-        let buffer_viewport_or_explorer = match buffer.is_directory {
-            true => Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS, 0),
-            false => Viewport::new(
-                Buffer::new(Some(String::from("."))),
+        let mut viewports = Viewports::new();
+        let mut explorer_viewport = Viewport::new(
+            Buffer::new(Some(String::from("."))),
+            size.0,
+            size.1 - TERMINAL_SIZE_MINUS,
+            0,
+        );
+
+        if buffer.is_directory {
+            explorer_viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
+
+            // this is an empty file viewport
+            viewports.push(Viewport::new(
+                Buffer::new(None),
                 size.0,
                 size.1 - TERMINAL_SIZE_MINUS,
                 0,
-            ),
-        };
-        // let viewport = Viewport::popup(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS);
-        let viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
+            ));
 
-        let mut viewports = Viewports::new();
-        viewports.push(viewport);
-        viewports.push(buffer_viewport_or_explorer);
+            // Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS, 0)
+        } else {
+            viewports.push(Viewport::new(
+                buffer,
+                size.0,
+                size.1 - TERMINAL_SIZE_MINUS,
+                0,
+            ));
+        }
+        viewports.push(explorer_viewport);
 
         Ok(Editor {
             mode: Mode::Normal,
@@ -66,7 +77,6 @@ impl Editor {
             buffer_x_cursor: 0,
             waiting_command: None,
             viewports,
-            current_v_index: 0,
             buffer_actions: vec![],
             undo_actions: vec![],
             undo_insert_actions: vec![],

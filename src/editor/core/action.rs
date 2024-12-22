@@ -5,6 +5,7 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::TERMINAL_LINE_LEN_MINUS;
+use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -334,19 +335,16 @@ impl Action {
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
                 if let Some(path) = editor.viewports.c_viewport().buffer.get(y as usize) {
-                    let current_viewport = editor.viewports.c_mut_viewport();
-                    current_viewport.clear_at(
-                        &mut editor.stdout,
-                        current_viewport.min_vwidth,
-                        current_viewport.min_vheight,
-                        current_viewport.vwidth,
-                        current_viewport.vheight,
-                    )?;
                     editor.reset_cursor();
-
                     // if this is a directory we only change the content of it to the new dir
                     // if its a file we swap to the viewport of file
                     match metadata(&path)?.is_dir() {
+                        true if path.eq("../") => {
+                            let current_viewport = editor.viewports.c_mut_viewport();
+                            if let Some(parent_buffer) = current_viewport.buffer.parent_dir() {
+                                current_viewport.buffer = parent_buffer;
+                            }
+                        }
                         true => {
                             editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));
                         }

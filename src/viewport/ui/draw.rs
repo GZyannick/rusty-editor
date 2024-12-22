@@ -1,6 +1,6 @@
 use crossterm::{
     cursor,
-    style::{PrintStyledContent, Stylize},
+    style::{Color, PrintStyledContent, Stylize},
     QueueableCommand,
 };
 use streaming_iterator::StreamingIterator;
@@ -37,11 +37,22 @@ impl Viewport {
         Ok(colors)
     }
 
-    pub fn draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
-        if self.buffer.lines.is_empty() {
-            return Ok(());
+    pub fn draw_file_explorer(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<u16> {
+        let mut y = self.min_vheight;
+        for line in self.buffer.lines.iter() {
+            self.draw_line_number(stdout, y)?;
+            let path = format!(" {:<width$} ", line, width = self.vwidth as usize - 2);
+            stdout
+                .queue(cursor::MoveTo(self.min_vwidth - 1, y))?
+                .queue(PrintStyledContent(
+                    path.with(Color::White).on(self.bg_color),
+                ))?;
+            y += 1;
         }
+        Ok(y)
+    }
 
+    pub fn draw_file(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<u16> {
         let v_width = self.vwidth;
         let viewport_buffer = self.viewport();
         let colors = self.highlight(&viewport_buffer)?;
@@ -51,7 +62,7 @@ impl Viewport {
         let mut x: u16 = 0;
         let mut colorhighligter = None;
 
-        let chars_len = viewport_buffer.len() - 1;
+        let chars_len = viewport_buffer.len().wrapping_sub(1);
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
@@ -92,24 +103,39 @@ impl Viewport {
                 y += 1
             }
         }
+        Ok(y)
+    }
 
-        if self.is_popup && y < self.vheight {
-            self.draw_popup_end(y, stdout)?;
+    pub fn draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
+        if self.buffer.lines.is_empty() {
+            return Ok(());
         }
+
+        //retrieve the last line position
+        let y = match self.is_file_explorer() {
+            true => self.draw_file_explorer(stdout)?,
+            false => self.draw_file(stdout)?,
+        };
+
+        self.clear_end_of_viewport(y, stdout)?;
 
         Ok(())
     }
 
-    fn draw_popup_end(&self, mut y: u16, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
-        while y < self.vheight {
-            self.draw_line_number(stdout, y)?;
-            stdout
-                .queue(cursor::MoveTo(self.min_vwidth, y))?
-                .queue(PrintStyledContent(
-                    " ".repeat(self.vwidth as usize).on(self.bg_color),
-                ))?;
-            y += 1;
+    // after draw line make sure that the rest of viewport is cleared
+    // without ghostty text
+    fn clear_end_of_viewport(&self, y: u16, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
+        if y < self.vheight {
+            for i in y..self.vheight {
+                self.draw_line_number(stdout, i)?;
+                stdout
+                    .queue(cursor::MoveTo(self.min_vwidth - 1, i))?
+                    .queue(PrintStyledContent(
+                        " ".repeat(self.vwidth as usize).on(self.bg_color),
+                    ))?;
+            }
         }
+
         Ok(())
     }
 

@@ -1,8 +1,4 @@
-use core::panic;
-
 use crossterm::style::Color;
-
-use crate::log_message;
 
 use super::colors::{
     BRIGHT_AQUA, BRIGHT_BLUE, BRIGHT_GREEN, BRIGHT_PURPLE, BRIGHT_RED, BRIGHT_WHITE, BRIGHT_YELLOW,
@@ -38,25 +34,8 @@ impl ColorHighligter {
             "string" => NEUTRAL_GREEN,
             "function.macro" => NEUTRAL_AQUA,
             "escape" => NEUTRAL_YELLOW,
-
             "label" => BRIGHT_AQUA,
-            // "identifier" => NEUTRAL_RED,
-            // "punctuation.function" => NEUTRAL_GREEN,
-            // "function" => NEUTRAL_GREEN,
-            // "property" => BRIGHT_RED,
-            // "attribute" => NEUTRAL_BLUE,
-            // "type.builtin" => BRIGHT_YELLOW,
-            // "variable.builtin" => BRIGHT_WHITE,
-            // "punctuation.macro" => FADED_GREEN,
-            // "punctuation.builtin" => BRIGHT_GREEN,
-            // "keyword" => FADED_BLUE,
-            // "constructor" => FADED_RED,
-            // "type" => BRIGHT_YELLOW,
-            _ => {
-                log_message!("not used: {punctuation}");
-                panic!();
-                BRIGHT_WHITE
-            }
+            _ => BRIGHT_WHITE,
         };
 
         Color::from(color)

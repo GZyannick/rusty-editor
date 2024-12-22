@@ -1,6 +1,8 @@
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
+    path::PathBuf,
+    str::FromStr,
 };
 
 #[derive(Debug)]
@@ -55,11 +57,11 @@ impl Buffer {
     }
 
     fn from_dir(path: &str) -> Buffer {
-        let mut lines: Vec<String> = vec![String::from("..")];
+        let d_path = path.to_string();
+        let mut lines: Vec<String> = vec![String::from("../")];
         if let Ok(entries) = fs::read_dir(path) {
             for entry in entries {
                 let path = entry.unwrap().path();
-
                 if let Some(path_str) = path.to_str() {
                     lines.push(String::from(path_str));
                 }
@@ -70,7 +72,30 @@ impl Buffer {
             file: None,
             is_directory: true,
             lines,
-            path: "File_explorer".to_string(),
+            path: d_path,
+        }
+    }
+
+    pub fn parent_dir(&mut self) -> Option<Buffer> {
+        match PathBuf::from_str(&self.path) {
+            Ok(path_buf) => match path_buf.parent() {
+                Some(parent_path) => {
+                    let parent_path = parent_path.to_str().unwrap().to_string();
+                    // sometimes path_buf.parent return an empty so we check because
+                    // we cannot have an empty path in a viewport
+                    if parent_path.is_empty() {
+                        return None;
+                    }
+                    Some(Buffer::new(Some(parent_path)))
+                }
+                None => None,
+            },
+
+            Err(_) => {
+                // we didnt make the error follow because the error
+                // is to say we are at the original path of file_directory
+                None
+            }
         }
     }
 
