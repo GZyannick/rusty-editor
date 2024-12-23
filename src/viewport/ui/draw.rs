@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crossterm::{
     cursor,
     style::{Color, PrintStyledContent, Stylize},
@@ -41,9 +43,19 @@ impl Viewport {
         let mut y = self.min_vheight;
         for line in self.buffer.lines.iter() {
             self.draw_line_number(stdout, y)?;
-            let path = format!(" {:<width$} ", line, width = self.vwidth as usize - 2);
+
+            let icon: String = match PathBuf::from(line).is_dir() {
+                true => "📁".to_string(),
+                false => "📰".to_string(),
+            };
+
+            let path = format!(" {:<width$} ", line, width = self.vwidth as usize - 4);
             stdout
                 .queue(cursor::MoveTo(self.min_vwidth - 1, y))?
+                .queue(PrintStyledContent(
+                    icon.with(Color::White).on(self.bg_color),
+                ))?
+                .queue(cursor::MoveTo(self.min_vwidth + 1, y))?
                 .queue(PrintStyledContent(
                     path.with(Color::White).on(self.bg_color),
                 ))?;
