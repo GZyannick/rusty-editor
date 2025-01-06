@@ -24,6 +24,7 @@ pub struct Editor {
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
+    pub visual_cursor: Option<(u16, u16)>,
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewports: Viewports,
@@ -74,6 +75,7 @@ impl Editor {
             stdout: std::io::stdout(),
             size,
             cursor: (0, 0),
+            visual_cursor: None,
             buffer_x_cursor: 0,
             waiting_command: None,
             viewports,
@@ -83,6 +85,10 @@ impl Editor {
         })
     }
 
+    pub fn is_visual_mode(&self) -> bool {
+        matches!(self.mode, Mode::Visual)
+    }
+    // viewport cursor
     pub fn v_cursor(&self) -> (u16, u16) {
         self.viewports.c_viewport().viewport_cursor(&self.cursor)
     }

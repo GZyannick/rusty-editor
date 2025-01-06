@@ -5,7 +5,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::TERMINAL_LINE_LEN_MINUS;
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -67,6 +66,48 @@ pub enum Action {
 }
 
 impl Action {
+    // handle insert and leaving visual mode
+    fn enter_mode_visual(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+        // create visual_cursor if we enter Visual Mode
+        if !matches!(editor.mode, Mode::Visual) && matches!(mode, Mode::Visual) {
+            editor.visual_cursor = Some(editor.cursor);
+        }
+
+        // remove visual_cursor if we leave Visual Mode
+        if matches!(editor.mode, Mode::Visual) && !matches!(mode, Mode::Visual) {
+            editor.visual_cursor = None;
+        }
+        Ok(())
+    }
+
+    // handle insert and leaving insert mode
+    fn enter_mode_insert(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+        // if we enter insert mode
+        if !matches!(editor.mode, Mode::Insert) && matches!(mode, Mode::Insert) {
+            editor.stdout.execute(cursor::SetCursorStyle::SteadyBar)?;
+            editor.undo_insert_actions = vec![];
+        }
+
+        // if we leave insert mode
+        if matches!(editor.mode, Mode::Insert) && !matches!(mode, Mode::Insert) {
+            editor.stdout.execute(cursor::SetCursorStyle::SteadyBlock)?;
+            if !editor.undo_insert_actions.is_empty() {
+                let actions = std::mem::take(&mut editor.undo_insert_actions);
+                editor.undo_actions.push(Action::UndoMultiple(actions));
+            }
+        }
+        Ok(())
+    }
+
+    // handle insert and leaving command mode
+    fn enter_mode_command(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+        // if we leave command clear bottom line
+        if matches!(editor.mode, Mode::Command) && !matches!(mode, Mode::Command) {
+            editor.command = String::new();
+        }
+        Ok(())
+    }
+
     pub fn execute(&self, editor: &mut Editor) -> anyhow::Result<()> {
         match self {
             Action::Quit => (),
@@ -144,25 +185,9 @@ impl Action {
                 }
             }
             Action::EnterMode(mode) => {
-                // if we enter insert mode
-                if !matches!(editor.mode, Mode::Insert) && matches!(mode, Mode::Insert) {
-                    editor.stdout.execute(cursor::SetCursorStyle::SteadyBar)?;
-                    editor.undo_insert_actions = vec![];
-                }
-
-                // if we leave insert mode
-                if matches!(editor.mode, Mode::Insert) && !matches!(mode, Mode::Insert) {
-                    editor.stdout.execute(cursor::SetCursorStyle::SteadyBlock)?;
-                    if !editor.undo_insert_actions.is_empty() {
-                        let actions = std::mem::take(&mut editor.undo_insert_actions);
-                        editor.undo_actions.push(Action::UndoMultiple(actions));
-                    }
-                }
-
-                // if we leave command clear bottom line
-                if matches!(editor.mode, Mode::Command) && !matches!(mode, Mode::Command) {
-                    editor.command = String::new();
-                }
+                self.enter_mode_insert(editor, mode)?;
+                self.enter_mode_visual(editor, mode)?;
+                self.enter_mode_command(editor, mode)?;
 
                 editor.mode = *mode;
             }

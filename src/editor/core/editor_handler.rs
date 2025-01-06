@@ -36,6 +36,7 @@ impl Editor {
                 Mode::Normal => self.handle_normal_event(&code, &modifiers),
                 Mode::Command => self.handle_command_event(&code, &modifiers),
                 Mode::Insert => self.handle_insert_event(&code, &modifiers),
+                Mode::Visual => self.handle_visual_event(&code, &modifiers),
             };
         }
         Ok(None)
@@ -81,12 +82,26 @@ impl Editor {
         Ok(action)
     }
 
+    fn handle_visual_event(
+        &mut self,
+        code: &KeyCode,
+        _modifiers: &KeyModifiers,
+    ) -> Result<Option<Action>> {
+        let action = match code {
+            KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
+            _ => None,
+        };
+
+        Ok(action)
+    }
+
     fn handle_normal_event(
         &mut self,
         code: &KeyCode,
         modifiers: &KeyModifiers,
     ) -> Result<Option<Action>> {
         let action = match code {
+            KeyCode::Char('v') => Some(Action::EnterMode(Mode::Visual)),
             KeyCode::Char('z') => Some(Action::WaitingCmd('z')),
             KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
             KeyCode::Char('u') => Some(Action::Undo),

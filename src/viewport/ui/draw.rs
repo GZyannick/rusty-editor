@@ -89,6 +89,7 @@ impl Viewport {
                 continue;
             }
 
+            // let us know if the current char is part of an highlight
             if let Some(colorh) = colors.iter().find(|ch| pos == ch.start) {
                 colorhighligter = Some(colorh);
             } else if colors.iter().any(|ch| pos == ch.end) {
@@ -118,7 +119,12 @@ impl Viewport {
         Ok(y)
     }
 
-    pub fn draw(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<()> {
+    pub fn draw(
+        &self,
+        stdout: &mut std::io::Stdout,
+        start_v_mode: Option<(u16, u16)>,
+        end_v_mode: Option<(u16, u16)>,
+    ) -> anyhow::Result<()> {
         if self.buffer.lines.is_empty() {
             return Ok(());
         }

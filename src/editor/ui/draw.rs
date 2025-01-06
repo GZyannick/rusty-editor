@@ -2,6 +2,7 @@ use std::io::Write;
 
 use crate::{
     editor::{Editor, TERMINAL_SIZE_MINUS},
+    log_message,
     theme::colors,
 };
 use anyhow::Result;
@@ -10,6 +11,8 @@ use crossterm::{
     style::{Color, PrintStyledContent, Stylize},
     QueueableCommand,
 };
+
+struct GetVisualBlockPosResult(Option<(u16, u16)>, Option<(u16, u16)>);
 
 impl Editor {
     pub fn draw(&mut self) -> Result<()> {
@@ -34,9 +37,56 @@ impl Editor {
     fn draw_current_viewport(&mut self) -> anyhow::Result<()> {
         let current_viewport = self.viewports.c_viewport();
         {
-            current_viewport.draw(&mut self.stdout)?;
+            match self.is_visual_mode() {
+                true => {
+                    // give us two option of (u16, u16) first is start second is end
+                    let visual_block_pos = self.get_visual_block_pos();
+                    current_viewport.draw(
+                        &mut self.stdout,
+                        visual_block_pos.0,
+                        visual_block_pos.1,
+                    )?;
+                }
+                false => {
+                    current_viewport.draw(&mut self.stdout, None, None)?;
+                }
+            }
         }
         Ok(())
+    }
+
+    // TODO: there is for sure a better way to do that but for now is for test purpose
+    fn get_visual_block_pos(&self) -> GetVisualBlockPosResult {
+        let mut start: Option<(u16, u16)> = None;
+        let mut end: Option<(u16, u16)> = None;
+
+        if let Some(visual_cursor) = self.visual_cursor {
+            match self.cursor.1.cmp(&visual_cursor.1) {
+                std::cmp::Ordering::Less => {
+                    start = Some(self.cursor);
+                    end = Some(visual_cursor);
+                }
+                std::cmp::Ordering::Equal => match self.cursor.0.cmp(&visual_cursor.0) {
+                    std::cmp::Ordering::Less => {
+                        start = Some(self.cursor);
+                        end = Some(visual_cursor);
+                    }
+                    _ => {
+                        start = Some(self.cursor);
+                        end = Some(visual_cursor);
+                    }
+                },
+                std::cmp::Ordering::Greater => {
+                    start = Some(visual_cursor);
+                    end = Some(self.cursor);
+                }
+            }
+        };
+
+        log_message!("start: {:?}, end: {:?}", start, end);
+        log_message!("vc: {:?}, c: {:?}", self.visual_cursor, self.cursor);
+
+        GetVisualBlockPosResult(start, end)
     }
 
     fn draw_bottom(&mut self) -> anyhow::Result<()> {
