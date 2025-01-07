@@ -89,6 +89,13 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
+            KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+            KeyCode::PageUp => Some(Action::PageUp),
+            KeyCode::PageDown => Some(Action::PageDown),
+            KeyCode::Char('G') => Some(Action::EndOfFile),
+            KeyCode::Char('g') => Some(Action::WaitingCmd('g')),
+            KeyCode::Char('$') | KeyCode::End => Some(Action::EndOfLine),
+            KeyCode::Char('0') | KeyCode::Home => Some(Action::StartOfLine),
             _ => None,
         };
 
