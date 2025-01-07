@@ -34,7 +34,20 @@ impl Editor {
     fn draw_current_viewport(&mut self) -> anyhow::Result<()> {
         let current_viewport = self.viewports.c_viewport();
         {
-            current_viewport.draw(&mut self.stdout)?;
+            match self.is_visual_mode() {
+                true => {
+                    // give us two option of (u16, u16) first is start second is end
+                    let visual_block_pos = self.get_visual_block_pos();
+                    current_viewport.draw(
+                        &mut self.stdout,
+                        visual_block_pos.0,
+                        visual_block_pos.1,
+                    )?;
+                }
+                false => {
+                    current_viewport.draw(&mut self.stdout, None, None)?;
+                }
+            }
         }
         Ok(())
     }
