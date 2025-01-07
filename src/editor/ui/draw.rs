@@ -72,8 +72,8 @@ impl Editor {
                         end = Some(visual_cursor);
                     }
                     _ => {
-                        start = Some(self.cursor);
-                        end = Some(visual_cursor);
+                        start = Some(visual_cursor);
+                        end = Some(self.cursor);
                     }
                 },
                 std::cmp::Ordering::Greater => {
