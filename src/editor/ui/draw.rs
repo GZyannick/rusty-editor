@@ -2,7 +2,6 @@ use std::io::Write;
 
 use crate::{
     editor::{Editor, TERMINAL_SIZE_MINUS},
-    log_message,
     theme::colors,
 };
 use anyhow::Result;

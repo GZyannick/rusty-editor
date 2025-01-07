@@ -84,6 +84,9 @@ impl Viewport {
         let mut bg_color = self.bg_color;
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
+            // tell us that we are at the end of the line
+            // so we draw the line number and empty char to end of terminal size to get the same bg
+            // and dont have undesirable artifact like ghost char
             if c == '\n' {
                 self.draw_line_number(stdout, y)?;
                 stdout
