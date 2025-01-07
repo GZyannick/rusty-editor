@@ -32,3 +32,5 @@ pub const _FADED_AQUA: (u8, u8, u8) = (66, 123, 88);
 pub const _FADED_ORANGE: (u8, u8, u8) = (175, 58, 3);
 
 pub const BRIGHT_WHITE: (u8, u8, u8) = (255, 255, 255);
+
+pub const LIGTH_GREY: (u8, u8, u8) = (91, 91, 93);

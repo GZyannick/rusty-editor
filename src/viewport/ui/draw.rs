@@ -9,7 +9,7 @@ use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
 use crate::{
-    theme::color_highligther::ColorHighligter,
+    theme::{color_highligther::ColorHighligter, colors},
     viewport::{Viewport, LINE_NUMBERS_WIDTH},
 };
 // implementing all draw fn in ui file
@@ -64,7 +64,12 @@ impl Viewport {
         Ok(y)
     }
 
-    pub fn draw_file(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<u16> {
+    pub fn draw_file(
+        &self,
+        stdout: &mut std::io::Stdout,
+        start_v_mode: Option<(u16, u16)>,
+        end_v_mode: Option<(u16, u16)>,
+    ) -> anyhow::Result<u16> {
         let v_width = self.vwidth;
         let viewport_buffer = self.viewport();
         let colors = self.highlight(&viewport_buffer)?;
@@ -74,7 +79,11 @@ impl Viewport {
         let mut x: u16 = 0;
         let mut colorhighligter = None;
 
+        if let Some(visual_block_start) = start_v_mode {}
+        if let Some(visual_block_end) = end_v_mode {}
+
         let chars_len = viewport_buffer.len().wrapping_sub(1);
+        let mut bg_color = self.bg_color;
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
             if c == '\n' {
@@ -96,9 +105,17 @@ impl Viewport {
                 colorhighligter = None
             }
 
+            if let Some(visual_block_start) = start_v_mode {
+                if let Some(visual_block_end) = end_v_mode {
+                    match y >= visual_block_start.1 && y <= visual_block_end.1 {
+                        true => bg_color = Color::from(colors::LIGTH_GREY),
+                        false => bg_color = self.bg_color,
+                    }
+                }
+            }
             let styled_char = match colorhighligter {
-                Some(ch) => format!("{c}").on(self.bg_color).with(ch.color),
-                None => format!("{c}",).on(self.bg_color),
+                Some(ch) => format!("{c}").on(bg_color).with(ch.color),
+                None => format!("{c}",).on(bg_color),
             };
 
             stdout
@@ -132,7 +149,7 @@ impl Viewport {
         //retrieve the last line position
         let y = match self.is_file_explorer() {
             true => self.draw_file_explorer(stdout)?,
-            false => self.draw_file(stdout)?,
+            false => self.draw_file(stdout, start_v_mode, end_v_mode)?,
         };
 
         self.clear_end_of_viewport(y, stdout)?;
