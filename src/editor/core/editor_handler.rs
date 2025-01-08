@@ -90,6 +90,11 @@ impl Editor {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+
+            // action
+            KeyCode::Char('d') => Some(Action::DeleteBlock),
+
+            // movement
             KeyCode::PageUp => Some(Action::PageUp),
             KeyCode::PageDown => Some(Action::PageDown),
             KeyCode::Char('G') => Some(Action::EndOfFile),

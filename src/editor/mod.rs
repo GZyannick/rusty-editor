@@ -191,6 +191,8 @@ impl Editor {
             }
         }
     }
+
+    // allow us to know with of cursor or visual_cursor is the first to come
     fn get_visual_block_pos(&self) -> GetVisualBlockPosResult {
         let mut start: Option<(u16, u16)> = None;
         let mut end: Option<(u16, u16)> = None;

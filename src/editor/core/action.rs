@@ -5,6 +5,7 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::TERMINAL_LINE_LEN_MINUS;
+use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -55,6 +56,7 @@ pub enum Action {
 
     // TODO: later add a way to use command and use :13 to move to line and dont pass it args
     UndoDeleteLine(OldCursorPosition, Option<String>), //cursor.1 , top, content
+    UndoDeleteBlock(OldCursorPosition, Vec<Option<String>>), //cursor.1 , top, content
     UndoNewLine(OldCursorPosition),
     UndoMultiple(Vec<Action>),
     UndoCharAt(OldCursorPosition, (u16, u16)),
@@ -63,6 +65,7 @@ pub enum Action {
     EnterFileOrDirectory,
     SwapViewportToExplorer,
     SwapViewportToPopupExplorer,
+    DeleteBlock,
 }
 
 impl Action {
@@ -415,6 +418,58 @@ impl Action {
                 }
             }
 
+            Action::DeleteBlock => {
+                let visual_block_pos = editor.get_visual_block_pos();
+                let mut block_content: Vec<Option<String>> = vec![];
+                if let Some(start_visual_block) = visual_block_pos.0 {
+                    if let Some(end_visual_block) = visual_block_pos.1 {
+                        let c_mut_viewport = editor.viewports.c_mut_viewport();
+                        let v_cursor_start = c_mut_viewport.viewport_cursor(&start_visual_block);
+                        let v_cursor_end = c_mut_viewport.viewport_cursor(&end_visual_block);
+
+                        let mut i = v_cursor_start.1;
+
+                        while i <= v_cursor_end.1 {
+                            let current_line =
+                                c_mut_viewport.buffer.get(v_cursor_start.1 as usize).clone();
+                            block_content.push(current_line);
+                            c_mut_viewport.buffer.remove(v_cursor_start.1 as usize);
+                            i += 1;
+                        }
+
+                        editor.undo_actions.push(Action::UndoDeleteBlock(
+                            OldCursorPosition::new(start_visual_block, c_mut_viewport.top),
+                            block_content,
+                        ));
+
+                        editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
+                    }
+                }
+            }
+
+            Action::UndoDeleteBlock(start, content) => {
+                let start_y = start.cursor.1 + start.top;
+                let current_viewport = editor.viewports.c_mut_viewport();
+
+                let mut y = start_y;
+
+                for c in content {
+                    if let Some(line) = c {
+                        match y as usize >= current_viewport.get_buffer_len() {
+                            true => current_viewport.buffer.lines.push(line.clone()),
+                            false => current_viewport
+                                .buffer
+                                .lines
+                                .insert(y as usize, line.clone()),
+                        }
+                    }
+
+                    y += 1;
+                }
+                current_viewport.top = start.top;
+                editor.cursor.1 = start.cursor.1;
+                editor.buffer_actions.push(Action::CenterLine)
+            }
             _ => {}
         }
 
