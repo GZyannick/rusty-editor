@@ -9,7 +9,6 @@ use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
 use crate::{
-    log_message,
     theme::{color_highligther::ColorHighligter, colors},
     viewport::{Viewport, LINE_NUMBERS_WIDTH},
 };
@@ -200,10 +199,7 @@ impl Viewport {
             true => {
                 if y == start_visual_block.1 && y == end_visual_block.1 {
                     match x >= start_visual_block.0 && x <= end_visual_block.0 {
-                        true => {
-                            log_message!("should be colored");
-                            Color::from(colors::LIGTH_GREY)
-                        }
+                        true => Color::from(colors::LIGTH_GREY),
                         false => self.bg_color,
                     }
                 } else if y == start_visual_block.1 {
