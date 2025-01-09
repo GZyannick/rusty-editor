@@ -5,7 +5,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::TERMINAL_LINE_LEN_MINUS;
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -420,28 +419,21 @@ impl Action {
 
             Action::DeleteBlock => {
                 let visual_block_pos = editor.get_visual_block_pos();
-                let mut block_content: Vec<Option<String>> = vec![];
                 if let Some(start_visual_block) = visual_block_pos.0 {
                     if let Some(end_visual_block) = visual_block_pos.1 {
                         let c_mut_viewport = editor.viewports.c_mut_viewport();
                         let v_cursor_start = c_mut_viewport.viewport_cursor(&start_visual_block);
                         let v_cursor_end = c_mut_viewport.viewport_cursor(&end_visual_block);
 
-                        let mut i = v_cursor_start.1;
+                        let block_content: Vec<Option<String>> = c_mut_viewport
+                            .buffer
+                            .remove_block(v_cursor_start, v_cursor_end);
 
-                        while i <= v_cursor_end.1 {
-                            let current_line =
-                                c_mut_viewport.buffer.get(v_cursor_start.1 as usize).clone();
-                            block_content.push(current_line);
-                            c_mut_viewport.buffer.remove(v_cursor_start.1 as usize);
-                            i += 1;
-                        }
-
+                        editor.cursor = start_visual_block;
                         editor.undo_actions.push(Action::UndoDeleteBlock(
                             OldCursorPosition::new(start_visual_block, c_mut_viewport.top),
                             block_content,
                         ));
-
                         editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
                     }
                 }
