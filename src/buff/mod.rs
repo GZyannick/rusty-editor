@@ -6,6 +6,8 @@ use std::{
     str::FromStr,
 };
 
+use crate::log_message;
+
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
@@ -116,7 +118,11 @@ impl Buffer {
                         opt_line = Some(line[start.0 as usize..].to_string());
                     }
                     x if x == end.1 => {
-                        opt_line = Some(line[..end.0 as usize + 1].to_string());
+                        let end_x = match line.is_empty() {
+                            true => end.0 as usize,
+                            false => end.0 as usize + 1,
+                        };
+                        opt_line = Some(line[..end_x].to_string());
                     }
                     _ => {}
                 };
@@ -208,8 +214,11 @@ impl Buffer {
                             self.drain_and_copy_line_from(line, x as usize, start.0 as usize..);
                     }
                     x if x == end.1 => {
-                        opt_line =
-                            self.drain_and_copy_line_to(line, x as usize, ..end.0 as usize + 1);
+                        let end_x = match line.is_empty() {
+                            true => end.0 as usize,
+                            false => end.0 as usize + 1,
+                        };
+                        opt_line = self.drain_and_copy_line_to(line, x as usize, ..end_x);
                     }
                     x => {
                         to_remove_index.push(x as usize);
@@ -225,6 +234,7 @@ impl Buffer {
         for index in to_remove_index {
             self.remove(index);
         }
+
         block
     }
 
