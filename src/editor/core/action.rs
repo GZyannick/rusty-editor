@@ -429,11 +429,11 @@ impl Action {
                             .buffer
                             .remove_block(v_cursor_start, v_cursor_end);
 
+                        editor.cursor = start_visual_block;
                         editor.undo_actions.push(Action::UndoDeleteBlock(
                             OldCursorPosition::new(start_visual_block, c_mut_viewport.top),
                             block_content,
                         ));
-
                         editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
                     }
                 }
