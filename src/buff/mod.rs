@@ -118,6 +118,7 @@ impl Buffer {
                         opt_line = Some(line[start.0 as usize..].to_string());
                     }
                     x if x == end.1 => {
+                        // we add 1 because the range will not take the last char
                         let end_x = match line.is_empty() {
                             true => end.0 as usize,
                             false => end.0 as usize + 1,
@@ -214,6 +215,7 @@ impl Buffer {
                             self.drain_and_copy_line_from(line, x as usize, start.0 as usize..);
                     }
                     x if x == end.1 => {
+                        // we add 1 because the range will not take the last char
                         let end_x = match line.is_empty() {
                             true => end.0 as usize,
                             false => end.0 as usize + 1,
