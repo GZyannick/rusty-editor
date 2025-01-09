@@ -427,13 +427,7 @@ impl Action {
 
                         let block_content: Vec<Option<String>> = c_mut_viewport
                             .buffer
-                            .get_block(v_cursor_start, v_cursor_end);
-
-                        let mut i = v_cursor_start.1;
-                        while i <= v_cursor_end.1 {
-                            c_mut_viewport.buffer.remove(v_cursor_start.1 as usize);
-                            i += 1;
-                        }
+                            .remove_block(v_cursor_start, v_cursor_end);
 
                         editor.undo_actions.push(Action::UndoDeleteBlock(
                             OldCursorPosition::new(start_visual_block, c_mut_viewport.top),
