@@ -252,8 +252,11 @@ impl Action {
 
             Action::EndOfLine => {
                 editor.clear_buffer_x_cursor();
-                editor.cursor.0 = editor.viewports.c_viewport().get_line_len(&editor.cursor)
-                    - TERMINAL_LINE_LEN_MINUS;
+                editor.cursor.0 = editor
+                    .viewports
+                    .c_viewport()
+                    .get_line_len(&editor.cursor)
+                    .wrapping_sub(TERMINAL_LINE_LEN_MINUS)
             }
 
             Action::PageDown => editor.viewports.c_mut_viewport().page_down(&editor.cursor),
