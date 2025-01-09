@@ -88,11 +88,13 @@ impl Viewport {
             // and dont have undesirable artifact like ghost char
             if c == '\n' {
                 self.draw_line_number(stdout, y)?;
-                stdout
-                    .queue(cursor::MoveTo(x + self.min_vwidth, y))?
-                    .queue(PrintStyledContent(
+                stdout.queue(cursor::MoveTo(x + self.min_vwidth, y))?;
+
+                if x < self.vwidth {
+                    stdout.queue(PrintStyledContent(
                         " ".repeat(v_width as usize - x as usize).on(self.bg_color),
                     ))?;
+                }
                 x = 0;
                 y += 1;
                 continue;
@@ -128,11 +130,12 @@ impl Viewport {
             // if we are at the end of the string
             if pos == chars_len {
                 self.draw_line_number(stdout, y)?;
-                stdout
-                    .queue(cursor::MoveTo(x + self.min_vwidth, y))?
-                    .queue(PrintStyledContent(
+                stdout.queue(cursor::MoveTo(x + self.min_vwidth, y))?;
+                if x < self.vwidth {
+                    stdout.queue(PrintStyledContent(
                         " ".repeat(v_width as usize - x as usize).on(self.bg_color),
                     ))?;
+                }
                 y += 1
             }
         }

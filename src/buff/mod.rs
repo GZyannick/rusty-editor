@@ -5,6 +5,8 @@ use std::{
     str::FromStr,
 };
 
+use crate::log_message;
+
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
@@ -101,6 +103,14 @@ impl Buffer {
 
     pub fn get(&self, n: usize) -> Option<String> {
         self.lines.get(n).cloned()
+    }
+
+    pub fn get_block(&self, start: (u16, u16), end: (u16, u16)) -> Vec<Option<String>> {
+        let mut block: Vec<Option<String>> = vec![];
+        for i in start.1..end.1 {
+            block.push(self.get(i as usize).clone());
+        }
+        block
     }
 
     pub fn new_line(&mut self, cursor: (u16, u16), is_take_text: bool) {

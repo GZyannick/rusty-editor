@@ -420,19 +420,18 @@ impl Action {
 
             Action::DeleteBlock => {
                 let visual_block_pos = editor.get_visual_block_pos();
-                let mut block_content: Vec<Option<String>> = vec![];
                 if let Some(start_visual_block) = visual_block_pos.0 {
                     if let Some(end_visual_block) = visual_block_pos.1 {
                         let c_mut_viewport = editor.viewports.c_mut_viewport();
                         let v_cursor_start = c_mut_viewport.viewport_cursor(&start_visual_block);
                         let v_cursor_end = c_mut_viewport.viewport_cursor(&end_visual_block);
 
-                        let mut i = v_cursor_start.1;
+                        let block_content: Vec<Option<String>> = c_mut_viewport
+                            .buffer
+                            .get_block(v_cursor_start, v_cursor_end);
 
+                        let mut i = v_cursor_start.1;
                         while i <= v_cursor_end.1 {
-                            let current_line =
-                                c_mut_viewport.buffer.get(v_cursor_start.1 as usize).clone();
-                            block_content.push(current_line);
                             c_mut_viewport.buffer.remove(v_cursor_start.1 as usize);
                             i += 1;
                         }
