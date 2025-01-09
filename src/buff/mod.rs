@@ -1,11 +1,10 @@
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
+    ops::{RangeFrom, RangeTo},
     path::PathBuf,
     str::FromStr,
 };
-
-use crate::log_message;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -117,7 +116,7 @@ impl Buffer {
                         opt_line = Some(line[start.0 as usize..].to_string());
                     }
                     x if x == end.1 => {
-                        opt_line = Some(line[..end.0 as usize].to_string());
+                        opt_line = Some(line[..end.0 as usize + 1].to_string());
                     }
                     _ => {}
                 };
@@ -165,38 +164,68 @@ impl Buffer {
         }
     }
 
+    fn drain_and_copy_line_to(
+        &mut self,
+        line: &str,
+        index: usize,
+        range: RangeTo<usize>,
+    ) -> Option<String> {
+        let line = Some(line[range].to_string());
+        self.lines.get_mut(index).unwrap().drain(range);
+        line
+    }
+
+    // i dont like to have two times the nearly the same fn but
+    // line[range] doenst take RangeBounds
+    // and add Into<Option<RangeFrom<usize> + Into<Option<RangeTo<usize>>>>> make it over
+    // complicated for nothing
+    fn drain_and_copy_line_from(
+        &mut self,
+        line: &str,
+        index: usize,
+        range: RangeFrom<usize>,
+    ) -> Option<String> {
+        // PS this is funny that RangeTo as the trait Copy but not RangeFrom<>
+        let line = Some(line[range.clone()].to_string());
+        self.lines.get_mut(index).unwrap().drain(range);
+        line
+    }
+
     pub fn remove_block(&mut self, start: (u16, u16), end: (u16, u16)) -> Vec<Option<String>> {
         let mut block: Vec<Option<String>> = vec![];
-        let mut i = start.1;
+        let mut to_remove_index: Vec<usize> = vec![];
 
+        let mut i = start.1;
         while i <= end.1 {
             let mut opt_line = self.get(i as usize).clone();
+
+            // check if we remove the line or drain it
             if let Some(line) = &opt_line {
                 match i {
+                    // drain at start and end line
                     x if x == start.1 => {
-                        opt_line = Some(line[start.0 as usize..].to_string());
-                        self.lines
-                            .get_mut(x as usize)
-                            .unwrap()
-                            .drain(start.0 as usize..);
+                        opt_line =
+                            self.drain_and_copy_line_from(line, x as usize, start.0 as usize..);
                     }
                     x if x == end.1 => {
-                        opt_line = Some(line[..end.0 as usize].to_string());
-                        self.lines
-                            .get_mut(x as usize)
-                            .unwrap()
-                            .drain(..end.0 as usize);
+                        opt_line =
+                            self.drain_and_copy_line_to(line, x as usize, ..end.0 as usize + 1);
                     }
-                    _ => {}
+                    x => {
+                        to_remove_index.push(x as usize);
+                    }
                 };
             }
             block.push(opt_line);
             i += 1;
         }
+
+        // we remove block after because we dont want to iterate on lines and remove at the same
+        // time
+        for index in to_remove_index {
+            self.remove(index);
+        }
         block
-        // if self.lines.get_mut(y).is_some() {
-        //     self.lines.remove(y);
-        // }
     }
 
     pub fn remove_char(&mut self, cursor: (u16, u16)) {
