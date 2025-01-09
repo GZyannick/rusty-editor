@@ -107,8 +107,23 @@ impl Buffer {
 
     pub fn get_block(&self, start: (u16, u16), end: (u16, u16)) -> Vec<Option<String>> {
         let mut block: Vec<Option<String>> = vec![];
-        for i in start.1..end.1 {
-            block.push(self.get(i as usize).clone());
+        let mut i = start.1;
+
+        while i <= end.1 {
+            let mut opt_line = self.get(i as usize).clone();
+            if let Some(line) = &opt_line {
+                match i {
+                    x if x == start.1 => {
+                        opt_line = Some(line[start.0 as usize..].to_string());
+                    }
+                    x if x == end.1 => {
+                        opt_line = Some(line[..end.0 as usize].to_string());
+                    }
+                    _ => {}
+                };
+            }
+            block.push(opt_line);
+            i += 1;
         }
         block
     }
@@ -148,6 +163,40 @@ impl Buffer {
         if self.lines.get_mut(y).is_some() {
             self.lines.remove(y);
         }
+    }
+
+    pub fn remove_block(&mut self, start: (u16, u16), end: (u16, u16)) -> Vec<Option<String>> {
+        let mut block: Vec<Option<String>> = vec![];
+        let mut i = start.1;
+
+        while i <= end.1 {
+            let mut opt_line = self.get(i as usize).clone();
+            if let Some(line) = &opt_line {
+                match i {
+                    x if x == start.1 => {
+                        opt_line = Some(line[start.0 as usize..].to_string());
+                        self.lines
+                            .get_mut(x as usize)
+                            .unwrap()
+                            .drain(start.0 as usize..);
+                    }
+                    x if x == end.1 => {
+                        opt_line = Some(line[..end.0 as usize].to_string());
+                        self.lines
+                            .get_mut(x as usize)
+                            .unwrap()
+                            .drain(..end.0 as usize);
+                    }
+                    _ => {}
+                };
+            }
+            block.push(opt_line);
+            i += 1;
+        }
+        block
+        // if self.lines.get_mut(y).is_some() {
+        //     self.lines.remove(y);
+        // }
     }
 
     pub fn remove_char(&mut self, cursor: (u16, u16)) {

@@ -5,7 +5,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::TERMINAL_LINE_LEN_MINUS;
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
