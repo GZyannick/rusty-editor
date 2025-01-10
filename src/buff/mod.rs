@@ -175,18 +175,26 @@ impl Buffer {
         line: &str,
         index: usize,
         range: Range<usize>,
+        is_last_line: bool,
     ) -> (Option<String>, bool) {
         // copy line
-        let line = line[range.clone()].to_string();
+        let mut line = line[range.clone()].to_string();
         // get mutable line vec of lines
         let mut_line = self.lines.get_mut(index).unwrap();
         mut_line.drain(range);
+
+        // we check if the last line is empty and add a \n to know when we undo if the last lane
+        // need to be insert in a existed string
+        if is_last_line && mut_line.is_empty() {
+            line.push('\n');
+        }
         (Some(line), mut_line.is_empty())
     }
 
     pub fn remove_block(&mut self, start: (u16, u16), end: (u16, u16)) -> Vec<Option<String>> {
         let mut block: Vec<Option<String>> = vec![];
         let mut to_remove_index: Vec<usize> = vec![];
+        let mut is_last_line = false;
 
         let mut i = start.1;
         while i <= end.1 {
@@ -205,10 +213,14 @@ impl Buffer {
                     let range: Range<usize> = match i {
                         x if x == start.1 && x == end.1 => start.0 as usize..end_x,
                         x if x == start.1 => start.0 as usize..line.len(),
-                        _ => 0..end_x, // x is forcely equal to end.1 we tried
-                                       // all other possibility
+                        _ => {
+                            is_last_line = true;
+                            0..end_x
+                        } // x is forcely equal to end.1 we tried
+                          // all other possibility
                     };
-                    let (cp_line, is_empty) = self.drain_and_copy(line, i as usize, range);
+                    let (cp_line, is_empty) =
+                        self.drain_and_copy(line, i as usize, range, is_last_line);
                     opt_line = cp_line;
                     if is_empty {
                         to_remove_index.push(i as usize);
@@ -265,5 +277,18 @@ impl Buffer {
         }
 
         Ok(())
+    }
+
+    pub fn push_or_insert(&mut self, line: String, y: usize) {
+        match y >= self.lines.len() {
+            true => self.lines.push(line),
+            false => self.lines.insert(y, line),
+        }
+    }
+
+    pub fn insert_str(&mut self, y: usize, x: usize, content: &String) {
+        if let Some(buffer_line) = self.lines.get_mut(y) {
+            buffer_line.insert_str(x, content);
+        }
     }
 }
