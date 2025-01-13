@@ -5,7 +5,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::TERMINAL_LINE_LEN_MINUS;
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -66,6 +65,9 @@ pub enum Action {
     SwapViewportToExplorer,
     SwapViewportToPopupExplorer,
     DeleteBlock,
+    YankBlock,
+    Past,
+    UndoPast,
 }
 
 impl Action {
@@ -275,6 +277,8 @@ impl Action {
                 let content = current_viewport.buffer.get(y as usize).clone();
                 current_viewport.buffer.remove(y as usize);
 
+                editor.yank_buffer = vec![content.clone()];
+
                 editor.undo_actions.push(Action::UndoDeleteLine(
                     OldCursorPosition::new(editor.cursor, current_viewport.top),
                     content,
@@ -448,8 +452,9 @@ impl Action {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 let mut y = start_y as usize;
 
+                // this if could be deleted but there is
+                // no need to run a big iterator when the size = 1
                 if content.len() == 1 {
-                    log_message!("hellow here");
                     if let Some(line) = content.first().unwrap() {
                         current_viewport
                             .buffer
@@ -481,6 +486,43 @@ impl Action {
                 editor.cursor.1 = start.cursor.1;
                 editor.buffer_actions.push(Action::CenterLine)
             }
+            Action::YankBlock => {
+                let visual_block_pos = editor.get_visual_block_pos();
+
+                if let Some(start_visual_block) = visual_block_pos.0 {
+                    if let Some(end_visual_block) = visual_block_pos.1 {
+                        let c_mut_viewport = editor.viewports.c_mut_viewport();
+                        editor.yank_buffer = c_mut_viewport.buffer.get_block(
+                            c_mut_viewport.viewport_cursor(&start_visual_block),
+                            c_mut_viewport.viewport_cursor(&end_visual_block),
+                        );
+                    }
+                }
+
+                editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
+            }
+            Action::Past => {
+                let content = editor.yank_buffer.clone();
+                let current_viewport = editor.viewports.c_mut_viewport();
+                let start = current_viewport.viewport_cursor(&editor.cursor);
+                let mut y = start.1 as usize;
+                for (i, c) in content.iter().enumerate() {
+                    if let Some(line) = c {
+                        match i {
+                            _ if i == 0 => {
+                                let x = match line.is_empty() {
+                                    true => 0,
+                                    false => start.0 as usize + 1,
+                                };
+                                current_viewport.buffer.insert_str(y, x, line)
+                            }
+                            _ => current_viewport.buffer.push_or_insert(line.clone(), y),
+                        }
+                    }
+                    y += 1;
+                }
+            }
+            Action::UndoPast => {}
             _ => {}
         }
 

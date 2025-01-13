@@ -93,6 +93,7 @@ impl Editor {
 
             // action
             KeyCode::Char('d') => Some(Action::DeleteBlock),
+            KeyCode::Char('y') => Some(Action::YankBlock),
 
             // movement
             KeyCode::PageUp => Some(Action::PageUp),
@@ -118,6 +119,7 @@ impl Editor {
             KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
             KeyCode::Char('u') => Some(Action::Undo),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
+            KeyCode::Char('p') => Some(Action::Past),
 
             // handle file_explorer viewport
             KeyCode::Enter if self.viewports.c_viewport().is_file_explorer() => {

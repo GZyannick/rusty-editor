@@ -29,6 +29,7 @@ pub struct Editor {
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewports: Viewports,
+    pub yank_buffer: Vec<Option<String>>,
     pub buffer_actions: Vec<Action>, // allow us to buffer some action to make multiple of them in one time
     pub undo_actions: Vec<Action>,   // create a undo buffer where we put all the action we want
     pub undo_insert_actions: Vec<Action>, // when we are in insert mode all the undo at the same
@@ -79,6 +80,7 @@ impl Editor {
             visual_cursor: None,
             buffer_x_cursor: 0,
             waiting_command: None,
+            yank_buffer: vec![],
             viewports,
             buffer_actions: vec![],
             undo_actions: vec![],

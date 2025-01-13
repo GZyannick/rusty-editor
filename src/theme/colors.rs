@@ -1,7 +1,10 @@
 pub const _DARK0_HARD: (u8, u8, u8) = (29, 32, 34);
-pub const DARK0: (u8, u8, u8) = (40, 40, 41);
+// real pub const DARK0: (u8, u8, u8) = (40, 40, 41);
+pub const DARK0: (u8, u8, u8) = (0, 0, 0); // this is temporary to have a different bg between
+                                           // my editor and vim btw
 pub const DARK0_SOFT: (u8, u8, u8) = (50, 48, 48);
-pub const DARK1: (u8, u8, u8) = (60, 56, 55);
+// real pub const DARK1: (u8, u8, u8) = (60, 56, 55);
+pub const DARK1: (u8, u8, u8) = (40, 40, 40);
 pub const _DARK2: (u8, u8, u8) = (80, 73, 61);
 pub const _DARK3: (u8, u8, u8) = (102, 92, 85);
 pub const _DARK4: (u8, u8, u8) = (124, 111, 101);
