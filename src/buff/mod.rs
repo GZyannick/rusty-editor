@@ -1,12 +1,11 @@
+use core::panic;
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
-    ops::{RangeFrom, RangeTo},
+    ops::{Range, RangeFrom, RangeTo},
     path::PathBuf,
     str::FromStr,
 };
-
-use crate::log_message;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -171,61 +170,62 @@ impl Buffer {
         }
     }
 
-    fn drain_and_copy_line_to(
+    fn drain_and_copy(
         &mut self,
         line: &str,
         index: usize,
-        range: RangeTo<usize>,
-    ) -> Option<String> {
-        let line = Some(line[range].to_string());
-        self.lines.get_mut(index).unwrap().drain(range);
-        line
-    }
+        range: Range<usize>,
+        is_last_line: bool,
+    ) -> (Option<String>, bool) {
+        // copy line
+        let mut line = line[range.clone()].to_string();
+        // get mutable line vec of lines
+        let mut_line = self.lines.get_mut(index).unwrap();
+        mut_line.drain(range);
 
-    // i dont like to have two times the nearly the same fn but
-    // line[range] doenst take RangeBounds
-    // and add Into<Option<RangeFrom<usize> + Into<Option<RangeTo<usize>>>>> make it over
-    // complicated for nothing
-    fn drain_and_copy_line_from(
-        &mut self,
-        line: &str,
-        index: usize,
-        range: RangeFrom<usize>,
-    ) -> Option<String> {
-        // PS this is funny that RangeTo as the trait Copy but not RangeFrom<>
-        let line = Some(line[range.clone()].to_string());
-        self.lines.get_mut(index).unwrap().drain(range);
-        line
+        // we check if the last line is empty and add a \n to know when we undo if the last lane
+        // need to be insert in a existed string
+        if is_last_line && mut_line.is_empty() {
+            line.push('\n');
+        }
+        (Some(line), mut_line.is_empty())
     }
 
     pub fn remove_block(&mut self, start: (u16, u16), end: (u16, u16)) -> Vec<Option<String>> {
         let mut block: Vec<Option<String>> = vec![];
         let mut to_remove_index: Vec<usize> = vec![];
+        let mut is_last_line = false;
 
         let mut i = start.1;
         while i <= end.1 {
             let mut opt_line = self.get(i as usize).clone();
 
             // check if we remove the line or drain it
+
             if let Some(line) = &opt_line {
-                match i {
-                    // drain at start and end line
-                    x if x == start.1 => {
-                        opt_line =
-                            self.drain_and_copy_line_from(line, x as usize, start.0 as usize..);
+                if i > start.1 && i < end.1 {
+                    to_remove_index.push(i as usize);
+                } else {
+                    let end_x = match line.is_empty() {
+                        true => end.0 as usize,
+                        false => end.0 as usize + 1,
+                    };
+                    let range: Range<usize> = match i {
+                        x if x == start.1 && x == end.1 => start.0 as usize..end_x,
+                        x if x == start.1 => start.0 as usize..line.len(),
+                        _ => {
+                            is_last_line = true;
+                            0..end_x
+                        } // x is forcely equal to end.1 we tried
+                          // all other possibility
+                    };
+                    let (cp_line, is_empty) =
+                        self.drain_and_copy(line, i as usize, range, is_last_line);
+                    opt_line = cp_line;
+                    if is_empty {
+                        to_remove_index.push(i as usize);
                     }
-                    x if x == end.1 => {
-                        // we add 1 because the range will not take the last char
-                        let end_x = match line.is_empty() {
-                            true => end.0 as usize,
-                            false => end.0 as usize + 1,
-                        };
-                        opt_line = self.drain_and_copy_line_to(line, x as usize, ..end_x);
-                    }
-                    x => {
-                        to_remove_index.push(x as usize);
-                    }
-                };
+                }
             }
             block.push(opt_line);
             i += 1;
@@ -233,8 +233,10 @@ impl Buffer {
 
         // we remove block after because we dont want to iterate on lines and remove at the same
         // time
-        for index in to_remove_index {
-            self.remove(index);
+        while !to_remove_index.is_empty() {
+            if let Some(index) = to_remove_index.pop() {
+                self.remove(index);
+            }
         }
 
         block
@@ -275,5 +277,18 @@ impl Buffer {
         }
 
         Ok(())
+    }
+
+    pub fn push_or_insert(&mut self, line: String, y: usize) {
+        match y >= self.lines.len() {
+            true => self.lines.push(line),
+            false => self.lines.insert(y, line),
+        }
+    }
+
+    pub fn insert_str(&mut self, y: usize, x: usize, content: &String) {
+        if let Some(buffer_line) = self.lines.get_mut(y) {
+            buffer_line.insert_str(x, content);
+        }
     }
 }

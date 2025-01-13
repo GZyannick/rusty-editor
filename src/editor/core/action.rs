@@ -5,6 +5,7 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::TERMINAL_LINE_LEN_MINUS;
+use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -445,22 +446,37 @@ impl Action {
             Action::UndoDeleteBlock(start, content) => {
                 let start_y = start.cursor.1 + start.top;
                 let current_viewport = editor.viewports.c_mut_viewport();
+                let mut y = start_y as usize;
 
-                let mut y = start_y;
-
-                for c in content {
-                    if let Some(line) = c {
-                        match y as usize >= current_viewport.get_buffer_len() {
-                            true => current_viewport.buffer.lines.push(line.clone()),
-                            false => current_viewport
-                                .buffer
-                                .lines
-                                .insert(y as usize, line.clone()),
-                        }
+                if content.len() == 1 {
+                    log_message!("hellow here");
+                    if let Some(line) = content.first().unwrap() {
+                        current_viewport
+                            .buffer
+                            .insert_str(y, start.cursor.0 as usize, line);
                     }
-
-                    y += 1;
+                } else {
+                    for (i, c) in content.iter().enumerate() {
+                        if let Some(line) = c {
+                            // handle the first if she need to be insert in a existing line
+                            let len = current_viewport.get_line_len(&(start.cursor.0, y as u16));
+                            match i {
+                                _ if i == 0 && len > 0 && start.cursor.0 == len => current_viewport
+                                    .buffer
+                                    .insert_str(y, start.cursor.0 as usize, line),
+                                _ if i == content.len() - 1 => match line.contains('\n') {
+                                    true => current_viewport
+                                        .buffer
+                                        .push_or_insert(line[0..line.len() - 1].to_string(), y),
+                                    false => current_viewport.buffer.insert_str(y, 0, line),
+                                },
+                                _ => current_viewport.buffer.push_or_insert(line.clone(), y),
+                            }
+                        }
+                        y += 1;
+                    }
                 }
+
                 current_viewport.top = start.top;
                 editor.cursor.1 = start.cursor.1;
                 editor.buffer_actions.push(Action::CenterLine)
