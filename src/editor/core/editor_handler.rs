@@ -176,7 +176,7 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
-            // KeyCode::Char('w') => Some(Action::SaveFile),
+            KeyCode::Char('w') => Some(Action::SaveFile),
             KeyCode::Char(c) => Some(Action::AddCommandChar(*c)),
             KeyCode::Enter => {
                 // handle the quit here to break the loop
@@ -213,6 +213,11 @@ impl Editor {
                 KeyCode::Char('j') => Some(Action::MoveDown),
                 KeyCode::Char('k') => Some(Action::MoveUp),
                 KeyCode::Char('l') => Some(Action::MoveRight),
+                KeyCode::Char('w') => Some(Action::MoveNext), // Move next until the char is not
+                // the same type than before
+                KeyCode::Char('b') => Some(Action::MovePrev), // Move prev until the char is not
+                // the same type than before
+                // exemple if char is a letter Move until char is diff from letter
                 _ => None,
             }
         };
