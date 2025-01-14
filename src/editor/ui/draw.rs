@@ -37,12 +37,13 @@ impl Editor {
             match self.is_visual_mode() {
                 true => {
                     // give us two option of (u16, u16) first is start second is end
-                    let visual_block_pos = self.get_visual_block_pos();
-                    current_viewport.draw(
-                        &mut self.stdout,
-                        visual_block_pos.0,
-                        visual_block_pos.1,
-                    )?;
+                    if let Some(v_block) = self.get_visual_block_pos() {
+                        current_viewport.draw(
+                            &mut self.stdout,
+                            Some(v_block.start),
+                            Some(v_block.end),
+                        )?;
+                    };
                 }
                 false => {
                     current_viewport.draw(&mut self.stdout, None, None)?;

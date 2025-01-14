@@ -10,14 +10,18 @@ use crossterm::{
     style::Color,
     terminal, ExecutableCommand, QueueableCommand,
 };
-use std::io::Stdout;
+use std::io::{Cursor, Stdout};
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
 pub const TERMINAL_SIZE_MINUS: u16 = 2; // we remove the size of the bottom status, command bar
                                         // are at the end of the line or start move to next or prev line
 
-struct GetVisualBlockPosResult(Option<(u16, u16)>, Option<(u16, u16)>);
+#[derive(Debug, Clone, Copy)]
+pub struct CursorBlock {
+    pub start: (u16, u16),
+    pub end: (u16, u16),
+}
 #[derive(Debug)]
 pub struct Editor {
     pub mode: Mode,
@@ -195,33 +199,19 @@ impl Editor {
     }
 
     // allow us to know with of cursor or visual_cursor is the first to come
-    fn get_visual_block_pos(&self) -> GetVisualBlockPosResult {
-        let mut start: Option<(u16, u16)> = None;
-        let mut end: Option<(u16, u16)> = None;
+    fn get_visual_block_pos(&self) -> Option<CursorBlock> {
         if let Some(visual_cursor) = self.visual_cursor {
-            match self.cursor.1.cmp(&visual_cursor.1) {
-                std::cmp::Ordering::Less => {
-                    start = Some(self.cursor);
-                    end = Some(visual_cursor);
-                }
+            let (start, end) = match self.cursor.1.cmp(&visual_cursor.1) {
+                std::cmp::Ordering::Less => (self.cursor, visual_cursor),
                 std::cmp::Ordering::Equal => match self.cursor.0.cmp(&visual_cursor.0) {
-                    std::cmp::Ordering::Less => {
-                        start = Some(self.cursor);
-                        end = Some(visual_cursor);
-                    }
-                    _ => {
-                        start = Some(visual_cursor);
-                        end = Some(self.cursor);
-                    }
+                    std::cmp::Ordering::Less => (self.cursor, visual_cursor),
+                    _ => (visual_cursor, self.cursor),
                 },
-                std::cmp::Ordering::Greater => {
-                    start = Some(visual_cursor);
-                    end = Some(self.cursor);
-                }
-            }
+                std::cmp::Ordering::Greater => (visual_cursor, self.cursor),
+            };
+            return Some(CursorBlock { start, end });
         };
-
-        GetVisualBlockPosResult(start, end)
+        None
     }
 
     // we have to take the min size of the viewport in condition

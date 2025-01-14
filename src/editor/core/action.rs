@@ -2,9 +2,10 @@ use std::fs::metadata;
 
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
-use crate::buff::Buffer;
+use crate::buff::{self, Buffer};
 use crate::editor::ui::clear::ClearDraw;
-use crate::editor::TERMINAL_LINE_LEN_MINUS;
+use crate::editor::{CursorBlock, TERMINAL_LINE_LEN_MINUS};
+use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -67,7 +68,7 @@ pub enum Action {
     DeleteBlock,
     YankBlock,
     Past,
-    UndoPast,
+    UndoPast(CursorBlock, u16),
 }
 
 impl Action {
@@ -426,24 +427,23 @@ impl Action {
             }
 
             Action::DeleteBlock => {
-                let visual_block_pos = editor.get_visual_block_pos();
-                if let Some(start_visual_block) = visual_block_pos.0 {
-                    if let Some(end_visual_block) = visual_block_pos.1 {
-                        let c_mut_viewport = editor.viewports.c_mut_viewport();
-                        let v_cursor_start = c_mut_viewport.viewport_cursor(&start_visual_block);
-                        let v_cursor_end = c_mut_viewport.viewport_cursor(&end_visual_block);
+                if let Some(v_block) = editor.get_visual_block_pos() {
+                    let c_mut_viewport = editor.viewports.c_mut_viewport();
+                    let v_cursor_start = c_mut_viewport.viewport_cursor(&v_block.start);
+                    let v_cursor_end = c_mut_viewport.viewport_cursor(&v_block.end);
 
-                        let block_content: Vec<Option<String>> = c_mut_viewport
-                            .buffer
-                            .remove_block(v_cursor_start, v_cursor_end);
+                    let block_content: Vec<Option<String>> = c_mut_viewport
+                        .buffer
+                        .remove_block(v_cursor_start, v_cursor_end);
 
-                        editor.cursor = start_visual_block;
-                        editor.undo_actions.push(Action::UndoDeleteBlock(
-                            OldCursorPosition::new(start_visual_block, c_mut_viewport.top),
-                            block_content,
-                        ));
-                        editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
-                    }
+                    // TODO ADD block content to editor.yank_buffer too
+
+                    editor.cursor = v_block.start;
+                    editor.undo_actions.push(Action::UndoDeleteBlock(
+                        OldCursorPosition::new(v_block.start, c_mut_viewport.top),
+                        block_content,
+                    ));
+                    editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
                 }
             }
 
@@ -487,18 +487,13 @@ impl Action {
                 editor.buffer_actions.push(Action::CenterLine)
             }
             Action::YankBlock => {
-                let visual_block_pos = editor.get_visual_block_pos();
-
-                if let Some(start_visual_block) = visual_block_pos.0 {
-                    if let Some(end_visual_block) = visual_block_pos.1 {
-                        let c_mut_viewport = editor.viewports.c_mut_viewport();
-                        editor.yank_buffer = c_mut_viewport.buffer.get_block(
-                            c_mut_viewport.viewport_cursor(&start_visual_block),
-                            c_mut_viewport.viewport_cursor(&end_visual_block),
-                        );
-                    }
+                if let Some(v_block) = editor.get_visual_block_pos() {
+                    let c_mut_viewport = editor.viewports.c_mut_viewport();
+                    editor.yank_buffer = c_mut_viewport.buffer.get_block(
+                        c_mut_viewport.viewport_cursor(&v_block.start),
+                        c_mut_viewport.viewport_cursor(&v_block.end),
+                    );
                 }
-
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
             Action::Past => {
@@ -506,23 +501,65 @@ impl Action {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 let start = current_viewport.viewport_cursor(&editor.cursor);
                 let mut y = start.1 as usize;
+                let mut start_x = 0; // allow us know if line is empty and for undoPast know where
+                                     // the past start
+
+                let mut end_y = 0; // allow us to know where the past end for undo block
+                let mut end_x = 0; // same as upper comment
+
                 for (i, c) in content.iter().enumerate() {
                     if let Some(line) = c {
+                        log_message!("i: {i}");
                         match i {
                             _ if i == 0 => {
-                                let x = match line.is_empty() {
-                                    true => 0,
-                                    false => start.0 as usize + 1,
-                                };
+                                let mut x = start.0 as usize;
+                                if i == content.len() - 1 {
+                                    end_x = line.len() - 1;
+                                }
+
+                                // because if the buffer line is an empty line it will crash the
+                                // app
+                                if let Some(buffer_line) = current_viewport.buffer.get(y) {
+                                    start_x = buffer_line.len();
+                                    if start_x > 0 {
+                                        x += 1;
+                                    }
+                                }
                                 current_viewport.buffer.insert_str(y, x, line)
                             }
-                            _ => current_viewport.buffer.push_or_insert(line.clone(), y),
+                            _ => {
+                                if i == content.len() - 1 {
+                                    end_x = line.len() - 1;
+                                }
+                                current_viewport.buffer.push_or_insert(line.clone(), y)
+                            }
                         }
                     }
+                    end_y += 1;
                     y += 1;
                 }
+
+                editor.undo_actions.push(Action::UndoPast(
+                    CursorBlock {
+                        start: (start_x as u16, editor.cursor.1),
+                        end: (end_x as u16, editor.cursor.1 + end_y - 1),
+                    },
+                    current_viewport.top,
+                ));
             }
-            Action::UndoPast => {}
+            Action::UndoPast(cursor, top) => {
+                let current_viewport = editor.viewports.c_mut_viewport();
+                let start_y = cursor.start.1 + top;
+                let end_y = cursor.end.1 + top;
+                current_viewport
+                    .buffer
+                    .remove_block((cursor.start.0, start_y), (cursor.end.0, end_y));
+
+                current_viewport.top = *top;
+                editor.cursor.1 = cursor.start.1;
+                editor.buffer_actions.push(Action::CenterLine);
+            }
+
             _ => {}
         }
 
