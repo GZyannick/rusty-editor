@@ -7,6 +7,8 @@ use std::{
     str::FromStr,
 };
 
+use crate::log_message;
+
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
@@ -199,7 +201,6 @@ impl Buffer {
         let mut i = start.1;
         while i <= end.1 {
             let mut opt_line = self.get(i as usize).clone();
-
             // check if we remove the line or drain it
 
             if let Some(line) = &opt_line {
