@@ -57,6 +57,10 @@ impl Editor {
                 KeyCode::Char('z') => Some(Action::CenterLine),
                 _ => None,
             },
+            'y' => match code {
+                KeyCode::Char('y') => Some(Action::YankLine),
+                _ => None,
+            },
             ' ' => match code {
                 KeyCode::Char('e') => Some(Action::SwapViewportToPopupExplorer),
                 KeyCode::Char('-') => Some(Action::SwapViewportToExplorer),
@@ -138,6 +142,9 @@ impl Editor {
             // Create Action
             KeyCode::Char('o') => Some(Action::NewLineInsertionBelowCursor),
             KeyCode::Char('O') => Some(Action::NewLineInsertionAtCursor),
+
+            // Yank Action
+            KeyCode::Char('y') => Some(Action::WaitingCmd('y')),
 
             //Movement Action
             KeyCode::PageUp => Some(Action::PageUp),

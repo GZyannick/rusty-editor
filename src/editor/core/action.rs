@@ -69,6 +69,7 @@ pub enum Action {
     YankBlock,
     Past,
     UndoPast(CursorBlock, u16),
+    YankLine,
 }
 
 impl Action {
@@ -485,6 +486,12 @@ impl Action {
                 current_viewport.top = start.top;
                 editor.cursor.1 = start.cursor.1;
                 editor.buffer_actions.push(Action::CenterLine)
+            }
+            Action::YankLine => {
+                let current_viewport = editor.viewports.c_mut_viewport();
+                let (_, y) = current_viewport.viewport_cursor(&editor.cursor);
+                editor.yank_buffer = vec![current_viewport.buffer.get(y as usize)];
+                editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
             Action::YankBlock => {
                 if let Some(v_block) = editor.get_visual_block_pos() {
