@@ -435,9 +435,10 @@ impl Action {
                     let v_cursor_start = c_mut_viewport.viewport_cursor(&v_block.start);
                     let v_cursor_end = c_mut_viewport.viewport_cursor(&v_block.end);
 
-                    let block_content: Vec<Option<String>> = c_mut_viewport
-                        .buffer
-                        .remove_block(v_cursor_start, v_cursor_end);
+                    let block_content: Vec<Option<String>> =
+                        c_mut_viewport
+                            .buffer
+                            .remove_block(v_cursor_start, v_cursor_end, false);
 
                     // TODO ADD block content to editor.yank_buffer too
 
@@ -559,9 +560,11 @@ impl Action {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 let start_y = cursor.start.1 + top;
                 let end_y = cursor.end.1 + top;
-                current_viewport
-                    .buffer
-                    .remove_block((cursor.start.0, start_y), (cursor.end.0, end_y));
+                current_viewport.buffer.remove_block(
+                    (cursor.start.0, start_y),
+                    (cursor.end.0, end_y),
+                    true,
+                );
 
                 current_viewport.top = *top;
                 editor.cursor.1 = cursor.start.1;
