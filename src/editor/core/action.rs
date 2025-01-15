@@ -1,18 +1,15 @@
 use std::fs::metadata;
-use std::ops::SubAssign;
-use std::u16;
 
 use anyhow::Ok;
-use crossterm::style::Stylize;
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
-use crate::buff::{self, Buffer};
+use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::{CursorBlock, TERMINAL_LINE_LEN_MINUS};
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
+use super::chartype::CharType;
 use super::command::Command;
 use super::mode::Mode;
 
@@ -25,36 +22,6 @@ pub struct OldCursorPosition {
 impl OldCursorPosition {
     pub fn new(cursor: (u16, u16), top: u16) -> Self {
         OldCursorPosition { cursor, top }
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum CharType {
-    Alphabetic,
-    Numeric,
-    Whitespace,
-    AsciiPunctuation,
-    None,
-}
-
-impl CharType {
-    pub fn new(c: &char) -> Self {
-        match c {
-            ch if ch.is_alphabetic() => Self::Alphabetic,
-            ch if ch.is_numeric() => Self::Numeric,
-            ch if ch.is_whitespace() => Self::Whitespace,
-            ch if ch.is_ascii_punctuation() => Self::AsciiPunctuation,
-            ch => {
-                log_message!("CharType::None from {ch}");
-                Self::None
-            }
-        }
-    }
-}
-
-impl std::cmp::PartialEq for CharType {
-    fn eq(&self, other: &Self) -> bool {
-        core::mem::discriminant(self) == core::mem::discriminant(other)
     }
 }
 
@@ -605,33 +572,13 @@ impl Action {
                 let mut base_type: CharType = CharType::None;
                 let current_viewport = editor.viewports.c_viewport();
                 let v_cursor = editor.v_cursor();
+
                 if let Some(line) = current_viewport.buffer.get(v_cursor.1 as usize) {
                     let base_len = line.len().saturating_sub(1) as u16;
                     let line = line[v_cursor.0 as usize..].to_string();
                     if line.len() > 1 {
-                        for (i, c) in line.chars().enumerate() {
-                            let char_type = CharType::new(&c);
-                            if i == 0 {
-                                base_type = char_type;
-                                continue;
-                            }
-                            if !base_type.eq(&char_type) {
-                                // because its a range we have to take in account the size of the line
-                                // not the size of the range that why we do += x
-                                let x = match char_type {
-                                    CharType::Whitespace => match line.chars().nth(i + 1) {
-                                        Some(_) => i as u16 + 1, // we want the char behind the first
-                                        // whitespace
-                                        None => i as u16,
-                                    },
-                                    _ => i as u16,
-                                };
-                                editor.cursor.0 += x;
-                                break;
-                            } else if base_type.eq(&char_type) && i == line.len() - 1 {
-                                editor.cursor.0 = base_len;
-                            }
-                        }
+                        CharType::goto_diff_type(line, Some(base_len), &mut editor.cursor.0);
+                        // CharType.goto_diff_type(&line, Some(base_len), &mut editor.cursor.0);
                     } else if current_viewport.buffer.lines.len() - 1 > v_cursor.1 as usize {
                         editor.cursor.0 = 0;
                         editor.cursor.1 += 1;
@@ -639,7 +586,6 @@ impl Action {
                 }
             }
             Action::MovePrev => {
-                let mut base_type: CharType = CharType::None;
                 let current_viewport = editor.viewports.c_viewport();
                 let v_cursor = editor.v_cursor();
                 if let Some(line) = current_viewport.buffer.get(v_cursor.1 as usize) {
@@ -655,29 +601,7 @@ impl Action {
                     } else {
                         let line = line[..=v_cursor.0 as usize].to_string();
                         if line.len() > 1 {
-                            for (i, c) in line.chars().rev().enumerate() {
-                                let char_type = CharType::new(&c);
-                                if i == 0 {
-                                    base_type = char_type;
-                                    continue;
-                                }
-                                if !base_type.eq(&char_type) {
-                                    // because its a range we have to take in account the size of the line
-                                    // not the size of the range that why we do += x
-                                    let x = match char_type {
-                                        CharType::Whitespace => match line.chars().nth(i + 1) {
-                                            Some(_) => i as u16 + 1, // we want the char behind the first
-                                            // whitespace
-                                            None => i as u16,
-                                        },
-                                        _ => i as u16,
-                                    };
-                                    editor.cursor.0 = editor.cursor.0.saturating_sub(x);
-                                    break;
-                                } else if base_type.eq(&char_type) && i == line.len() - 1 {
-                                    editor.cursor.0 = 0;
-                                }
-                            }
+                            CharType::goto_diff_type(line, None, &mut editor.cursor.0);
                         } else if v_cursor.1 > 0 {
                             if let Some(prev_line) =
                                 current_viewport.buffer.get(v_cursor.1 as usize - 1)
@@ -702,3 +626,35 @@ impl Action {
         Ok(())
     }
 }
+// if let Some(line) = current_viewport.buffer.get(v_cursor.1 as usize) {
+//     let base_len = line.len().saturating_sub(1) as u16;
+//     let line = line[v_cursor.0 as usize..].to_string();
+//     if line.len() > 1 {
+//         for (i, c) in line.chars().enumerate() {
+//             let char_type = CharType::new(&c);
+//             if i == 0 {
+//                 base_type = char_type;
+//                 continue;
+//             }
+//             if !base_type.eq(&char_type) {
+//                 // because its a range we have to take in account the size of the line
+//                 // not the size of the range that why we do += x
+//                 let x = match char_type {
+//                     CharType::Whitespace => match line.chars().nth(i + 1) {
+//                         Some(_) => i as u16 + 1, // we want the char behind the first
+//                         // whitespace
+//                         None => i as u16,
+//                     },
+//                     _ => i as u16,
+//                 };
+//                 editor.cursor.0 += x;
+//                 break;
+//             } else if base_type.eq(&char_type) && i == line.len() - 1 {
+//                 editor.cursor.0 = base_len;
+//             }
+//         }
+//     } else if current_viewport.buffer.lines.len() - 1 > v_cursor.1 as usize {
+//         editor.cursor.0 = 0;
+//         editor.cursor.1 += 1;
+//     }
+// }
