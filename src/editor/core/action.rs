@@ -128,8 +128,7 @@ impl Action {
             Action::MoveRight => {
                 // we clear the buffer because to overwrite it if needed;
                 // if we are at the end of the line_len - 1 move to next line
-                let line_len = editor.get_specific_line_len_by_mode();
-                if line_len > editor.cursor.0 {
+                if editor.get_specific_line_len_by_mode() > editor.cursor.0 {
                     editor.clear_buffer_x_cursor();
                     editor.cursor.0 += 1;
                 }
@@ -436,9 +435,10 @@ impl Action {
                     let v_cursor_start = c_mut_viewport.viewport_cursor(&v_block.start);
                     let v_cursor_end = c_mut_viewport.viewport_cursor(&v_block.end);
 
-                    let block_content: Vec<Option<String>> = c_mut_viewport
-                        .buffer
-                        .remove_block(v_cursor_start, v_cursor_end);
+                    let block_content: Vec<Option<String>> =
+                        c_mut_viewport
+                            .buffer
+                            .remove_block(v_cursor_start, v_cursor_end, false);
 
                     // TODO ADD block content to editor.yank_buffer too
 
@@ -560,16 +560,18 @@ impl Action {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 let start_y = cursor.start.1 + top;
                 let end_y = cursor.end.1 + top;
-                current_viewport
-                    .buffer
-                    .remove_block((cursor.start.0, start_y), (cursor.end.0, end_y));
+                current_viewport.buffer.remove_block(
+                    (cursor.start.0, start_y),
+                    (cursor.end.0, end_y),
+                    true,
+                );
 
                 current_viewport.top = *top;
                 editor.cursor.1 = cursor.start.1;
                 editor.buffer_actions.push(Action::CenterLine);
             }
             Action::MoveNext => {
-                let mut base_type: CharType = CharType::None;
+                editor.clear_buffer_x_cursor();
                 let current_viewport = editor.viewports.c_viewport();
                 let v_cursor = editor.v_cursor();
 
@@ -586,6 +588,7 @@ impl Action {
                 }
             }
             Action::MovePrev => {
+                editor.clear_buffer_x_cursor();
                 let current_viewport = editor.viewports.c_viewport();
                 let v_cursor = editor.v_cursor();
                 if let Some(line) = current_viewport.buffer.get(v_cursor.1 as usize) {
