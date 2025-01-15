@@ -122,9 +122,9 @@ impl Editor {
 
     fn check_bounds(&mut self) {
         let line_len = self.get_specific_line_len_by_mode();
-
         if self.cursor.0 >= line_len {
-            if self.buffer_x_cursor == self.viewports.c_viewport().min_vwidth {
+            if self.buffer_x_cursor == self.viewports.c_viewport().min_vwidth_without_line_number()
+            {
                 self.buffer_x_cursor = self.cursor.0;
             }
             self.cursor.0 = line_len;

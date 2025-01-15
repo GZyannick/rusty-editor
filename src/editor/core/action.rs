@@ -128,8 +128,7 @@ impl Action {
             Action::MoveRight => {
                 // we clear the buffer because to overwrite it if needed;
                 // if we are at the end of the line_len - 1 move to next line
-                let line_len = editor.get_specific_line_len_by_mode();
-                if line_len > editor.cursor.0 {
+                if editor.get_specific_line_len_by_mode() > editor.cursor.0 {
                     editor.clear_buffer_x_cursor();
                     editor.cursor.0 += 1;
                 }
@@ -569,6 +568,7 @@ impl Action {
                 editor.buffer_actions.push(Action::CenterLine);
             }
             Action::MoveNext => {
+                editor.clear_buffer_x_cursor();
                 let current_viewport = editor.viewports.c_viewport();
                 let v_cursor = editor.v_cursor();
 
@@ -585,6 +585,7 @@ impl Action {
                 }
             }
             Action::MovePrev => {
+                editor.clear_buffer_x_cursor();
                 let current_viewport = editor.viewports.c_viewport();
                 let v_cursor = editor.v_cursor();
                 if let Some(line) = current_viewport.buffer.get(v_cursor.1 as usize) {

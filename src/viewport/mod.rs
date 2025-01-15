@@ -96,4 +96,8 @@ impl Viewport {
             false => self.buffer.lines.len(),
         }
     }
+
+    pub fn min_vwidth_without_line_number(&self) -> u16 {
+        self.min_vwidth - LINE_NUMBERS_WIDTH
+    }
 }
