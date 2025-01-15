@@ -569,7 +569,6 @@ impl Action {
                 editor.buffer_actions.push(Action::CenterLine);
             }
             Action::MoveNext => {
-                let mut base_type: CharType = CharType::None;
                 let current_viewport = editor.viewports.c_viewport();
                 let v_cursor = editor.v_cursor();
 
