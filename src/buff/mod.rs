@@ -103,6 +103,12 @@ impl Buffer {
         }
     }
 
+    pub fn get_char(&self, cursor: &(u16, u16)) -> Option<char> {
+        if let Some(line) = self.get(cursor.1 as usize) {
+            return line.chars().nth(cursor.0 as usize);
+        }
+        None
+    }
     pub fn get(&self, n: usize) -> Option<String> {
         self.lines.get(n).cloned()
     }
