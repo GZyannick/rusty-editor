@@ -22,6 +22,7 @@ pub struct CursorBlock {
     pub start: (u16, u16),
     pub end: (u16, u16),
 }
+
 #[derive(Debug)]
 pub struct Editor {
     pub mode: Mode,
@@ -168,9 +169,12 @@ impl Editor {
     }
 
     fn resize(&mut self, w: u16, h: u16) -> Result<()> {
-        let c_mut_viewport = self.viewports.c_mut_viewport();
-        c_mut_viewport.vwidth = w;
-        c_mut_viewport.vheight = h;
+        // resize each viewport
+        for viewport in &mut self.viewports.values {
+            viewport.vwidth = w;
+            viewport.vheight = h;
+        }
+
         self.size = (w, h);
         self.stdout
             .queue(terminal::Clear(terminal::ClearType::All))?;
