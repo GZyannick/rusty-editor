@@ -76,6 +76,7 @@ pub enum Action {
     IterNextSearch,
     ClearToNormalMode,
     AddSearchChar(char),
+    FindSearchValue,
 }
 
 impl Action {
@@ -204,7 +205,10 @@ impl Action {
                 editor.mode = *mode;
             }
             Action::AddCommandChar(c) => editor.command.push(*c),
-            Action::AddSearchChar(c) => editor.search.push(*c),
+            Action::AddSearchChar(c) => {
+                editor.search.push(*c);
+                editor.buffer_actions.push(Action::FindSearchValue)
+            }
 
             Action::NewLineInsertionAtCursor => {
                 let v_cursor = editor.v_cursor();
@@ -381,6 +385,9 @@ impl Action {
                     }
                     false => {
                         content.pop();
+                        if *is_search {
+                            editor.buffer_actions.push(Action::FindSearchValue)
+                        }
                     }
                 }
             }
@@ -636,6 +643,12 @@ impl Action {
             Action::ClearToNormalMode => {
                 editor.search = String::new();
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
+            }
+
+            // research correspondng value in file when editor.search got updated
+            Action::FindSearchValue => {
+                let current_viewport = editor.viewports.c_mut_viewport();
+                current_viewport.find_occurence(&editor.search);
             }
             _ => {}
         }
