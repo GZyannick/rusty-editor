@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::{
-    editor::{Editor, TERMINAL_SIZE_MINUS},
+    editor::{core::mode::Mode, Editor, TERMINAL_SIZE_MINUS},
     theme::colors,
 };
 use anyhow::Result;
@@ -72,7 +72,7 @@ impl Editor {
 
         self.draw_status_line(mode, filename)?;
         self.draw_line_counter(pos)?;
-        self.draw_command_line()?;
+        self.draw_last_line()?;
 
         Ok(())
     }
@@ -102,13 +102,20 @@ impl Editor {
         Ok(())
     }
 
-    fn draw_command_line(&mut self) -> Result<()> {
-        let cmd = &self.command;
+    // this method will draw command or search depending on the mode
+    fn draw_last_line(&mut self) -> Result<()> {
+        let (symbol, cmd) = match self.mode {
+            Mode::Command => (':', &self.command),
+            Mode::Search => ('/', &self.search),
+            _ => (' ', &self.command), // will print &self.command but will be empty, like that i
+                                       // dont need to make String::new()
+        };
         let r_width = self.size.0 as usize - cmd.len();
         self.stdout
             .queue(cursor::MoveTo(0, self.size.1 - 1))?
             .queue(PrintStyledContent(
-                format!(":{cmd:<width$}", width = r_width - 1).on(Color::from(colors::DARK0)),
+                format!("{symbol}{cmd:<width$}", width = r_width - 1)
+                    .on(Color::from(colors::DARK0)),
             ))?;
         Ok(())
     }

@@ -62,7 +62,7 @@ pub enum Action {
     UndoMultiple(Vec<Action>),
     UndoCharAt(OldCursorPosition, (u16, u16)),
     ExecuteCommand,
-    RemoveCommandChar,
+    RemoveCharFrom(bool),
     EnterFileOrDirectory,
     SwapViewportToExplorer,
     SwapViewportToPopupExplorer,
@@ -73,6 +73,9 @@ pub enum Action {
     YankLine,
     MovePrev,
     MoveNext,
+    IterNextSearch,
+    ClearToNormalMode,
+    AddSearchChar(char),
 }
 
 impl Action {
@@ -201,6 +204,7 @@ impl Action {
                 editor.mode = *mode;
             }
             Action::AddCommandChar(c) => editor.command.push(*c),
+            Action::AddSearchChar(c) => editor.search.push(*c),
 
             Action::NewLineInsertionAtCursor => {
                 let v_cursor = editor.v_cursor();
@@ -365,9 +369,19 @@ impl Action {
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
 
-            Action::RemoveCommandChar => {
-                if !editor.command.is_empty() {
-                    editor.command.pop();
+            Action::RemoveCharFrom(is_search) => {
+                let content = match is_search {
+                    true => &mut editor.search,
+                    false => &mut editor.command,
+                };
+
+                match content.is_empty() {
+                    true => {
+                        editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
+                    }
+                    false => {
+                        content.pop();
+                    }
                 }
             }
 
@@ -396,6 +410,7 @@ impl Action {
                     }
                 }
             }
+
             Action::SwapViewportToExplorer => {
                 let c_mut_viewport = editor.viewports.c_mut_viewport();
                 let vwidth = c_mut_viewport.vwidth;
@@ -617,6 +632,11 @@ impl Action {
                 }
             }
 
+            // allow us to clear search string
+            Action::ClearToNormalMode => {
+                editor.search = String::new();
+                editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
+            }
             _ => {}
         }
 
@@ -629,35 +649,3 @@ impl Action {
         Ok(())
     }
 }
-// if let Some(line) = current_viewport.buffer.get(v_cursor.1 as usize) {
-//     let base_len = line.len().saturating_sub(1) as u16;
-//     let line = line[v_cursor.0 as usize..].to_string();
-//     if line.len() > 1 {
-//         for (i, c) in line.chars().enumerate() {
-//             let char_type = CharType::new(&c);
-//             if i == 0 {
-//                 base_type = char_type;
-//                 continue;
-//             }
-//             if !base_type.eq(&char_type) {
-//                 // because its a range we have to take in account the size of the line
-//                 // not the size of the range that why we do += x
-//                 let x = match char_type {
-//                     CharType::Whitespace => match line.chars().nth(i + 1) {
-//                         Some(_) => i as u16 + 1, // we want the char behind the first
-//                         // whitespace
-//                         None => i as u16,
-//                     },
-//                     _ => i as u16,
-//                 };
-//                 editor.cursor.0 += x;
-//                 break;
-//             } else if base_type.eq(&char_type) && i == line.len() - 1 {
-//                 editor.cursor.0 = base_len;
-//             }
-//         }
-//     } else if current_viewport.buffer.lines.len() - 1 > v_cursor.1 as usize {
-//         editor.cursor.0 = 0;
-//         editor.cursor.1 += 1;
-//     }
-// }
