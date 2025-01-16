@@ -58,6 +58,7 @@ impl Viewport {
             bg_color: Color::from(colors::DARK1),
             is_popup: true,
             search_pos: vec![],
+            search_index: 0,
         }
     }
 

@@ -174,7 +174,7 @@ impl Editor {
         // resize each viewport
         for viewport in &mut self.viewports.values {
             viewport.vwidth = w;
-            viewport.vheight = h;
+            viewport.vheight = h.saturating_sub(TERMINAL_SIZE_MINUS);
         }
 
         self.size = (w, h);

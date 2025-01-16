@@ -73,10 +73,11 @@ pub enum Action {
     YankLine,
     MovePrev,
     MoveNext,
-    IterNextSearch,
     ClearToNormalMode,
     AddSearchChar(char),
     FindSearchValue,
+    GotoPos((u16, u16)),
+    IterNextSearch,
 }
 
 impl Action {
@@ -641,6 +642,8 @@ impl Action {
 
             // allow us to clear search string
             Action::ClearToNormalMode => {
+                let current_viewport = editor.viewports.c_mut_viewport();
+                current_viewport.clear_search();
                 editor.search = String::new();
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
@@ -649,6 +652,35 @@ impl Action {
             Action::FindSearchValue => {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 current_viewport.find_occurence(&editor.search);
+
+                if let Some(cursor) = current_viewport.search_pos.first() {
+                    editor.buffer_actions.push(Action::GotoPos(*cursor))
+                }
+            }
+
+            Action::GotoPos(new_cursor_pos) => {
+                let current_viewport = editor.viewports.c_mut_viewport();
+                if new_cursor_pos.1 as usize > current_viewport.get_buffer_len() {
+                    return Ok(());
+                }
+                editor.cursor = current_viewport.move_to(new_cursor_pos);
+                editor.buffer_actions.push(Action::CenterLine);
+            }
+
+            Action::IterNextSearch => {
+                // iter through the list of search
+                let current_viewport = editor.viewports.c_mut_viewport();
+                match current_viewport.search_index < current_viewport.search_pos.len() {
+                    true => current_viewport.search_index += 1,
+                    false => current_viewport.search_index = 0,
+                }
+
+                if let Some(cursor) = current_viewport
+                    .search_pos
+                    .get(current_viewport.search_index)
+                {
+                    editor.buffer_actions.push(Action::GotoPos(*cursor));
+                }
             }
             _ => {}
         }

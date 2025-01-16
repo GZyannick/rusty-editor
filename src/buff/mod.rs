@@ -303,7 +303,7 @@ impl Buffer {
         }
     }
 
-    pub fn insert_str(&mut self, y: usize, x: usize, content: &str) {
+    pub fn insert_str(&mut self, y: usize, x: usize, content: &String) {
         if let Some(buffer_line) = self.lines.get_mut(y) {
             buffer_line.insert_str(x, content);
         }

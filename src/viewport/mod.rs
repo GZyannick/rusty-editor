@@ -28,6 +28,7 @@ pub struct Viewport {
     pub is_popup: bool,
     // when we do some search it will store all position of match content
     pub search_pos: Vec<(u16, u16)>,
+    pub search_index: usize, // to iter through search_pos;
 }
 
 impl Viewport {
@@ -50,6 +51,7 @@ impl Viewport {
             bg_color: Color::from(DARK0),
             is_popup: false,
             search_pos: vec![],
+            search_index: 0,
         }
     }
 
@@ -118,5 +120,10 @@ impl Viewport {
 
     pub fn min_vwidth_without_line_number(&self) -> u16 {
         self.min_vwidth - LINE_NUMBERS_WIDTH
+    }
+
+    pub fn clear_search(&mut self) {
+        self.search_index = 0;
+        self.search_pos = vec![];
     }
 }

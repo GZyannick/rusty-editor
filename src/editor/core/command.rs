@@ -1,5 +1,3 @@
-use crate::log_message;
-
 use super::action::Action;
 
 pub struct Command;
@@ -8,8 +6,11 @@ impl Command {
     pub fn execute(command: &str) -> Option<Action> {
         match command {
             "w" => Some(Action::SaveFile),
-            _ => {
-                log_message!("{command}");
+
+            cmd => {
+                if let Ok(num) = cmd.parse::<u16>() {
+                    return Some(Action::GotoPos((0, num)));
+                }
                 None
             }
         }
