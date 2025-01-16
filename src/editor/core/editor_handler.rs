@@ -37,6 +37,7 @@ impl Editor {
                 Mode::Command => self.handle_command_event(&code, &modifiers),
                 Mode::Insert => self.handle_insert_event(&code, &modifiers),
                 Mode::Visual => self.handle_visual_event(&code, &modifiers),
+                Mode::Search => self.handle_search_event(&code, &modifiers),
             };
         }
         Ok(None)
@@ -68,6 +69,21 @@ impl Editor {
             },
             _ => None,
         }
+    }
+
+    fn handle_search_event(
+        &mut self,
+        code: &KeyCode,
+        _modifiers: &KeyModifiers, // not used for now
+    ) -> Result<Option<Action>> {
+        let action = match code {
+            KeyCode::Enter => Some(Action::EnterMode(Mode::Normal)),
+            KeyCode::Esc => Some(Action::ClearToNormalMode),
+            KeyCode::Char(c) => Some(Action::AddSearchChar(*c)),
+            KeyCode::Backspace => Some(Action::RemoveCharFrom(true)),
+            _ => None,
+        };
+        Ok(action)
     }
 
     fn handle_insert_event(
@@ -124,11 +140,16 @@ impl Editor {
             KeyCode::Char('u') => Some(Action::Undo),
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
             KeyCode::Char('p') => Some(Action::Past),
+            KeyCode::Esc => Some(Action::ClearToNormalMode),
 
             // handle file_explorer viewport
             KeyCode::Enter if self.viewports.c_viewport().is_file_explorer() => {
                 Some(Action::EnterFileOrDirectory)
             }
+
+            // Search Action
+            KeyCode::Char('/') => Some(Action::EnterMode(Mode::Search)),
+            KeyCode::Char('n') => Some(Action::IterNextSearch),
 
             // Insert Action
             KeyCode::Char('i') => Some(Action::EnterMode(Mode::Insert)),
@@ -185,7 +206,7 @@ impl Editor {
                 }
                 Some(Action::ExecuteCommand)
             }
-            KeyCode::Backspace => Some(Action::RemoveCommandChar),
+            KeyCode::Backspace => Some(Action::RemoveCharFrom(false)),
             _ => None,
         };
 
@@ -195,7 +216,7 @@ impl Editor {
     fn navigation(&mut self, code: &KeyCode) -> Result<Option<Action>> {
         let mut action: Option<Action> = None;
 
-        if matches!(self.mode, Mode::Command) {
+        if matches!(self.mode, Mode::Command) || matches!(self.mode, Mode::Search) {
             return Ok(action);
         }
 
