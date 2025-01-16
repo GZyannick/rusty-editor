@@ -57,6 +57,8 @@ impl Viewport {
             query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
             bg_color: Color::from(colors::DARK1),
             is_popup: true,
+            search_pos: vec![],
+            search_index: 0,
         }
     }
 

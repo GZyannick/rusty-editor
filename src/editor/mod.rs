@@ -27,6 +27,7 @@ pub struct CursorBlock {
 pub struct Editor {
     pub mode: Mode,
     pub command: String,
+    pub search: String,
     pub stdout: Stdout,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
@@ -78,6 +79,7 @@ impl Editor {
 
         Ok(Editor {
             mode: Mode::Normal,
+            search: String::new(),
             command: String::new(),
             stdout: std::io::stdout(),
             size,
@@ -172,7 +174,7 @@ impl Editor {
         // resize each viewport
         for viewport in &mut self.viewports.values {
             viewport.vwidth = w;
-            viewport.vheight = h;
+            viewport.vheight = h.saturating_sub(TERMINAL_SIZE_MINUS);
         }
 
         self.size = (w, h);

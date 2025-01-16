@@ -1,13 +1,10 @@
-use core::panic;
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
-    ops::{Range, RangeFrom, RangeTo},
+    ops::Range,
     path::PathBuf,
     str::FromStr,
 };
-
-use crate::log_message;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -103,7 +100,7 @@ impl Buffer {
         }
     }
 
-    pub fn get_char(&self, cursor: &(u16, u16)) -> Option<char> {
+    pub fn _get_char(&self, cursor: &(u16, u16)) -> Option<char> {
         if let Some(line) = self.get(cursor.1 as usize) {
             return line.chars().nth(cursor.0 as usize);
         }

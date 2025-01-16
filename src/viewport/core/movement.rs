@@ -1,4 +1,4 @@
-use crate::viewport::Viewport;
+use crate::{log_message, viewport::Viewport};
 
 impl Viewport {
     pub fn scroll_up(&mut self) {
@@ -47,6 +47,14 @@ impl Viewport {
                 self.top += rest_of_file_len;
             }
         }
+    }
+
+    pub fn move_to(&mut self, cursor: &(u16, u16)) -> (u16, u16) {
+        // calculate the editor cursor position from an v_cursor
+        let quotient = cursor.1 / self.vheight;
+        let remain = cursor.1 % self.vheight;
+        self.top = self.vheight * quotient;
+        (cursor.0, remain)
     }
 
     pub fn center_line(&mut self, cursor: &mut (u16, u16)) {
