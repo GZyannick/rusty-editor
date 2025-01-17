@@ -54,8 +54,6 @@ pub enum Action {
     Quit,
     NewLineInsertionBelowCursor,
     NewLineInsertionAtCursor,
-
-    // TODO: later add a way to use command and use :13 to move to line and dont pass it args
     UndoDeleteLine(OldCursorPosition, Option<String>), //cursor.1 , top, content
     UndoDeleteBlock(OldCursorPosition, Vec<Option<String>>), //cursor.1 , top, content
     UndoNewLine(OldCursorPosition),
