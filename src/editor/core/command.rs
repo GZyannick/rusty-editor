@@ -1,4 +1,4 @@
-use super::action::Action;
+use super::actions::action::Action;
 
 pub struct Command;
 

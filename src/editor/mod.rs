@@ -1,10 +1,12 @@
 mod core;
 pub mod ui;
+
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
 use anyhow::{Ok, Result};
-use core::{action::Action, mode::Mode};
+use core::actions::action::Action;
+use core::mode::Mode;
 use crossterm::{
     event::{self, read},
     style::Color,
