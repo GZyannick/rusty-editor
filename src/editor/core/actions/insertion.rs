@@ -21,6 +21,11 @@ impl Action {
             }
             Action::AddCommandChar(c) => editor.command.push(*c),
 
+            Action::AddSearchChar(c) => {
+                editor.search.push(*c);
+                editor.buffer_actions.push(Action::FindSearchValue)
+            }
+
             Action::NewLineInsertionAtCursor => {
                 let v_cursor = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();

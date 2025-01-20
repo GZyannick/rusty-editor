@@ -4,11 +4,6 @@ use crate::editor::{core::mode::Mode, Editor};
 impl Action {
     pub fn search(&self, editor: &mut Editor) -> anyhow::Result<()> {
         match self {
-            Action::AddSearchChar(c) => {
-                editor.search.push(*c);
-                editor.buffer_actions.push(Action::FindSearchValue)
-            }
-
             // allow us to clear search string
             Action::ClearToNormalMode => {
                 let current_viewport = editor.viewports.c_mut_viewport();
