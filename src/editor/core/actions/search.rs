@@ -18,7 +18,8 @@ impl Action {
                 current_viewport.find_occurence(&editor.search);
 
                 if let Some(cursor) = current_viewport.search_pos.first() {
-                    editor.buffer_actions.push(Action::GotoPos(*cursor))
+                    let goto_cursor = (cursor.0, cursor.1);
+                    editor.buffer_actions.push(Action::GotoPos(goto_cursor))
                 }
             }
 
@@ -34,7 +35,8 @@ impl Action {
                     .search_pos
                     .get(current_viewport.search_index)
                 {
-                    editor.buffer_actions.push(Action::GotoPos(*cursor));
+                    let goto_cursor = (cursor.0, cursor.1);
+                    editor.buffer_actions.push(Action::GotoPos(goto_cursor));
                 }
             }
             _ => {}

@@ -16,7 +16,7 @@ pub const BRIGHT_YELLOW: (u8, u8, u8) = (250, 189, 47);
 pub const BRIGHT_BLUE: (u8, u8, u8) = (131, 165, 152);
 pub const BRIGHT_PURPLE: (u8, u8, u8) = (211, 134, 155);
 pub const BRIGHT_AQUA: (u8, u8, u8) = (142, 192, 124);
-pub const _BRIGHT_ORANGE: (u8, u8, u8) = (254, 128, 25);
+pub const BRIGHT_ORANGE: (u8, u8, u8) = (254, 128, 25);
 
 pub const NEUTRAL_RED: (u8, u8, u8) = (204, 36, 29);
 pub const NEUTRAL_GREEN: (u8, u8, u8) = (152, 151, 26);

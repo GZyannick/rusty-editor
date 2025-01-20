@@ -8,7 +8,7 @@ use crossterm::{
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
-use crate::viewport::LINE_NUMBERS_WIDTH;
+use crate::{log_message, viewport::LINE_NUMBERS_WIDTH};
 use crate::{
     theme::{color_highligther::ColorHighligter, colors},
     viewport::Viewport,
@@ -80,7 +80,8 @@ impl Viewport {
         let mut x: u16 = 0;
         let mut colorhighligter = None;
 
-        let chars_len = viewport_buffer.len().wrapping_sub(1);
+        // let chars_len = viewport_buffer.len().wrapping_sub(1);
+        let chars_len = viewport_buffer.len().saturating_sub(1);
         let mut bg_color = self.bg_color;
 
         for (pos, c) in viewport_buffer.chars().enumerate() {
@@ -109,9 +110,34 @@ impl Viewport {
             }
 
             // allow us to change th bg_color to draw the visual_block
-            if let Some(start_visual_block) = start_v_mode {
-                if let Some(end_visual_block) = end_v_mode {
-                    bg_color = self.draw_visual_block(x, y, start_visual_block, end_visual_block);
+            if let Some(start_block) = start_v_mode {
+                if let Some(end_block) = end_v_mode {
+                    bg_color = self.draw_block(
+                        x,
+                        y,
+                        start_block,
+                        end_block,
+                        Color::from(colors::LIGTH_GREY),
+                    );
+                }
+            }
+
+            if !self.search_pos.is_empty() {
+                if let Some(search_block) = self
+                    .search_pos
+                    .iter()
+                    .find(|&&(_, search_y, _)| search_y.saturating_sub(self.top) == y)
+                {
+                    bg_color = self.draw_block(
+                        x,
+                        y,
+                        (search_block.0, search_block.1.saturating_sub(self.top)),
+                        (
+                            search_block.0 + search_block.2.saturating_sub(1),
+                            search_block.1.saturating_sub(self.top),
+                        ),
+                        Color::from(colors::BRIGHT_ORANGE),
+                    )
                 }
             }
 
@@ -192,32 +218,34 @@ impl Viewport {
 
         Ok(())
     }
-    fn draw_visual_block(
+
+    fn draw_block(
         &self,
         x: u16,
         y: u16,
-        start_visual_block: (u16, u16),
-        end_visual_block: (u16, u16),
+        start_block: (u16, u16),
+        end_block: (u16, u16),
+        color: Color,
     ) -> Color {
-        match y >= start_visual_block.1 && y <= end_visual_block.1 {
+        match y >= start_block.1 && y <= end_block.1 {
             true => {
-                if y == start_visual_block.1 && y == end_visual_block.1 {
-                    match x >= start_visual_block.0 && x <= end_visual_block.0 {
-                        true => Color::from(colors::LIGTH_GREY),
+                if y == start_block.1 && y == end_block.1 {
+                    match x >= start_block.0 && x <= end_block.0 {
+                        true => color,
                         false => self.bg_color,
                     }
-                } else if y == start_visual_block.1 {
-                    match x >= start_visual_block.0 {
-                        true => Color::from(colors::LIGTH_GREY),
+                } else if y == start_block.1 {
+                    match x >= start_block.0 {
+                        true => color,
                         false => self.bg_color,
                     }
-                } else if y == end_visual_block.1 {
-                    match x <= end_visual_block.0 {
-                        true => Color::from(colors::LIGTH_GREY),
+                } else if y == end_block.1 {
+                    match x <= end_block.0 {
+                        true => color,
                         false => self.bg_color,
                     }
                 } else {
-                    return Color::from(colors::LIGTH_GREY);
+                    return color;
                 }
             }
             false => self.bg_color,
