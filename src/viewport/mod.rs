@@ -5,7 +5,7 @@ use crossterm::style::Color;
 use tree_sitter::{Language, Query};
 use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
-use crate::{buff::Buffer, log_message, theme::colors::DARK0};
+use crate::{buff::Buffer, theme::colors::DARK0};
 
 const LINE_NUMBERS_WIDTH: u16 = 5;
 // to implement scrolling and showing text of the size of our current terminal
@@ -27,8 +27,8 @@ pub struct Viewport {
     pub bg_color: Color,
     pub is_popup: bool,
     // when we do some search it will store all position of match content
-    pub search_pos: Vec<(u16, u16)>,
-    pub search_index: usize, // to iter through search_pos;
+    pub search_pos: Vec<(u16, u16, u16)>, // x, y, len
+    pub search_index: usize,              // to iter through search_pos;
 }
 
 impl Viewport {
@@ -104,7 +104,7 @@ impl Viewport {
 
     // let us find all occurence of the search
     pub fn find_occurence(&mut self, find: &str) {
-        let mut occurences: Vec<(u16, u16)> = vec![];
+        let mut occurences: Vec<(u16, u16, u16)> = vec![];
         if find.is_empty() {
             self.search_pos = occurences;
             return;
@@ -112,7 +112,7 @@ impl Viewport {
 
         for (y, line) in self.buffer.lines.iter().enumerate() {
             for (x, _) in line.match_indices(find) {
-                occurences.push((x as u16, y as u16));
+                occurences.push((x as u16, y as u16, find.len() as u16));
             }
         }
         self.search_pos = occurences;
