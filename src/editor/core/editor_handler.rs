@@ -6,8 +6,8 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
 };
 
+use super::actions::action::Action;
 use super::mode::Mode;
-use crate::editor::core::actions::Action;
 
 impl Editor {
     pub fn handle_action(&mut self, event: Event) -> Result<Option<Action>> {

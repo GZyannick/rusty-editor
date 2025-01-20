@@ -1,4 +1,4 @@
-use crate::editor::core::actions::Action;
+use super::actions::action::Action;
 
 pub struct Command;
 
