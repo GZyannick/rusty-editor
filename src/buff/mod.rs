@@ -6,6 +6,8 @@ use std::{
     str::FromStr,
 };
 
+use crate::log_message;
+
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
@@ -296,6 +298,33 @@ impl Buffer {
         Ok(())
     }
 
+    // return a bool to know if the file is save
+    // only compare file and not the file_explorer
+    pub fn compare_file(&mut self) -> anyhow::Result<bool> {
+        if self.is_directory {
+            return Ok(false);
+        }
+
+        if let Ok(mut c_file) = File::open(&self.path) {
+            let mut buf = String::new();
+            c_file.read_to_string(&mut buf).unwrap();
+
+            let lines = buf.lines().map(|s| s.to_string()).collect::<Vec<String>>();
+
+            // let matching = lines.iter().zip(&self.lines).filter(|&(a, b)| a == b);
+            for (a, b) in lines.iter().zip(&self.lines) {
+                if a != b {
+                    log_message!("not saved");
+                    // not saved
+                    return Ok(true);
+                }
+            }
+        }
+        // if let Some(c_file) = &mut self.file {}
+        // no diff between file
+        Ok(false)
+    }
+
     pub fn push_or_insert(&mut self, line: String, y: usize) {
         match y >= self.lines.len() {
             true => self.lines.push(line),
@@ -303,7 +332,7 @@ impl Buffer {
         }
     }
 
-    pub fn insert_str(&mut self, y: usize, x: usize, content: &String) {
+    pub fn insert_str(&mut self, y: usize, x: usize, content: &str) {
         if let Some(buffer_line) = self.lines.get_mut(y) {
             buffer_line.insert_str(x, content);
         }

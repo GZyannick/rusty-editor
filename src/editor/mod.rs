@@ -163,7 +163,9 @@ impl Editor {
             }
 
             if let Some(action) = self.handle_action(event)? {
-                if matches!(action, Action::Quit) {
+                if matches!(action, Action::ForceQuit)
+                    || matches!(action, Action::Quit) && self.viewports.viewports_save_status()?
+                {
                     break;
                 }
                 action.execute(self)?;

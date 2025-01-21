@@ -1,4 +1,5 @@
 use crate::editor::Editor;
+use crate::log_message;
 use anyhow::{Ok, Result};
 use crossterm::QueueableCommand;
 use crossterm::{
@@ -197,12 +198,13 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
-            KeyCode::Char('w') => Some(Action::SaveFile),
             KeyCode::Char(c) => Some(Action::AddCommandChar(*c)),
             KeyCode::Enter => {
                 // handle the quit here to break the loop
                 if self.command.as_str() == "q" {
                     return Ok(Some(Action::Quit));
+                } else if self.command.as_str() == "q!" {
+                    return Ok(Some(Action::ForceQuit));
                 }
                 Some(Action::ExecuteCommand)
             }
@@ -228,7 +230,10 @@ impl Editor {
             _ => None,
         };
 
-        if !matches!(self.mode, Mode::Insert) && action.is_none() {
+        if !matches!(self.mode, Mode::Insert)
+            && action.is_none()
+            && matches!(modifiers, &KeyModifiers::NONE)
+        {
             action = match code {
                 KeyCode::Char('h') => Some(Action::MoveLeft),
                 KeyCode::Char('j') => Some(Action::MoveDown),
@@ -236,9 +241,7 @@ impl Editor {
                 KeyCode::Char('l') => Some(Action::MoveRight),
                 KeyCode::Char('w') => Some(Action::MoveNext), // Move next until the char is not
                 // the same type than before
-                KeyCode::Char('b') if matches!(modifiers, &KeyModifiers::NONE) => {
-                    Some(Action::MovePrev)
-                } // Move prev until the char is not
+                KeyCode::Char('b') => Some(Action::MovePrev), // Move prev until the char is not
                 // the same type than before
                 // exemple if char is a letter Move until char is diff from letter
                 _ => None,

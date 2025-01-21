@@ -38,6 +38,7 @@ pub enum Action {
     CenterLine,
     Undo,
     Quit,
+    ForceQuit,
     NewLineInsertionBelowCursor,
     NewLineInsertionAtCursor,
     UndoDeleteLine(OldCursorPosition, Option<String>), //cursor.1 , top, content
