@@ -6,8 +6,6 @@ use std::{
     str::FromStr,
 };
 
-use crate::log_message;
-
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,
@@ -314,7 +312,6 @@ impl Buffer {
             // let matching = lines.iter().zip(&self.lines).filter(|&(a, b)| a == b);
             for (a, b) in lines.iter().zip(&self.lines) {
                 if a != b {
-                    log_message!("not saved");
                     // not saved
                     return Ok(true);
                 }

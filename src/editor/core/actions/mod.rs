@@ -13,7 +13,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
