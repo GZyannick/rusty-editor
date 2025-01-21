@@ -27,7 +27,7 @@ impl Editor {
                 return Ok(action);
             }
 
-            let nav = self.navigation(&code)?;
+            let nav = self.navigation(&code, &modifiers)?;
             if nav.is_some() {
                 return Ok(nav);
             }
@@ -213,7 +213,7 @@ impl Editor {
         Ok(action)
     }
 
-    fn navigation(&mut self, code: &KeyCode) -> Result<Option<Action>> {
+    fn navigation(&mut self, code: &KeyCode, modifiers: &KeyModifiers) -> Result<Option<Action>> {
         let mut action: Option<Action> = None;
 
         if matches!(self.mode, Mode::Command) || matches!(self.mode, Mode::Search) {
@@ -236,7 +236,9 @@ impl Editor {
                 KeyCode::Char('l') => Some(Action::MoveRight),
                 KeyCode::Char('w') => Some(Action::MoveNext), // Move next until the char is not
                 // the same type than before
-                KeyCode::Char('b') => Some(Action::MovePrev), // Move prev until the char is not
+                KeyCode::Char('b') if matches!(modifiers, &KeyModifiers::NONE) => {
+                    Some(Action::MovePrev)
+                } // Move prev until the char is not
                 // the same type than before
                 // exemple if char is a letter Move until char is diff from letter
                 _ => None,

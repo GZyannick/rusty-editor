@@ -188,7 +188,7 @@ impl Editor {
 
     fn move_prev_line(&mut self) {
         match self.cursor.1 > 0 {
-            true => self.cursor.1 -= 1,
+            true => self.cursor.1 = self.cursor.1.saturating_sub(1),
             false => self.viewports.c_mut_viewport().scroll_up(),
         }
     }
