@@ -99,6 +99,7 @@ impl Action {
             // if it enter this Action::Quit its because file arent save so we need to leave the
             // Mode::Command
             Action::Quit => {
+                editor.toast.error("File not save!");
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
             Action::EnterFileOrDirectory => {
