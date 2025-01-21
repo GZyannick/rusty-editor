@@ -75,7 +75,7 @@ impl Action {
                         // CharType.goto_diff_type(&line, Some(base_len), &mut editor.cursor.0);
                     } else if current_viewport.buffer.lines.len() - 1 > v_cursor.1 as usize {
                         editor.cursor.0 = 0;
-                        editor.cursor.1 += 1;
+                        editor.move_next_line();
                     }
                 }
             }
@@ -91,7 +91,8 @@ impl Action {
                             current_viewport.buffer.get(v_cursor.1 as usize - 1)
                         {
                             editor.cursor.0 = prev_line.len().saturating_sub(1) as u16;
-                            editor.cursor.1 -= 1;
+
+                            editor.move_prev_line();
                         }
                     } else {
                         let line = line[..=v_cursor.0 as usize].to_string();
@@ -102,7 +103,7 @@ impl Action {
                                 current_viewport.buffer.get(v_cursor.1 as usize - 1)
                             {
                                 editor.cursor.0 = prev_line.len().saturating_sub(1) as u16;
-                                editor.cursor.1 -= 1;
+                                editor.move_prev_line();
                             }
                         }
                     }
