@@ -13,6 +13,7 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
+use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -76,7 +77,6 @@ impl Action {
 
         // other that dont really need a file for themselve
         match self {
-            Action::Quit => (),
             Action::EnterMode(mode) => {
                 self.enter_mode_insert(editor, mode)?;
                 self.enter_mode_visual(editor, mode)?;
@@ -95,6 +95,11 @@ impl Action {
                 if let Some(action) = Command::execute(cmd) {
                     editor.buffer_actions.push(action);
                 }
+                editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
+            }
+            // if it enter this Action::Quit its because file arent save so we need to leave the
+            // Mode::Command
+            Action::Quit => {
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
             Action::EnterFileOrDirectory => {

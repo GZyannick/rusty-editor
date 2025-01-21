@@ -1,4 +1,6 @@
-use crate::viewport::Viewport;
+use anyhow::Result;
+
+use crate::{log_message, viewport::Viewport};
 
 #[derive(Debug)]
 pub struct Viewports {
@@ -14,6 +16,17 @@ impl Viewports {
             index: 0,
             buffer_index: 0,
         }
+    }
+
+    // let us know if some viewport are save
+    pub fn viewports_save_status(&mut self) -> anyhow::Result<bool> {
+        for viewport in &mut self.values {
+            if viewport.buffer.compare_file()? {
+                log_message!("not saved: {:?}", viewport.buffer.path);
+                return Ok(false);
+            }
+        }
+        Ok(true)
     }
 
     pub fn push(&mut self, viewport: Viewport) {
