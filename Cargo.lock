@@ -215,6 +215,7 @@ dependencies = [
  "streaming-iterator",
  "tree-sitter",
  "tree-sitter-rust",
+ "winapi",
 ]
 
 [[package]]

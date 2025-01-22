@@ -43,7 +43,7 @@ impl Action {
                 let content = current_viewport.buffer.get(y as usize).clone();
                 current_viewport.buffer.remove(y as usize);
 
-                editor.yank_buffer = vec![content.clone()];
+                // editor.yank_buffer = vec![content.clone()];
 
                 editor.undo_actions.push(Action::UndoDeleteLine(
                     OldCursorPosition::new(editor.cursor, current_viewport.top),
