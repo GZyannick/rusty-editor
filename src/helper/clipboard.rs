@@ -12,12 +12,16 @@ pub fn copy_to_clipboard(data: &str) {
 }
 
 #[cfg(target_os = "linux")]
-pub fn paste_from_clipboard() -> Option<String> {
+pub fn paste_from_clipboard() -> Option<Vec<String>> {
     let output = Command::new("xclip")
         .args(&["-selection", "clipboard", "-o"])
         .output()
         .ok()?;
-    String::from_utf8(output.stdout).ok()
+    if let Some(content) = String::from_utf8(output.stdout).ok() {
+        let lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
+        return Some(lines);
+    }
+    None
 }
 
 #[cfg(target_os = "macos")]
