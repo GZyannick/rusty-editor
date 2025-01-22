@@ -1,7 +1,6 @@
 mod core;
 pub mod ui;
 
-use crate::log_message;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
