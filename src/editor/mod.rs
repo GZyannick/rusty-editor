@@ -13,6 +13,7 @@ use crossterm::{
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::io::Stdout;
+use ui::toast::Toast;
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
 pub const TERMINAL_LINE_LEN_MINUS: u16 = 1;
@@ -27,6 +28,7 @@ pub struct CursorBlock {
 
 #[derive(Debug)]
 pub struct Editor {
+    pub toast: Toast,
     pub mode: Mode,
     pub command: String,
     pub search: String,
@@ -80,6 +82,7 @@ impl Editor {
         viewports.push(explorer_viewport);
 
         Ok(Editor {
+            toast: Toast::new(),
             mode: Mode::Normal,
             search: String::new(),
             command: String::new(),
@@ -154,6 +157,7 @@ impl Editor {
     pub fn run(&mut self) -> Result<()> {
         loop {
             self.check_bounds();
+
             self.draw()?;
             let event = read()?;
 

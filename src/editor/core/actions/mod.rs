@@ -13,7 +13,6 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -83,7 +82,13 @@ impl Action {
                 self.enter_mode_command(editor, mode)?;
                 editor.mode = *mode;
             }
-            Action::SaveFile => editor.viewports.c_mut_viewport().buffer.save()?,
+            Action::SaveFile => {
+                let current_viewport = editor.viewports.c_mut_viewport();
+                current_viewport.buffer.save()?;
+                editor
+                    .toast
+                    .indication(format!("file: {} is saved", current_viewport.buffer.path));
+            }
             Action::WaitingCmd(c) => {
                 editor
                     .stdout
@@ -100,6 +105,10 @@ impl Action {
             // if it enter this Action::Quit its because file arent save so we need to leave the
             // Mode::Command
             Action::Quit => {
+                editor.toast.error(format!(
+                    "file: {} is not saved",
+                    editor.viewports.c_viewport().buffer.path
+                ));
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
             Action::EnterFileOrDirectory => {

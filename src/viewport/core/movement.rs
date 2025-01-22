@@ -1,4 +1,4 @@
-use crate::{log_message, viewport::Viewport};
+use crate::viewport::Viewport;
 
 impl Viewport {
     pub fn scroll_up(&mut self) {
