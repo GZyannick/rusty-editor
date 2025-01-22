@@ -1,5 +1,4 @@
 use crate::editor::Editor;
-use crate::log_message;
 use anyhow::{Ok, Result};
 use crossterm::QueueableCommand;
 use crossterm::{
