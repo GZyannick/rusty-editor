@@ -18,6 +18,9 @@ impl Editor {
         self.stdout.queue(cursor::Hide)?;
 
         self.draw_current_viewport()?;
+        if !self.toast.is_empty() {
+            self.toast.draw(&mut self.stdout, &self.size.0)?;
+        }
         self.draw_bottom()?;
 
         let c_viewport = self.viewports.c_viewport();
@@ -73,10 +76,6 @@ impl Editor {
         self.draw_status_line(mode, filename)?;
         self.draw_line_counter(pos)?;
         self.draw_last_line()?;
-
-        if !self.toast.is_empty() {
-            self.toast.draw(&mut self.stdout, &self.size.0)?;
-        }
 
         Ok(())
     }

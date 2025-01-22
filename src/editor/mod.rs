@@ -158,6 +158,7 @@ impl Editor {
     pub fn run(&mut self) -> Result<()> {
         loop {
             self.check_bounds();
+
             self.draw()?;
             let event = read()?;
 
