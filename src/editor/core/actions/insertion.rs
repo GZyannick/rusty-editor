@@ -67,9 +67,16 @@ impl Action {
                     .viewports
                     .c_mut_viewport()
                     .buffer
-                    .new_line((v_x, v_y + 1), false);
+                    .new_line((v_x, v_y), false);
                 editor.cursor.0 = 0;
                 editor.move_next_line();
+
+                editor
+                    .undo_actions
+                    .push(Action::UndoNewLine(OldCursorPosition::new(
+                        (editor.cursor.0, editor.cursor.1.saturating_sub(1)),
+                        editor.viewports.c_viewport().top,
+                    )));
             }
 
             _ => {}
