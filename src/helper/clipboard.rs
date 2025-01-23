@@ -17,7 +17,8 @@ pub fn paste_from_clipboard() -> Option<Vec<String>> {
         .args(&["-selection", "clipboard", "-o"])
         .output()
         .ok()?;
-    if let Some(content) = String::from_utf8(output.stdout).ok() {
+    let clipboard = String::from_utf8(output.stdout).ok();
+    if let Some(content) = clipboard {
         let lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
         return Some(lines);
     }
@@ -38,7 +39,8 @@ pub fn copy_to_clipboard(data: &str) {
 #[cfg(target_os = "macos")]
 pub fn paste_from_clipboard() -> Option<Vec<String>> {
     let output = Command::new("pbpaste").output().ok()?;
-    if let Some(content) = String::from_utf8(output.stdout).ok() {
+    let clipboard = String::from_utf8(output.stdout).ok();
+    if let Some(content) = clipboard {
         let lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
         return Some(lines);
     }
