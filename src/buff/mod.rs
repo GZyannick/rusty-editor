@@ -120,8 +120,11 @@ impl Buffer {
             if let Some(line) = self.get(i as usize).clone() {
                 let mut modified_line = match i {
                     // if its the first line
-                    x if x == start.1 => line[start.0 as usize..].to_string(),
-                    x if x == end.1 => {
+                    j if j == start.1 && j == end.1 => {
+                        line[start.0 as usize..=end.0 as usize].to_string()
+                    }
+                    j if j == start.1 => line[start.0 as usize..].to_string(),
+                    j if j == end.1 => {
                         let end_x = match line.is_empty() {
                             true => end.0 as usize,
                             false => end.0 as usize + 1,
@@ -143,28 +146,6 @@ impl Buffer {
             i += 1;
         }
 
-        // while i <= end.1 {
-        //     let mut opt_line = self.get(i as usize).clone();
-        //     if let Some(line) = &opt_line {
-        //         match i {
-        //             x if x == start.1 => {
-        //                 opt_line = Some(line[start.0 as usize..].to_string());
-        //             }
-        //             x if x == end.1 => {
-        //                 // we add 1 because the range will not take the last char
-        //                 let end_x = match line.is_empty() {
-        //                     true => end.0 as usize,
-        //                     false => end.0 as usize + 1,
-        //                 };
-        //                 opt_line = Some(line[..end_x].to_string());
-        //             }
-        //             _ => {}
-        //         };
-        //     }
-        //     block.push(opt_line);
-        //     i += 1;
-        // }
-        //
         block
     }
 
@@ -205,7 +186,7 @@ impl Buffer {
         }
     }
 
-    fn drain_and_copy(
+    pub fn drain_and_copy(
         &mut self,
         line: &str,
         index: usize,

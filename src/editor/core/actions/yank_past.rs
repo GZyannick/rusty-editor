@@ -1,6 +1,7 @@
 use crate::{
     editor::{core::mode::Mode, CursorBlock, Editor},
     helper::clipboard,
+    log_message,
 };
 
 use super::action::Action;
@@ -25,6 +26,9 @@ impl Action {
                         c_mut_viewport.viewport_cursor(&v_block.end),
                     );
                     if let Some(str) = to_copy {
+                        log_message!("----YANKBLOCK----");
+                        log_message!("{str}");
+                        log_message!("----YANKBLOCK----");
                         clipboard::copy_to_clipboard(&str);
                     }
                 }
@@ -34,45 +38,65 @@ impl Action {
             Action::Past => {
                 if let Some(content) = clipboard::paste_from_clipboard() {
                     let current_viewport = editor.viewports.c_mut_viewport();
-                    let start = current_viewport.viewport_cursor(&editor.cursor);
-                    let mut y = start.1 as usize;
-                    let mut start_x: u16 = 0; // allow us know if line is empty and for undoPast know where
-                                              // the past start
+                    let v_cursor = current_viewport.viewport_cursor(&editor.cursor);
+                    let mut end_x: usize = 0;
+                    let mut start_x: usize = 0;
+                    let mut y: usize = v_cursor.1 as usize;
+                    let mut end_y: u16 = 0; // we can know where the past end
+                    let mut start_y: usize = 0;
 
-                    let mut end_y: u16 = 0; // allow us to know where the past end for undo block
-                    let mut end_x: u16 = 0; // same as upper comment
                     for (i, line) in content.iter().enumerate() {
                         match i {
                             _ if i == 0 => {
-                                let mut x = start.0 as usize;
-                                if i == content.len() - 1 {
-                                    end_x = line.len() as u16 - 1;
-                                }
+                                let line_len = current_viewport.get_line_len(&v_cursor);
+                                (start_x, end_x) = match line_len > 0 {
+                                    true => {
+                                        (v_cursor.0 as usize + 1, v_cursor.0 as usize + line.len())
+                                    }
+                                    false => {
+                                        (v_cursor.0 as usize, v_cursor.0 as usize + line.len() - 1)
+                                    }
+                                };
 
-                                // because if the buffer line is an empty line it will crash the
-                                // app
-                                if let Some(buffer_line) = current_viewport.buffer.get(y) {
-                                    start_x = buffer_line.len() as u16;
-                                    if start_x > 0 {
-                                        x += 1;
+                                // if we past multi line and we are not at the end of line
+                                // we past to the next line
+                                match content.len() > 1 && start_x < line_len as usize {
+                                    true => {
+                                        start_y += 1;
+                                        start_x = 0;
+                                        current_viewport
+                                            .buffer
+                                            .push_or_insert(line.clone(), y + start_y)
+                                    }
+                                    false => {
+                                        current_viewport.buffer.insert_str(
+                                            v_cursor.1 as usize,
+                                            start_x,
+                                            line,
+                                        );
                                     }
                                 }
-                                current_viewport.buffer.insert_str(y, x, line)
                             }
                             _ => {
                                 if i == content.len() - 1 && !line.is_empty() {
-                                    end_x = line.len() as u16 - 1;
+                                    end_x = line.len() - 1;
                                 }
-                                current_viewport.buffer.push_or_insert(line.clone(), y)
+                                current_viewport
+                                    .buffer
+                                    .push_or_insert(line.clone(), y + start_y)
                             }
                         }
-                        end_y += 1;
                         y += 1;
+                        end_y += 1;
                     }
+
                     editor.undo_actions.push(Action::UndoPast(
                         CursorBlock {
-                            start: (start_x, editor.cursor.1),
-                            end: (end_x, editor.cursor.1 + end_y.saturating_sub(1)),
+                            start: (start_x as u16, editor.cursor.1 + start_y as u16),
+                            end: (
+                                end_x as u16,
+                                editor.cursor.1 + start_y as u16 + end_y.saturating_sub(1),
+                            ),
                         },
                         current_viewport.top,
                     ));

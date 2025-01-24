@@ -93,10 +93,9 @@ impl Action {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 let start_y = cursor.start.1 + top;
                 let end_y = cursor.end.1 + top;
-                current_viewport
+                let hello = current_viewport
                     .buffer
                     .remove_block((cursor.start.0, start_y), (cursor.end.0, end_y));
-
                 current_viewport.top = *top;
                 editor.cursor.1 = cursor.start.1;
                 editor.buffer_actions.push(Action::CenterLine);
