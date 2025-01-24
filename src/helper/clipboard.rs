@@ -38,10 +38,19 @@ pub fn copy_to_clipboard(data: &str) {
 
 #[cfg(target_os = "macos")]
 pub fn paste_from_clipboard() -> Option<Vec<String>> {
+    use crate::log_message;
+
     let output = Command::new("pbpaste").output().ok()?;
     let clipboard = String::from_utf8(output.stdout).ok();
     if let Some(content) = clipboard {
-        let lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
+        log_message!("clipboard: {:?}", content);
+        let mut lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
+        // pop the last \n to not have an empty line
+        if let Some(last) = lines.last() {
+            if last.is_empty() {
+                lines.pop();
+            }
+        }
         return Some(lines);
     }
     None
