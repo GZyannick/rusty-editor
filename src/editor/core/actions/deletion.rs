@@ -1,4 +1,8 @@
-use crate::editor::{core::mode::Mode, Editor};
+use crate::{
+    editor::{core::mode::Mode, Editor},
+    helper::clipboard::copy_to_clipboard,
+    log_message,
+};
 
 use super::action::{Action, OldCursorPosition};
 
@@ -85,12 +89,11 @@ impl Action {
                     let v_cursor_start = c_mut_viewport.viewport_cursor(&v_block.start);
                     let v_cursor_end = c_mut_viewport.viewport_cursor(&v_block.end);
 
-                    let block_content: Vec<Option<String>> =
-                        c_mut_viewport
-                            .buffer
-                            .remove_block(v_cursor_start, v_cursor_end, false);
+                    let block_content: Vec<Option<String>> = c_mut_viewport
+                        .buffer
+                        .remove_block(v_cursor_start, v_cursor_end);
 
-                    // TODO ADD block content to editor.yank_buffer too
+                    //TODO: ADD block content to editor.yank_buffer too
 
                     editor.cursor = v_block.start;
                     editor.undo_actions.push(Action::UndoDeleteBlock(

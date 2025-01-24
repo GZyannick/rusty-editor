@@ -1,7 +1,6 @@
 use crate::{
     editor::{core::mode::Mode, CursorBlock, Editor},
     helper::clipboard,
-    log_message,
 };
 
 use super::action::Action;

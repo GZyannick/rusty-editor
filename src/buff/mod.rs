@@ -226,12 +226,7 @@ impl Buffer {
         (Some(line), mut_line.is_empty())
     }
 
-    pub fn remove_block(
-        &mut self,
-        start: (u16, u16),
-        end: (u16, u16),
-        remove_first_line: bool,
-    ) -> Vec<Option<String>> {
+    pub fn remove_block(&mut self, start: (u16, u16), end: (u16, u16)) -> Vec<Option<String>> {
         let mut block: Vec<Option<String>> = vec![];
         let mut to_remove_index: Vec<usize> = vec![];
         let mut is_last_line = false;
@@ -262,15 +257,9 @@ impl Buffer {
                             self.drain_and_copy(line, i as usize, range, is_last_line);
                         opt_line = cp_line;
 
-                        match remove_first_line {
-                            true if is_last_line && is_empty => to_remove_index.push(i as usize),
-                            false => to_remove_index.push(i as usize),
-                            _ => (),
+                        if is_empty {
+                            to_remove_index.push(i as usize);
                         }
-
-                        // if is_empty {
-                        //     to_remove_index.push(i as usize);
-                        // }
                     }
                 }
             }
