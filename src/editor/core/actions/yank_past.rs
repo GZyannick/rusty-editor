@@ -26,9 +26,6 @@ impl Action {
                         c_mut_viewport.viewport_cursor(&v_block.end),
                     );
                     if let Some(str) = to_copy {
-                        log_message!("----YANKBLOCK----");
-                        log_message!("{str}");
-                        log_message!("----YANKBLOCK----");
                         clipboard::copy_to_clipboard(&str);
                     }
                 }
