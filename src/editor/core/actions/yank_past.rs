@@ -1,7 +1,6 @@
 use crate::{
     editor::{core::mode::Mode, CursorBlock, Editor},
     helper::clipboard,
-    log_message,
 };
 
 use super::action::Action;
@@ -50,9 +49,10 @@ impl Action {
                                     true => {
                                         (v_cursor.0 as usize + 1, v_cursor.0 as usize + line.len())
                                     }
-                                    false => {
-                                        (v_cursor.0 as usize, v_cursor.0 as usize + line.len() - 1)
-                                    }
+                                    false => (
+                                        v_cursor.0 as usize,
+                                        v_cursor.0 as usize + line.len().saturating_sub(1),
+                                    ),
                                 };
 
                                 // if we past multi line and we are not at the end of line
@@ -75,8 +75,8 @@ impl Action {
                                 }
                             }
                             _ => {
-                                if i == content.len() - 1 && !line.is_empty() {
-                                    end_x = line.len() - 1;
+                                if i == content.len().saturating_sub(1) && !line.is_empty() {
+                                    end_x = line.len().saturating_sub(1);
                                 }
                                 current_viewport
                                     .buffer

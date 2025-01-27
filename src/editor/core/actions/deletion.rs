@@ -1,7 +1,6 @@
 use crate::{
     editor::{core::mode::Mode, Editor},
     helper::clipboard::copy_to_clipboard,
-    log_message,
 };
 
 use super::action::{Action, OldCursorPosition};
@@ -47,7 +46,9 @@ impl Action {
                 let content = current_viewport.buffer.get(y as usize).clone();
                 current_viewport.buffer.remove(y as usize);
 
-                // editor.yank_buffer = vec![content.clone()];
+                if let Some(text) = &content {
+                    copy_to_clipboard(text);
+                }
 
                 editor.undo_actions.push(Action::UndoDeleteLine(
                     OldCursorPosition::new(editor.cursor, current_viewport.top),

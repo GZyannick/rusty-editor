@@ -23,7 +23,7 @@ pub fn paste_from_clipboard() -> Option<Vec<String>> {
         let mut lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
         // pop the last \n to not have an empty line
         if let Some(last) = lines.last() {
-            if last.is_empty() {
+            if last.is_empty() && lines.len() > 1 {
                 lines.pop();
             }
         }
@@ -49,9 +49,10 @@ pub fn paste_from_clipboard() -> Option<Vec<String>> {
     let clipboard = String::from_utf8(output.stdout).ok();
     if let Some(content) = clipboard {
         let mut lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
-        // pop the last \n to not have an empty line
+
+        //pop the last \n to not have an empty line
         if let Some(last) = lines.last() {
-            if last.is_empty() {
+            if last.is_empty() && lines.len() > 1 {
                 lines.pop();
             }
         }
@@ -138,8 +139,10 @@ fn paste_from_clipboard() -> Option<Vec<String>> {
             let mut lines: Vec<String> = content.split('\n').map(|v| v.to_string()).collect();
             // pop the last \n to not have an empty line
             if let Some(last) = lines.last() {
-                if last.is_empty() {
-                    lines.pop();
+                if let Some(last) = lines.last() {
+                    if last.is_empty() && lines.len() > 1 {
+                        lines.pop();
+                    }
                 }
             }
             return Some(lines);
