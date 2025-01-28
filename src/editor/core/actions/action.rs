@@ -53,7 +53,7 @@ pub enum Action {
     DeleteBlock,
     YankBlock,
     Past,
-    UndoPast(CursorBlock, u16),
+    UndoPast(CursorBlock, u16, bool),
     YankLine,
     MovePrev,
     MoveNext,

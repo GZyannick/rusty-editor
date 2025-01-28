@@ -40,6 +40,7 @@ impl Action {
                     let mut y: usize = v_cursor.1 as usize;
                     let mut end_y: u16 = 0; // we can know where the past end
                     let mut start_y: usize = 0;
+                    let mut remove_past_line = true;
 
                     for (i, line) in content.iter().enumerate() {
                         match i {
@@ -49,10 +50,13 @@ impl Action {
                                     true => {
                                         (v_cursor.0 as usize + 1, v_cursor.0 as usize + line.len())
                                     }
-                                    false => (
-                                        v_cursor.0 as usize,
-                                        v_cursor.0 as usize + line.len().saturating_sub(1),
-                                    ),
+                                    false => {
+                                        remove_past_line = false;
+                                        (
+                                            v_cursor.0 as usize,
+                                            v_cursor.0 as usize + line.len().saturating_sub(1),
+                                        )
+                                    }
                                 };
 
                                 // if we past multi line and we are not at the end of line
@@ -96,6 +100,7 @@ impl Action {
                             ),
                         },
                         current_viewport.top,
+                        remove_past_line,
                     ));
                 }
             }

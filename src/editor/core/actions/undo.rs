@@ -89,13 +89,17 @@ impl Action {
                 editor.cursor.1 = start.cursor.1;
                 editor.buffer_actions.push(Action::CenterLine)
             }
-            Action::UndoPast(cursor, top) => {
+            Action::UndoPast(cursor, top, remove_past_line) => {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 let start_y = cursor.start.1 + top;
                 let end_y = cursor.end.1 + top;
-                let hello = current_viewport
+                current_viewport
                     .buffer
                     .remove_block((cursor.start.0, start_y), (cursor.end.0, end_y));
+
+                if !remove_past_line {
+                    current_viewport.buffer.new_line((0, start_y), false);
+                }
                 current_viewport.top = *top;
                 editor.cursor.1 = cursor.start.1;
                 editor.buffer_actions.push(Action::CenterLine);

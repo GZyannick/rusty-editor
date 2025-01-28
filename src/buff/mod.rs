@@ -236,7 +236,7 @@ impl Buffer {
                             self.drain_and_copy(line, i as usize, range, is_last_line);
                         opt_line = cp_line;
 
-                        if is_empty && start.1 != end.1 {
+                        if is_empty {
                             to_remove_index.push(i as usize);
                         }
                     }
