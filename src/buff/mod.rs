@@ -68,7 +68,7 @@ impl Buffer {
                 }
             }
         }
-
+        lines.sort();
         Buffer {
             file: None,
             is_directory: true,
