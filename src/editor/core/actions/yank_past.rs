@@ -45,7 +45,8 @@ impl Action {
                     for (i, line) in content.iter().enumerate() {
                         match i {
                             _ if i == 0 => {
-                                let line_len = current_viewport.get_line_len(&v_cursor);
+                                let line_len = current_viewport.get_line_len(&editor.cursor);
+
                                 (start_x, end_x) = match line_len > 0 {
                                     true => {
                                         (v_cursor.0 as usize + 1, v_cursor.0 as usize + line.len())
