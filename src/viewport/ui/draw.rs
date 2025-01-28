@@ -8,7 +8,7 @@ use crossterm::{
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
-use crate::{log_message, viewport::LINE_NUMBERS_WIDTH};
+use crate::viewport::LINE_NUMBERS_WIDTH;
 use crate::{
     theme::{color_highligther::ColorHighligter, colors},
     viewport::Viewport,
@@ -76,8 +76,8 @@ impl Viewport {
         let colors = self.highlight(&viewport_buffer)?;
 
         let mut y: u16 = self.min_vheight;
-
         let mut x: u16 = 0;
+
         let mut colorhighligter = None;
 
         // let chars_len = viewport_buffer.len().wrapping_sub(1);
@@ -91,7 +91,6 @@ impl Viewport {
             if c == '\n' {
                 self.draw_line_number(stdout, y)?;
                 stdout.queue(cursor::MoveTo(x + self.min_vwidth, y))?;
-
                 if x < self.vwidth {
                     stdout.queue(PrintStyledContent(
                         " ".repeat(v_width as usize - x as usize).on(self.bg_color),
@@ -109,7 +108,7 @@ impl Viewport {
                 colorhighligter = None
             }
 
-            // allow us to change th bg_color to draw the visual_block
+            // allow us to change the bg_color to draw the visual_block
             if let Some(start_block) = start_v_mode {
                 if let Some(end_block) = end_v_mode {
                     bg_color = self.draw_block(
@@ -122,22 +121,10 @@ impl Viewport {
                 }
             }
 
+            // if we are in search mode and we found occurences draw them
             if !self.search_pos.is_empty() {
-                if let Some(search_block) = self
-                    .search_pos
-                    .iter()
-                    .find(|&&(_, search_y, _)| search_y.saturating_sub(self.top) == y)
-                {
-                    bg_color = self.draw_block(
-                        x,
-                        y,
-                        (search_block.0, search_block.1.saturating_sub(self.top)),
-                        (
-                            search_block.0 + search_block.2.saturating_sub(1),
-                            search_block.1.saturating_sub(self.top),
-                        ),
-                        Color::from(colors::BRIGHT_ORANGE),
-                    )
+                if let Some(color) = self.draw_search(x, y) {
+                    bg_color = color
                 }
             }
 
@@ -217,6 +204,27 @@ impl Viewport {
             ))?;
 
         Ok(())
+    }
+
+    fn draw_search(&self, x: u16, y: u16) -> Option<Color> {
+        if let Some(search_block) = self
+            .search_pos
+            .iter()
+            .find(|&&(_, search_y, _)| search_y.saturating_sub(self.top) == y)
+        {
+            return Some(self.draw_block(
+                x,
+                y,
+                (search_block.0, search_block.1.saturating_sub(self.top)),
+                (
+                    search_block.0 + search_block.2.saturating_sub(1),
+                    search_block.1.saturating_sub(self.top),
+                ),
+                Color::from(colors::BRIGHT_ORANGE),
+            ));
+        }
+
+        None
     }
 
     fn draw_block(
