@@ -8,7 +8,7 @@ use crossterm::{
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
-use crate::viewport::LINE_NUMBERS_WIDTH;
+use crate::{log_message, viewport::LINE_NUMBERS_WIDTH};
 use crate::{
     theme::{color_highligther::ColorHighligter, colors},
     viewport::Viewport,
@@ -42,19 +42,33 @@ impl Viewport {
 
     pub fn draw_file_explorer(&self, stdout: &mut std::io::Stdout) -> anyhow::Result<u16> {
         let mut y = self.min_vheight;
-        for line in self.buffer.lines.iter() {
+        for (i, line) in self.buffer.lines.iter().enumerate() {
             self.draw_line_number(stdout, y)?;
 
-            let icon: String = match PathBuf::from(line).is_dir() {
-                true => "📁".to_string(),
-                false => "📰".to_string(),
+            let icon = match PathBuf::from(line).is_dir() {
+                true => " \u{f115}",
+                false => match line.split('.').last() {
+                    Some("txt") => " \u{f15c}",
+                    Some("md") => " \u{f48a}",
+                    Some("rs") => " \u{e7a8}",
+                    Some("py") => " \u{e73c}",
+                    Some("png") | Some("jpg") => " \u{f1c5}",
+                    _ => " \u{f016}",
+                },
+            };
+
+            // we skip the ../ line
+            //            // we skip the ../ line
+            let line = match i > 0 {
+                true => line.split('/').last().unwrap_or(line).to_string(),
+                false => line.to_string(),
             };
 
             let path = format!(" {:<width$} ", line, width = self.vwidth as usize - 4);
             stdout
                 .queue(cursor::MoveTo(self.min_vwidth - 1, y))?
                 .queue(PrintStyledContent(
-                    icon.with(Color::White).on(self.bg_color),
+                    icon.with(Color::White).on(self.bg_color).bold(),
                 ))?
                 .queue(cursor::MoveTo(self.min_vwidth + 1, y))?
                 .queue(PrintStyledContent(

@@ -46,6 +46,10 @@ impl Buffer {
             c_file.read_to_string(&mut buf).unwrap();
             file = Some(c_file);
             lines = buf.lines().map(|s| s.to_string()).collect();
+            if lines.is_empty() {
+                lines.push("".to_string());
+            }
+
             path = f_path.to_string();
         }
 
@@ -68,7 +72,7 @@ impl Buffer {
                 }
             }
         }
-
+        lines.sort();
         Buffer {
             file: None,
             is_directory: true,
