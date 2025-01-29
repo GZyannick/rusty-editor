@@ -82,6 +82,20 @@ impl Action {
                 self.enter_mode_command(editor, mode)?;
                 editor.mode = *mode;
             }
+            Action::Save => {
+                let buffer_action = match editor.viewports.c_viewport().is_file_explorer() {
+                    true => Action::CreateFilesOrDirectories,
+                    false => Action::SaveFile,
+                };
+                editor.buffer_actions.push(buffer_action);
+            }
+            Action::CreateFilesOrDirectories => {
+                let current_viewport = editor.viewports.c_mut_viewport();
+                current_viewport.buffer.create_files_or_directories()?;
+                // editor
+                //     .toast
+                //     .indication(format!("file: {} is created", current_viewport.buffer.path));
+            }
             Action::SaveFile => {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 current_viewport.buffer.save()?;
