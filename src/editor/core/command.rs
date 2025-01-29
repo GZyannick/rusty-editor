@@ -5,7 +5,7 @@ pub struct Command;
 impl Command {
     pub fn execute(command: &str) -> Option<Action> {
         match command {
-            "w" => Some(Action::SaveFile),
+            "w" => Some(Action::Save),
 
             cmd => {
                 if let Ok(num) = cmd.parse::<u16>() {

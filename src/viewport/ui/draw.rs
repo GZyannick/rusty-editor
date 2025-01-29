@@ -60,7 +60,7 @@ impl Viewport {
             // we skip the ../ line
             //            // we skip the ../ line
             let line = match i > 0 {
-                true => line.split('/').last().unwrap_or(line).to_string(),
+                true => line.replace(self.buffer.path.as_str(), "").to_string(),
                 false => line.to_string(),
             };
 

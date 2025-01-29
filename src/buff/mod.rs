@@ -2,9 +2,13 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
     ops::Range,
-    path::PathBuf,
+    path::{Path, PathBuf},
     str::FromStr,
 };
+
+use anyhow::Result;
+
+use crate::log_message;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -335,5 +339,43 @@ impl Buffer {
         if let Some(buffer_line) = self.lines.get_mut(y) {
             buffer_line.insert_str(x, content);
         }
+    }
+
+    pub fn create_files_or_directories(&mut self) -> Result<()> {
+        let lines = self.lines.clone();
+        for (i, line) in lines.iter().enumerate() {
+            if !Path::new(&line).exists() {
+                match line.contains('.') {
+                    true => self.create_file(line)?,
+
+                    false if line.chars().last().unwrap().eq(&'/') => {
+                        {
+                            let c_line = self.lines.get_mut(i).unwrap();
+                            c_line.pop(); // remove trailing / from the explorer
+                        }
+
+                        self.create_directory(line)?;
+                    }
+                    false => {
+                        log_message!("toast neither file or dir")
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn create_file(&mut self, path: &String) -> Result<()> {
+        let mut full_path = format!("{}/{path}", self.path);
+        full_path.pop(); // remove trailing /
+        File::create(full_path)?;
+        Ok(())
+    }
+
+    fn create_directory(&mut self, path: &String) -> Result<()> {
+        let full_path = format!("{}/{path}", self.path);
+        std::fs::create_dir(full_path)?;
+
+        Ok(())
     }
 }
