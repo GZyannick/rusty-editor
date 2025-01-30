@@ -345,12 +345,19 @@ impl Buffer {
         let lines = self.lines.clone();
         for (i, line) in lines.iter().enumerate() {
             if !Path::new(&line).exists() {
+                log_message!("{line:?}");
                 match line.contains('.') {
-                    true => self.create_file(line)?,
-
+                    true => {
+                        // pushing the full path allow us to directly access it without reloading
+                        // the entire buffer
+                        let c_line = self.lines.get_mut(i).unwrap();
+                        *c_line = format!("{}/{}", self.path, c_line);
+                        self.create_file(line)?
+                    }
                     false if line.chars().last().unwrap().eq(&'/') => {
                         {
                             let c_line = self.lines.get_mut(i).unwrap();
+                            *c_line = format!("{}/{}", self.path, c_line);
                             c_line.pop(); // remove trailing / from the explorer
                         }
 
@@ -366,16 +373,15 @@ impl Buffer {
     }
 
     fn create_file(&mut self, path: &String) -> Result<()> {
-        let mut full_path = format!("{}/{path}", self.path);
-        full_path.pop(); // remove trailing /
+        let full_path = format!("{}/{path}", self.path);
         File::create(full_path)?;
         Ok(())
     }
 
     fn create_directory(&mut self, path: &String) -> Result<()> {
-        let full_path = format!("{}/{path}", self.path);
+        let mut full_path = format!("{}/{path}", self.path);
+        full_path.pop(); // remove trailing /
         std::fs::create_dir(full_path)?;
-
         Ok(())
     }
 }

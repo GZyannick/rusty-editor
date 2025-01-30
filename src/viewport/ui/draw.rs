@@ -60,7 +60,10 @@ impl Viewport {
             // we skip the ../ line
             //            // we skip the ../ line
             let line = match i > 0 {
-                true => line.replace(self.buffer.path.as_str(), "").to_string(),
+                true if line.starts_with(self.buffer.path.as_str()) => {
+                    line.replacen(self.buffer.path.as_str(), "", 1).to_string()
+                }
+                true => line.to_string(),
                 false => line.to_string(),
             };
 
