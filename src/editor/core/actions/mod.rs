@@ -92,9 +92,9 @@ impl Action {
             Action::CreateFilesOrDirectories => {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 current_viewport.buffer.create_files_or_directories()?;
-                // editor
-                //     .toast
-                //     .indication(format!("file: {} is created", current_viewport.buffer.path));
+                editor
+                    .toast
+                    .indication("file and directory are created".to_string());
             }
             Action::SaveFile => {
                 let current_viewport = editor.viewports.c_mut_viewport();
