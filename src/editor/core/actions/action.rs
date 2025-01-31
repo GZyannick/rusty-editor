@@ -65,4 +65,5 @@ pub enum Action {
     GotoPos((u16, u16)),
     IterNextSearch,
     UndoNewLineWithText(OldCursorPosition),
+    GotoParentDirectory,
 }

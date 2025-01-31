@@ -147,6 +147,10 @@ impl Editor {
                 Some(Action::EnterFileOrDirectory)
             }
 
+            KeyCode::Char('-') if self.viewports.c_viewport().is_file_explorer() => {
+                Some(Action::GotoParentDirectory)
+            }
+
             // Search Action
             KeyCode::Char('/') => Some(Action::EnterMode(Mode::Search)),
             KeyCode::Char('n') => Some(Action::IterNextSearch),
