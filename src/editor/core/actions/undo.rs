@@ -44,6 +44,25 @@ impl Action {
                 editor.cursor.1 = old_cursor.cursor.1;
             }
 
+            Action::UndoNewLineWithText(old_cursor) => {
+                let cy = old_cursor.cursor.1 + old_cursor.top;
+                let c_mut_viewport = editor.viewports.c_mut_viewport();
+                let mut buffer_line = String::new();
+
+                // get the y + 1 line to copy and remove it;
+                if let Some(line) = c_mut_viewport.buffer.lines.get(cy as usize + 1) {
+                    buffer_line = line.clone();
+                    c_mut_viewport.buffer.remove(cy as usize + 1);
+                }
+                // push the content of y + 1 in y
+                if let Some(line) = c_mut_viewport.buffer.lines.get_mut(cy as usize) {
+                    line.push_str(&buffer_line);
+                }
+
+                c_mut_viewport.top = old_cursor.top;
+                editor.cursor.1 = old_cursor.cursor.1;
+            }
+
             Action::UndoMultiple(actions) => {
                 for action in actions.iter().rev() {
                     action.execute(editor)?;
@@ -98,7 +117,7 @@ impl Action {
                     .remove_block((cursor.start.0, start_y), (cursor.end.0, end_y));
 
                 if !remove_past_line {
-                    current_viewport.buffer.new_line((0, start_y), false);
+                    current_viewport.buffer.new_line((0, start_y));
                 }
                 current_viewport.top = *top;
                 editor.cursor.1 = cursor.start.1;
