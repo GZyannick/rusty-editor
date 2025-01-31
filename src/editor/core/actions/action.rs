@@ -66,4 +66,6 @@ pub enum Action {
     IterNextSearch,
     UndoNewLineWithText(OldCursorPosition),
     GotoParentDirectory,
+    AddStr(String),
+    UndoStrAt(OldCursorPosition, (u16, u16), usize),
 }

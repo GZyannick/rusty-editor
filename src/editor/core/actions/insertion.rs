@@ -1,10 +1,28 @@
-use crate::editor::{core::mode::Mode, Editor};
+use crate::{
+    editor::{core::mode::Mode, Editor},
+    log_message,
+};
 
 use super::action::{Action, OldCursorPosition};
 
 impl Action {
     pub fn insertion(&self, editor: &mut Editor) -> anyhow::Result<()> {
         match self {
+            Action::AddStr(s) => {
+                let len = s.len();
+                let cursor_viewport = editor.v_cursor();
+                editor
+                    .viewports
+                    .c_mut_viewport()
+                    .buffer
+                    .add_str(s.clone(), cursor_viewport);
+                editor.undo_insert_actions.push(Action::UndoStrAt(
+                    OldCursorPosition::new(editor.cursor, editor.viewports.c_viewport().top),
+                    cursor_viewport,
+                    len,
+                ));
+                editor.cursor.0 += len as u16;
+            }
             Action::AddChar(c) => {
                 let cursor_viewport = editor.v_cursor();
                 editor.undo_insert_actions.push(Action::UndoCharAt(

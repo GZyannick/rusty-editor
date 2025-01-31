@@ -93,6 +93,7 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
+            KeyCode::Tab => Some(Action::AddStr("  ".into())),
             KeyCode::Backspace => Some(Action::RemoveChar),
             KeyCode::Enter => Some(Action::NewLine),
             KeyCode::Char(c) => Some(Action::AddChar(*c)),

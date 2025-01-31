@@ -198,6 +198,12 @@ impl Buffer {
         }
     }
 
+    pub fn add_str(&mut self, s: String, cursor: (u16, u16)) {
+        if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
+            line.insert_str(cursor.0 as usize, &s);
+        }
+    }
+
     pub fn remove(&mut self, y: usize) -> String {
         let mut removed = String::new();
         if self.lines.get_mut(y).is_some() {

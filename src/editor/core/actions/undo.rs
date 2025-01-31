@@ -10,6 +10,19 @@ impl Action {
                 editor.cursor = old_cursor.cursor;
             }
 
+            Action::UndoStrAt(old_cursor, v_cursor, str_len) => {
+                if let Some(line) = editor
+                    .viewports
+                    .c_mut_viewport()
+                    .buffer
+                    .lines
+                    .get_mut(v_cursor.1 as usize)
+                {
+                    line.drain(v_cursor.0 as usize..v_cursor.0 as usize + *str_len);
+                    editor.cursor = old_cursor.cursor
+                };
+            }
+
             Action::Undo => {
                 if let Some(action) = editor.undo_actions.pop() {
                     action.execute(editor)?;
