@@ -84,7 +84,7 @@ impl Action {
                     .buffer
                     .new_line_with_text((v_x, v_y));
 
-                editor.cursor.0 = indentation.clone();
+                editor.cursor.0 = indentation;
                 editor.move_next_line();
 
                 editor.undo_actions.push(Action::UndoNewLineWithText(
