@@ -155,20 +155,32 @@ impl Buffer {
         block
     }
 
-    pub fn new_line(&mut self, cursor: (u16, u16), is_take_text: bool) {
-        let y_pos: usize = cursor.1 as usize;
+    pub fn new_line_with_text(&mut self, cursor: (u16, u16)) {
+        let y_pos: usize = cursor.1 as usize + 1;
         let mut new_line = String::new();
 
-        if is_take_text {
-            // slice the part of the string from cursor into the end;
-            if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-                let x = cursor.0 as usize;
-                let clone_line = line.clone();
-                let next_line_content = &clone_line[x..];
-                line.replace_range(x.., "");
-                new_line.push_str(next_line_content);
+        // slice the part of the string from cursor into the end;
+        if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
+            let x = cursor.0 as usize;
+            let clone_line = line.clone();
+            let next_line_content = &clone_line[x..];
+            line.replace_range(x.., "");
+            new_line.push_str(next_line_content);
+        }
+
+        match y_pos > self.lines.len() {
+            true => {
+                self.lines.push(new_line);
+            }
+            false => {
+                self.lines.insert(y_pos, new_line);
             }
         }
+    }
+
+    pub fn new_line(&mut self, cursor: (u16, u16)) {
+        let y_pos: usize = cursor.1 as usize;
+        let new_line = String::new();
 
         match y_pos > self.lines.len() {
             true => {
@@ -186,10 +198,12 @@ impl Buffer {
         }
     }
 
-    pub fn remove(&mut self, y: usize) {
+    pub fn remove(&mut self, y: usize) -> String {
+        let mut removed = String::new();
         if self.lines.get_mut(y).is_some() {
-            self.lines.remove(y);
+            removed = self.lines.remove(y);
         }
+        removed
     }
 
     pub fn drain_and_copy(
