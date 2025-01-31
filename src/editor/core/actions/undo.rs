@@ -1,6 +1,5 @@
-use crate::{editor::Editor, log_message};
-
 use super::action::Action;
+use crate::editor::Editor;
 
 impl Action {
     pub fn undo(&self, editor: &mut Editor) -> anyhow::Result<()> {
@@ -57,14 +56,14 @@ impl Action {
                 editor.cursor.1 = old_cursor.cursor.1;
             }
 
-            Action::UndoNewLineWithText(old_cursor) => {
+            Action::UndoNewLineWithText(old_cursor, indentation) => {
                 let cy = old_cursor.cursor.1 + old_cursor.top;
                 let c_mut_viewport = editor.viewports.c_mut_viewport();
                 let mut buffer_line = String::new();
 
                 // get the y + 1 line to copy and remove it;
-                if let Some(line) = c_mut_viewport.buffer.lines.get(cy as usize + 1) {
-                    buffer_line = line.clone();
+                if let Some(line) = c_mut_viewport.buffer.lines.get_mut(cy as usize + 1) {
+                    buffer_line = line.replacen(" ", "", *indentation);
                     c_mut_viewport.buffer.remove(cy as usize + 1);
                 }
                 // push the content of y + 1 in y

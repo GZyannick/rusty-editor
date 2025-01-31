@@ -155,9 +155,26 @@ impl Buffer {
         block
     }
 
-    pub fn new_line_with_text(&mut self, cursor: (u16, u16)) {
+    fn get_line_indentation(&self, y: usize) -> String {
+        let mut indent_n_time: usize = 0;
+
+        if let Some(line) = self.lines.get(y) {
+            indent_n_time = line.chars().take_while(|&c| c == ' ').count();
+
+            match line.chars().last().unwrap() {
+                '{' => indent_n_time += 2,
+                '}' => indent_n_time = indent_n_time.saturating_sub(2),
+                _ => (),
+            }
+        }
+
+        " ".repeat(indent_n_time)
+    }
+
+    pub fn new_line_with_text(&mut self, cursor: (u16, u16)) -> u16 {
         let y_pos: usize = cursor.1 as usize + 1;
-        let mut new_line = String::new();
+        let mut new_line = self.get_line_indentation(cursor.1 as usize);
+        let len = new_line.len();
 
         // slice the part of the string from cursor into the end;
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
@@ -176,11 +193,14 @@ impl Buffer {
                 self.lines.insert(y_pos, new_line);
             }
         }
+        len as u16
     }
 
-    pub fn new_line(&mut self, cursor: (u16, u16)) {
+    // return the indentation to place the cursor
+    pub fn new_line(&mut self, cursor: (u16, u16)) -> u16 {
         let y_pos: usize = cursor.1 as usize;
-        let new_line = String::new();
+        let new_line = self.get_line_indentation(y_pos.saturating_sub(1));
+        let len = new_line.len();
 
         match y_pos > self.lines.len() {
             true => {
@@ -190,6 +210,7 @@ impl Buffer {
                 self.lines.insert(y_pos, new_line);
             }
         }
+        len as u16
     }
 
     pub fn add_char(&mut self, c: char, cursor: (u16, u16)) {
