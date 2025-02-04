@@ -76,7 +76,7 @@ impl Buffer {
                 }
             }
         }
-        lines.sort();
+        Buffer::sort_file(&mut lines);
         Buffer {
             file: None,
             is_directory: true,
@@ -386,7 +386,6 @@ impl Buffer {
         let lines = self.lines.clone();
         for (i, line) in lines.iter().enumerate() {
             if !Path::new(&line).exists() {
-                log_message!("{line:?}");
                 match line.contains('.') {
                     true => {
                         // pushing the full path allow us to directly access it without reloading
@@ -424,5 +423,24 @@ impl Buffer {
         full_path.pop(); // remove trailing /
         std::fs::create_dir(full_path)?;
         Ok(())
+    }
+
+    fn sort_file(lines: &mut [String]) {
+        let mut i = 0;
+        let mut j = 0;
+
+        while i < lines.len() {
+            if let Ok(metadata) = fs::metadata(&lines[i]) {
+                if metadata.is_dir() {
+                    lines.swap(i, j);
+                    j += 1;
+                }
+            }
+            i += 1;
+        }
+
+        let (sorted_dir, sorted_file) = lines.split_at_mut(j);
+        sorted_dir.sort();
+        sorted_file.sort();
     }
 }
