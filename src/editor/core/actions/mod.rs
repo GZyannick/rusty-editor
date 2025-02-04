@@ -125,6 +125,12 @@ impl Action {
                 ));
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
+            Action::GotoParentDirectory => {
+                            let current_viewport = editor.viewports.c_mut_viewport();
+                            if let Some(parent_buffer) = current_viewport.buffer.parent_dir() {
+                                current_viewport.buffer = parent_buffer;
+                            }
+            }
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
                 if let Some(path) = editor.viewports.c_viewport().buffer.get(y as usize) {
@@ -133,10 +139,7 @@ impl Action {
                     // if its a file we swap to the viewport of file
                     match metadata(&path)?.is_dir() {
                         true if path.eq("../") => {
-                            let current_viewport = editor.viewports.c_mut_viewport();
-                            if let Some(parent_buffer) = current_viewport.buffer.parent_dir() {
-                                current_viewport.buffer = parent_buffer;
-                            }
+                           editor.buffer_actions.push(Action::GotoParentDirectory); 
                         }
                         true => {
                             editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));

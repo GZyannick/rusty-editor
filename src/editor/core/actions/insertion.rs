@@ -1,10 +1,28 @@
-use crate::editor::{core::mode::Mode, Editor};
+use crate::{
+    editor::{core::mode::Mode, Editor},
+    log_message,
+};
 
 use super::action::{Action, OldCursorPosition};
 
 impl Action {
     pub fn insertion(&self, editor: &mut Editor) -> anyhow::Result<()> {
         match self {
+            Action::AddStr(s) => {
+                let len = s.len();
+                let cursor_viewport = editor.v_cursor();
+                editor
+                    .viewports
+                    .c_mut_viewport()
+                    .buffer
+                    .add_str(s.clone(), cursor_viewport);
+                editor.undo_insert_actions.push(Action::UndoStrAt(
+                    OldCursorPosition::new(editor.cursor, editor.viewports.c_viewport().top),
+                    cursor_viewport,
+                    len,
+                ));
+                editor.cursor.0 += len as u16;
+            }
             Action::AddChar(c) => {
                 let cursor_viewport = editor.v_cursor();
                 editor.undo_insert_actions.push(Action::UndoCharAt(
@@ -30,10 +48,8 @@ impl Action {
                 let v_cursor = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();
 
-                current_viewport.buffer.new_line(v_cursor);
-
+                editor.cursor.0 = current_viewport.buffer.new_line(v_cursor);
                 editor.buffer_actions.push(Action::EnterMode(Mode::Insert));
-                editor.cursor.0 = 0;
 
                 editor
                     .undo_actions
@@ -47,9 +63,8 @@ impl Action {
                 let (v_x, v_y) = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();
 
-                current_viewport.buffer.new_line((v_x, v_y + 1));
+                editor.cursor.0 = current_viewport.buffer.new_line((v_x, v_y + 1));
                 editor.move_next_line();
-                editor.cursor.0 = 0;
 
                 editor.buffer_actions.push(Action::EnterMode(Mode::Insert));
 
@@ -63,20 +78,22 @@ impl Action {
 
             Action::NewLine => {
                 let (v_x, v_y) = editor.v_cursor();
-                editor
+                let indentation = editor
                     .viewports
                     .c_mut_viewport()
                     .buffer
                     .new_line_with_text((v_x, v_y));
-                editor.cursor.0 = 0;
+
+                editor.cursor.0 = indentation;
                 editor.move_next_line();
 
-                editor
-                    .undo_actions
-                    .push(Action::UndoNewLineWithText(OldCursorPosition::new(
+                editor.undo_actions.push(Action::UndoNewLineWithText(
+                    OldCursorPosition::new(
                         (editor.cursor.0, editor.cursor.1.saturating_sub(1)),
                         editor.viewports.c_viewport().top,
-                    )));
+                    ),
+                    indentation as usize,
+                ));
             }
 
             _ => {}

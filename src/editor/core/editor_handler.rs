@@ -93,6 +93,7 @@ impl Editor {
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
+            KeyCode::Tab => Some(Action::AddStr("  ".into())),
             KeyCode::Backspace => Some(Action::RemoveChar),
             KeyCode::Enter => Some(Action::NewLine),
             KeyCode::Char(c) => Some(Action::AddChar(*c)),
@@ -145,6 +146,10 @@ impl Editor {
             // handle file_explorer viewport
             KeyCode::Enter if self.viewports.c_viewport().is_file_explorer() => {
                 Some(Action::EnterFileOrDirectory)
+            }
+
+            KeyCode::Char('-') if self.viewports.c_viewport().is_file_explorer() => {
+                Some(Action::GotoParentDirectory)
             }
 
             // Search Action

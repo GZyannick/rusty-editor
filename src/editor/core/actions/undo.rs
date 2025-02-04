@@ -1,6 +1,5 @@
-use crate::{editor::Editor, log_message};
-
 use super::action::Action;
+use crate::editor::Editor;
 
 impl Action {
     pub fn undo(&self, editor: &mut Editor) -> anyhow::Result<()> {
@@ -8,6 +7,19 @@ impl Action {
             Action::UndoCharAt(old_cursor, v_cursor) => {
                 editor.buffer_actions.push(Action::RemoveCharAt(*v_cursor));
                 editor.cursor = old_cursor.cursor;
+            }
+
+            Action::UndoStrAt(old_cursor, v_cursor, str_len) => {
+                if let Some(line) = editor
+                    .viewports
+                    .c_mut_viewport()
+                    .buffer
+                    .lines
+                    .get_mut(v_cursor.1 as usize)
+                {
+                    line.drain(v_cursor.0 as usize..v_cursor.0 as usize + *str_len);
+                    editor.cursor = old_cursor.cursor
+                };
             }
 
             Action::Undo => {
@@ -44,14 +56,14 @@ impl Action {
                 editor.cursor.1 = old_cursor.cursor.1;
             }
 
-            Action::UndoNewLineWithText(old_cursor) => {
+            Action::UndoNewLineWithText(old_cursor, indentation) => {
                 let cy = old_cursor.cursor.1 + old_cursor.top;
                 let c_mut_viewport = editor.viewports.c_mut_viewport();
                 let mut buffer_line = String::new();
 
                 // get the y + 1 line to copy and remove it;
-                if let Some(line) = c_mut_viewport.buffer.lines.get(cy as usize + 1) {
-                    buffer_line = line.clone();
+                if let Some(line) = c_mut_viewport.buffer.lines.get_mut(cy as usize + 1) {
+                    buffer_line = line.replacen(" ", "", *indentation);
                     c_mut_viewport.buffer.remove(cy as usize + 1);
                 }
                 // push the content of y + 1 in y

@@ -64,5 +64,8 @@ pub enum Action {
     FindSearchValue,
     GotoPos((u16, u16)),
     IterNextSearch,
-    UndoNewLineWithText(OldCursorPosition),
+    UndoNewLineWithText(OldCursorPosition, usize),
+    GotoParentDirectory,
+    AddStr(String),
+    UndoStrAt(OldCursorPosition, (u16, u16), usize),
 }
