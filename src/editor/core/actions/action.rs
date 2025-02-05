@@ -1,4 +1,4 @@
-use crate::editor::{core::mode::Mode, CursorBlock};
+use crate::editor::{core::mode::Mode, modal_input::ModalContent, CursorBlock};
 
 #[derive(Debug, Clone)]
 pub struct OldCursorPosition {
@@ -34,7 +34,7 @@ pub enum Action {
     StartOfLine,
     Save,
     SaveFile,
-    CreateFilesOrDirectories,
+    CreateFileOrDirectory(String),
     EndOfFile,
     StartOfFile,
     CenterLine,
@@ -68,4 +68,10 @@ pub enum Action {
     GotoParentDirectory,
     AddStr(String),
     UndoStrAt(OldCursorPosition, (u16, u16), usize),
+    RenameFileOrDirectory,
+    DeleteFileOrDirectory,
+    LeaveModal,
+    AddModalChar(char),
+    RemoveModalChar,
+    CreateInputModal,
 }

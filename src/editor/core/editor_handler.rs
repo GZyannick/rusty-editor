@@ -1,4 +1,5 @@
 use crate::editor::Editor;
+use crate::log_message;
 use anyhow::{Ok, Result};
 use crossterm::QueueableCommand;
 use crossterm::{
@@ -19,6 +20,10 @@ impl Editor {
             let code = ev.code;
             let modifiers = ev.modifiers;
 
+            if let Some(ref mut modal) = self.modal {
+                return modal.handle_action(&code, &modifiers);
+            }
+
             if let Some(c) = self.waiting_command {
                 let action = self.handle_waiting_command(c, &code);
                 self.waiting_command = None;
@@ -33,6 +38,9 @@ impl Editor {
             }
 
             return match self.mode {
+                Mode::Normal if self.viewports.c_viewport().is_file_explorer() => {
+                    self.handle_file_explorer(&code, &modifiers)
+                }
                 Mode::Normal => self.handle_normal_event(&code, &modifiers),
                 Mode::Command => self.handle_command_event(&code, &modifiers),
                 Mode::Insert => self.handle_insert_event(&code, &modifiers),
@@ -129,6 +137,36 @@ impl Editor {
         Ok(action)
     }
 
+    fn handle_file_explorer(
+        &mut self,
+        code: &KeyCode,
+        modifiers: &KeyModifiers,
+    ) -> Result<Option<Action>> {
+        let action = match code {
+            KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
+            // handle file_explorer viewport
+            KeyCode::Enter => Some(Action::EnterFileOrDirectory),
+            KeyCode::Char('-') => Some(Action::GotoParentDirectory),
+            KeyCode::Char('d') => Some(Action::DeleteFileOrDirectory),
+            KeyCode::Char('r') => Some(Action::RenameFileOrDirectory),
+            KeyCode::Char('a') => Some(Action::CreateInputModal),
+            KeyCode::Char('i') => Some(Action::CreateInputModal),
+
+            // Movement with Modifiers
+            KeyCode::Char('f') if matches!(modifiers, &KeyModifiers::CONTROL) => {
+                Some(Action::PageDown)
+            }
+
+            KeyCode::Char('b') if matches!(modifiers, &KeyModifiers::CONTROL) => {
+                Some(Action::PageUp)
+            }
+
+            _ => None,
+        };
+
+        Ok(action)
+    }
+
     fn handle_normal_event(
         &mut self,
         code: &KeyCode,
@@ -142,16 +180,6 @@ impl Editor {
             KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
             KeyCode::Char('p') => Some(Action::Past),
             KeyCode::Esc => Some(Action::ClearToNormalMode),
-
-            // handle file_explorer viewport
-            KeyCode::Enter if self.viewports.c_viewport().is_file_explorer() => {
-                Some(Action::EnterFileOrDirectory)
-            }
-
-            KeyCode::Char('-') if self.viewports.c_viewport().is_file_explorer() => {
-                Some(Action::GotoParentDirectory)
-            }
-
             // Search Action
             KeyCode::Char('/') => Some(Action::EnterMode(Mode::Search)),
             KeyCode::Char('n') => Some(Action::IterNextSearch),

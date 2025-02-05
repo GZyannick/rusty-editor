@@ -1,4 +1,5 @@
 mod core;
+mod modal_input;
 pub mod ui;
 
 use crate::theme::colors;
@@ -12,6 +13,7 @@ use crossterm::{
     style::Color,
     terminal, ExecutableCommand, QueueableCommand,
 };
+use modal_input::ModalContent;
 use std::io::Stdout;
 use ui::toast::Toast;
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
@@ -36,6 +38,8 @@ pub struct Editor {
     pub size: (u16, u16),
     pub cursor: (u16, u16),
     pub visual_cursor: Option<(u16, u16)>,
+
+    pub modal: Option<Box<dyn ModalContent>>,
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewports: Viewports,
@@ -89,6 +93,7 @@ impl Editor {
             size,
             cursor: (0, 0),
             visual_cursor: None,
+            modal: None,
             buffer_x_cursor: 0,
             waiting_command: None,
             viewports,
@@ -155,7 +160,6 @@ impl Editor {
     pub fn run(&mut self) -> Result<()> {
         loop {
             self.check_bounds();
-
             self.draw()?;
             let event = read()?;
 
@@ -243,6 +247,10 @@ impl Editor {
         let c_mut_viewport = self.viewports.c_mut_viewport();
         c_mut_viewport.top = 0;
         c_mut_viewport.left = 0;
+    }
+
+    pub fn set_modal(&mut self, modal: Box<dyn ModalContent>) {
+        self.modal = Some(modal)
     }
 }
 

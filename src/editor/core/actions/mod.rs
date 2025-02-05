@@ -12,6 +12,7 @@ use anyhow::Ok;
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
+use crate::editor::modal_input::{ModalContent, ModalInput};
 use crate::editor::ui::clear::ClearDraw;
 use crate::viewport::Viewport;
 
@@ -83,15 +84,18 @@ impl Action {
                 editor.mode = *mode;
             }
             Action::Save => {
-                let buffer_action = match editor.viewports.c_viewport().is_file_explorer() {
-                    true => Action::CreateFilesOrDirectories,
-                    false => Action::SaveFile,
-                };
-                editor.buffer_actions.push(buffer_action);
+                if !editor.viewports.c_viewport().is_file_explorer() {
+                    editor.buffer_actions.push(Action::SaveFile);
+                }
             }
-            Action::CreateFilesOrDirectories => {
+            Action::CreateFileOrDirectory(filename) => {
                 let current_viewport = editor.viewports.c_mut_viewport();
-                current_viewport.buffer.create_files_or_directories()?;
+                current_viewport
+                    .buffer
+                    .create_files_or_directories(filename)?;
+                if editor.modal.is_some() {
+                    editor.buffer_actions.push(Action::LeaveModal);
+                }
                 editor
                     .toast
                     .indication("file and directory are created".to_string());
@@ -126,10 +130,10 @@ impl Action {
                 editor.buffer_actions.push(Action::EnterMode(Mode::Normal));
             }
             Action::GotoParentDirectory => {
-                            let current_viewport = editor.viewports.c_mut_viewport();
-                            if let Some(parent_buffer) = current_viewport.buffer.parent_dir() {
-                                current_viewport.buffer = parent_buffer;
-                            }
+                let current_viewport = editor.viewports.c_mut_viewport();
+                if let Some(parent_buffer) = current_viewport.buffer.parent_dir() {
+                    current_viewport.buffer = parent_buffer;
+                }
             }
             Action::EnterFileOrDirectory => {
                 let (_, y) = editor.v_cursor();
@@ -139,7 +143,7 @@ impl Action {
                     // if its a file we swap to the viewport of file
                     match metadata(&path)?.is_dir() {
                         true if path.eq("../") => {
-                           editor.buffer_actions.push(Action::GotoParentDirectory); 
+                            editor.buffer_actions.push(Action::GotoParentDirectory);
                         }
                         true => {
                             editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));
@@ -184,6 +188,15 @@ impl Action {
                     }
                 }
             }
+            Action::LeaveModal => {
+                editor.modal = None;
+            }
+            Action::CreateInputModal => {
+                let modal_input =
+                    ModalInput::new("Enter The name of dir (dir finish with /) ".into());
+                editor.set_modal(Box::new(modal_input));
+            }
+
             _ => {}
         }
 

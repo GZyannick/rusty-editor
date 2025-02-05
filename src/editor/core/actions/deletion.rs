@@ -18,6 +18,11 @@ impl Action {
                 }
             }
 
+            Action::RemoveModalChar => {
+                if let Some(ref mut modal) = editor.modal {
+                    modal.pop();
+                }
+            }
             Action::RemoveChar => {
                 let cursor_viewport = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();

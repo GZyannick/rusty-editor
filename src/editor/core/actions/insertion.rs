@@ -38,6 +38,12 @@ impl Action {
                 editor.cursor.0 += 1;
             }
             Action::AddCommandChar(c) => editor.command.push(*c),
+            // the modal should have a push fn
+            Action::AddModalChar(c) => {
+                if let Some(ref mut modal) = editor.modal {
+                    modal.push(*c);
+                }
+            }
 
             Action::AddSearchChar(c) => {
                 editor.search.push(*c);
