@@ -382,7 +382,8 @@ impl Buffer {
         }
     }
 
-    pub fn create_files_or_directories(&mut self, filename: &String) -> Result<()> {
+    pub fn create_files_or_directories(&mut self, filename: &String) -> Result<bool> {
+        let mut is_created = true;
         match filename.contains('.') {
             true => {
                 let full_path = format!("{}/{}", self.path, filename);
@@ -397,10 +398,10 @@ impl Buffer {
                 self.lines.push(full_path);
             }
             false => {
-                log_message!("toast neither file or dir")
+                is_created = false;
             }
         };
-        Ok(())
+        Ok(is_created)
     }
 
     fn create_file(&mut self, path: &String) -> Result<()> {

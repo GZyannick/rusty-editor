@@ -14,4 +14,14 @@ pub trait ModalContent: Debug {
     ) -> anyhow::Result<Option<Action>>;
     fn push(&mut self, ch: char);
     fn pop(&mut self);
+    fn basic_action(&self, code: &KeyCode) -> Option<Action> {
+        // with calling basic action in handle action at the end with action.is_some
+        // we can override some basic_action
+        match code {
+            KeyCode::Esc => Some(Action::LeaveModal),
+            KeyCode::Backspace => Some(Action::RemoveModalChar),
+            KeyCode::Char(c) => Some(Action::AddModalChar(*c)),
+            _ => None,
+        }
+    }
 }

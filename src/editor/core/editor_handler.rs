@@ -150,7 +150,8 @@ impl Editor {
             KeyCode::Char('r') => Some(Action::RenameInputModal),
             KeyCode::Char('a') => Some(Action::CreateInputModal),
             KeyCode::Char('i') => Some(Action::CreateInputModal),
-
+            KeyCode::Char('G') => Some(Action::EndOfFile),
+            KeyCode::Char('g') => Some(Action::WaitingCmd('g')),
             _ => None,
         };
 
