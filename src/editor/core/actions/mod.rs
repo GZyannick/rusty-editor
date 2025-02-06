@@ -12,8 +12,11 @@ use anyhow::Ok;
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
-use crate::editor::modal_input::{ModalContent, ModalInput};
 use crate::editor::ui::clear::ClearDraw;
+use crate::log_message;
+use crate::modal::create::ModalCreateFD;
+use crate::modal::delete::ModalDeleteFD;
+use crate::modal::rename::ModalRenameFD;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
@@ -93,12 +96,46 @@ impl Action {
                 current_viewport
                     .buffer
                     .create_files_or_directories(filename)?;
-                if editor.modal.is_some() {
-                    editor.buffer_actions.push(Action::LeaveModal);
-                }
+                editor.buffer_actions.push(Action::LeaveModal);
                 editor
                     .toast
                     .indication("file and directory are created".to_string());
+            }
+            Action::RenameFileOrDirectory(filename) => {
+                let y = editor.v_cursor().1 as usize;
+                let current_viewport = editor.viewports.c_mut_viewport();
+                if let Some(file) = current_viewport.buffer.lines.get_mut(y) {
+                    std::fs::rename(file.clone(), filename)?;
+                    *file = filename.clone();
+                    editor
+                        .toast
+                        .indication(format!("successfull rename too {filename}"));
+                    editor.buffer_actions.push(Action::LeaveModal);
+                }
+            }
+            Action::DeleteFileOrDirectory => {
+                let y = editor.v_cursor().1 as usize;
+                let current_viewport = editor.viewports.c_mut_viewport();
+                if let Some(path) = current_viewport.buffer.lines.get_mut(y) {
+                    match std::fs::metadata(&path) {
+                        std::io::Result::Ok(meta) => {
+                            match meta.is_file() {
+                                true => {
+                                    std::fs::remove_file(&path)?;
+                                }
+                                false => {
+                                    std::fs::remove_dir(&path)?;
+                                }
+                            }
+                            editor.toast.indication(format!("{path} has been deleted"));
+                            current_viewport.buffer.remove(y);
+                        }
+                        std::io::Result::Err(_) => {
+                            editor.toast.error(format!("Couldnt Delete {path}"));
+                        }
+                    };
+                    editor.buffer_actions.push(Action::LeaveModal);
+                }
             }
             Action::SaveFile => {
                 let current_viewport = editor.viewports.c_mut_viewport();
@@ -193,8 +230,25 @@ impl Action {
             }
             Action::CreateInputModal => {
                 let modal_input =
-                    ModalInput::new("Enter The name of dir (dir finish with /) ".into());
+                    ModalCreateFD::new("Enter The name of dir (dir finish with /) ".into());
                 editor.set_modal(Box::new(modal_input));
+            }
+            Action::RenameInputModal => {
+                let current_viewport = editor.viewports.c_viewport();
+                if let Some(line) = current_viewport.buffer.get(editor.v_cursor().1 as usize) {
+                    let modal_input =
+                        ModalRenameFD::new(format!("Enter the name for {line}"), line.clone());
+                    editor.set_modal(Box::new(modal_input));
+                }
+            }
+            Action::DeleteInputModal => {
+                let current_viewport = editor.viewports.c_viewport();
+                if let Some(line) = current_viewport.buffer.get(editor.v_cursor().1 as usize) {
+                    let line = line.replace(&current_viewport.buffer.path, "");
+                    let modal_input =
+                        ModalDeleteFD::new(format!("Are you you wan to delete {line} Y/N"));
+                    editor.set_modal(Box::new(modal_input));
+                }
             }
 
             _ => {}

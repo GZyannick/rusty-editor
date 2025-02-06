@@ -1,28 +1,16 @@
-use std::fmt::Debug;
-
 use crossterm::event::{KeyCode, KeyModifiers};
 
-use super::core::actions::action::Action;
+use crate::editor::core::actions::action::Action;
 
-pub trait ModalContent: Debug {
-    fn title(&self) -> &str;
-    fn body(&self) -> &str;
-    fn handle_action(
-        &self,
-        code: &KeyCode,
-        modifiers: &KeyModifiers,
-    ) -> anyhow::Result<Option<Action>>;
-    fn push(&mut self, ch: char);
-    fn pop(&mut self);
-}
+use super::modal_trait::ModalContent;
 
 #[derive(Debug)]
-pub struct ModalInput {
+pub struct ModalCreateFD {
     title: String,
     content: String,
 }
 
-impl ModalInput {
+impl ModalCreateFD {
     pub fn new(title: String) -> Self {
         Self {
             title,
@@ -31,7 +19,7 @@ impl ModalInput {
     }
 }
 
-impl ModalContent for ModalInput {
+impl ModalContent for ModalCreateFD {
     fn title(&self) -> &str {
         &self.title
     }

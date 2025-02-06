@@ -13,6 +13,8 @@ use helper::logger::Logger;
 mod editor;
 use editor::Editor;
 
+mod modal;
+
 pub static INSTANCE: OnceLock<Mutex<Logger>> = OnceLock::new();
 
 use anyhow::Ok;

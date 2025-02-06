@@ -1,7 +1,8 @@
 use std::io::Write;
 
 use crate::{
-    editor::{core::mode::Mode, modal_input::ModalContent, Editor, TERMINAL_SIZE_MINUS},
+    editor::{core::mode::Mode, Editor, TERMINAL_SIZE_MINUS},
+    modal::modal_trait::ModalContent,
     theme::colors,
 };
 use anyhow::Result;
@@ -18,10 +19,12 @@ impl Editor {
         self.stdout.queue(cursor::Hide)?;
 
         self.draw_current_viewport()?;
+
         if let Some(modal) = self.modal.take() {
             self.draw_modal(&*modal)?;
             self.modal = Some(modal);
         }
+
         if !self.toast.is_empty() {
             self.toast.draw(&mut self.stdout, &self.size.0)?;
         }

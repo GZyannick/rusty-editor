@@ -1,7 +1,7 @@
-mod core;
-mod modal_input;
+pub mod core;
 pub mod ui;
 
+use crate::modal::modal_trait::ModalContent;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
@@ -13,7 +13,6 @@ use crossterm::{
     style::Color,
     terminal, ExecutableCommand, QueueableCommand,
 };
-use modal_input::ModalContent;
 use std::io::Stdout;
 use ui::toast::Toast;
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
@@ -56,7 +55,7 @@ impl Editor {
 
         let mut viewports = Viewports::new();
         let mut explorer_viewport = Viewport::new(
-            Buffer::new(Some(String::from("."))),
+            Buffer::new(Some(String::from("./"))),
             size.0,
             size.1 - TERMINAL_SIZE_MINUS,
             0,

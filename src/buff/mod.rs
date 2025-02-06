@@ -2,7 +2,7 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
     ops::Range,
-    path::{Path, PathBuf},
+    path::PathBuf,
     str::FromStr,
 };
 
@@ -383,8 +383,6 @@ impl Buffer {
     }
 
     pub fn create_files_or_directories(&mut self, filename: &String) -> Result<()> {
-        // let lines = self.lines.clone();
-
         match filename.contains('.') {
             true => {
                 let full_path = format!("{}/{}", self.path, filename);
@@ -399,7 +397,6 @@ impl Buffer {
                 self.lines.push(full_path);
             }
             false => {
-                //TODO: Toast Err
                 log_message!("toast neither file or dir")
             }
         };

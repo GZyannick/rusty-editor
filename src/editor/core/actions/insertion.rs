@@ -1,7 +1,4 @@
-use crate::{
-    editor::{core::mode::Mode, Editor},
-    log_message,
-};
+use crate::editor::{core::mode::Mode, Editor};
 
 use super::action::{Action, OldCursorPosition};
 

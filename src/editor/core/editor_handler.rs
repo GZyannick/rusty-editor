@@ -1,5 +1,4 @@
 use crate::editor::Editor;
-use crate::log_message;
 use anyhow::{Ok, Result};
 use crossterm::QueueableCommand;
 use crossterm::{
@@ -140,26 +139,17 @@ impl Editor {
     fn handle_file_explorer(
         &mut self,
         code: &KeyCode,
-        modifiers: &KeyModifiers,
+        _modifiers: &KeyModifiers,
     ) -> Result<Option<Action>> {
         let action = match code {
             KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
             // handle file_explorer viewport
             KeyCode::Enter => Some(Action::EnterFileOrDirectory),
             KeyCode::Char('-') => Some(Action::GotoParentDirectory),
-            KeyCode::Char('d') => Some(Action::DeleteFileOrDirectory),
-            KeyCode::Char('r') => Some(Action::RenameFileOrDirectory),
+            KeyCode::Char('d') => Some(Action::DeleteInputModal),
+            KeyCode::Char('r') => Some(Action::RenameInputModal),
             KeyCode::Char('a') => Some(Action::CreateInputModal),
             KeyCode::Char('i') => Some(Action::CreateInputModal),
-
-            // Movement with Modifiers
-            KeyCode::Char('f') if matches!(modifiers, &KeyModifiers::CONTROL) => {
-                Some(Action::PageDown)
-            }
-
-            KeyCode::Char('b') if matches!(modifiers, &KeyModifiers::CONTROL) => {
-                Some(Action::PageUp)
-            }
 
             _ => None,
         };
