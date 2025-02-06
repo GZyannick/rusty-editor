@@ -93,13 +93,22 @@ impl Action {
             }
             Action::CreateFileOrDirectory(filename) => {
                 let current_viewport = editor.viewports.c_mut_viewport();
-                current_viewport
+                let is_created = current_viewport
                     .buffer
                     .create_files_or_directories(filename)?;
                 editor.buffer_actions.push(Action::LeaveModal);
-                editor
-                    .toast
-                    .indication("file and directory are created".to_string());
+                match is_created {
+                    true => {
+                        editor
+                            .toast
+                            .indication(format!("{filename} has been created"));
+                    }
+                    false => {
+                        editor
+                            .toast
+                            .error(format!("error: couldnt create {filename}"));
+                    }
+                }
             }
             Action::RenameFileOrDirectory(filename) => {
                 let y = editor.v_cursor().1 as usize;
