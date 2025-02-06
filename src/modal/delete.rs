@@ -34,9 +34,6 @@ impl ModalContent for ModalDeleteFD {
         _modifiers: &KeyModifiers,
     ) -> anyhow::Result<Option<Action>> {
         let action = match code {
-            KeyCode::Esc => Some(Action::LeaveModal),
-            KeyCode::Backspace => Some(Action::RemoveModalChar),
-            KeyCode::Char(c) => Some(Action::AddModalChar(*c)),
             KeyCode::Enter => {
                 let content = self.content.to_lowercase();
                 match content {
@@ -46,7 +43,10 @@ impl ModalContent for ModalDeleteFD {
             }
             _ => None,
         };
-        Ok(action)
+        match action.is_some() {
+            true => Ok(action),
+            false => Ok(self.basic_action(code)),
+        }
     }
 
     fn push(&mut self, ch: char) {

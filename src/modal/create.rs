@@ -34,13 +34,13 @@ impl ModalContent for ModalCreateFD {
         _modifiers: &KeyModifiers,
     ) -> anyhow::Result<Option<Action>> {
         let action = match code {
-            KeyCode::Esc => Some(Action::LeaveModal),
-            KeyCode::Backspace => Some(Action::RemoveModalChar),
-            KeyCode::Char(c) => Some(Action::AddModalChar(*c)),
             KeyCode::Enter => Some(Action::CreateFileOrDirectory(self.content.clone())),
             _ => None,
         };
-        Ok(action)
+        match action.is_some() {
+            true => Ok(action),
+            false => Ok(self.basic_action(code)),
+        }
     }
 
     fn push(&mut self, ch: char) {
