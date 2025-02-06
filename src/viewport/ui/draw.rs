@@ -61,7 +61,11 @@ impl Viewport {
             //            // we skip the ../ line
             let line = match i > 0 {
                 true if line.starts_with(self.buffer.path.as_str()) => {
-                    line.replacen(self.buffer.path.as_str(), "", 1).to_string()
+                    let mut path = self.buffer.path.clone();
+                    if !path.ends_with("/") {
+                        path.push('/');
+                    }
+                    line.replacen(path.as_str(), "", 1).to_string()
                 }
                 true => line.to_string(),
                 false => line.to_string(),

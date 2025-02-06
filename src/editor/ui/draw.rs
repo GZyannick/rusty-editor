@@ -2,6 +2,7 @@ use std::io::Write;
 
 use crate::{
     editor::{core::mode::Mode, Editor, TERMINAL_SIZE_MINUS},
+    modal::modal_trait::ModalContent,
     theme::colors,
 };
 use anyhow::Result;
@@ -18,6 +19,12 @@ impl Editor {
         self.stdout.queue(cursor::Hide)?;
 
         self.draw_current_viewport()?;
+
+        if let Some(modal) = self.modal.take() {
+            self.draw_modal(&*modal)?;
+            self.modal = Some(modal);
+        }
+
         if !self.toast.is_empty() {
             self.toast.draw(&mut self.stdout, &self.size.0)?;
         }
@@ -120,6 +127,30 @@ impl Editor {
                 format!("{symbol}{cmd:<width$}", width = r_width - 1)
                     .on(Color::from(colors::DARK0)),
             ))?;
+        Ok(())
+    }
+
+    fn draw_modal(&mut self, modal: &dyn ModalContent) -> Result<()> {
+        let width = self.size.0;
+        let height = self.size.1;
+        let modal_width = width / 4;
+        let modal_height = height / 4;
+
+        let start_x = (width - modal_width) / 2;
+        let start_y = (height - modal_height) / 2;
+
+        let title = format!(" {:<width$}", modal.title(), width = modal_width as usize);
+        self.stdout.queue(cursor::MoveTo(start_x, start_y))?;
+        self.stdout.queue(PrintStyledContent(
+            title.bold().on(Color::from(colors::FADED_PURPLE)),
+        ))?;
+
+        let body = format!(" {:<width$}", modal.body(), width = modal_width as usize);
+        self.stdout.queue(cursor::MoveTo(start_x, start_y + 1))?;
+        self.stdout
+            .queue(PrintStyledContent(body.on(Color::from(colors::DARK0_SOFT))))?;
+
+        self.stdout.flush()?;
         Ok(())
     }
 }

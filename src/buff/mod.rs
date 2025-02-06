@@ -2,7 +2,7 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
     ops::Range,
-    path::{Path, PathBuf},
+    path::PathBuf,
     str::FromStr,
 };
 
@@ -382,46 +382,34 @@ impl Buffer {
         }
     }
 
-    pub fn create_files_or_directories(&mut self) -> Result<()> {
-        let lines = self.lines.clone();
-        for (i, line) in lines.iter().enumerate() {
-            if !Path::new(&line).exists() {
-                match line.contains('.') {
-                    true => {
-                        // pushing the full path allow us to directly access it without reloading
-                        // the entire buffer
-                        let c_line = self.lines.get_mut(i).unwrap();
-                        *c_line = format!("{}/{}", self.path, c_line);
-                        self.create_file(line)?
-                    }
-                    false if line.chars().last().unwrap().eq(&'/') => {
-                        {
-                            let c_line = self.lines.get_mut(i).unwrap();
-                            *c_line = format!("{}/{}", self.path, c_line);
-                            c_line.pop(); // remove trailing / from the explorer
-                        }
-
-                        self.create_directory(line)?;
-                    }
-                    false => {
-                        log_message!("toast neither file or dir")
-                    }
-                }
+    pub fn create_files_or_directories(&mut self, filename: &String) -> Result<()> {
+        match filename.contains('.') {
+            true => {
+                let full_path = format!("{}/{}", self.path, filename);
+                self.create_file(&full_path)?;
+                self.lines.push(full_path);
             }
-        }
+            false if filename.chars().last().unwrap().eq(&'/') => {
+                let mut filename = filename.clone();
+                filename.pop();
+                let full_path = format!("{}/{}", self.path, filename);
+                self.create_directory(&full_path)?;
+                self.lines.push(full_path);
+            }
+            false => {
+                log_message!("toast neither file or dir")
+            }
+        };
         Ok(())
     }
 
     fn create_file(&mut self, path: &String) -> Result<()> {
-        let full_path = format!("{}/{path}", self.path);
-        File::create(full_path)?;
+        File::create(path)?;
         Ok(())
     }
 
     fn create_directory(&mut self, path: &String) -> Result<()> {
-        let mut full_path = format!("{}/{path}", self.path);
-        full_path.pop(); // remove trailing /
-        std::fs::create_dir(full_path)?;
+        std::fs::create_dir(path)?;
         Ok(())
     }
 
