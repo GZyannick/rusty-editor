@@ -87,7 +87,11 @@ impl Action {
             }
             Action::Save => {
                 if !editor.viewports.c_viewport().is_file_explorer() {
-                    editor.buffer_actions.push(Action::SaveFile);
+                    let current_viewport = editor.viewports.c_mut_viewport();
+                    current_viewport.buffer.save()?;
+                    editor
+                        .toast
+                        .indication(format!("file: {} is saved", current_viewport.buffer.path));
                 }
             }
             Action::CreateFileOrDirectory(filename) => {
@@ -144,13 +148,6 @@ impl Action {
                     };
                     editor.buffer_actions.push(Action::LeaveModal);
                 }
-            }
-            Action::SaveFile => {
-                let current_viewport = editor.viewports.c_mut_viewport();
-                current_viewport.buffer.save()?;
-                editor
-                    .toast
-                    .indication(format!("file: {} is saved", current_viewport.buffer.path));
             }
             Action::WaitingCmd(c) => {
                 editor

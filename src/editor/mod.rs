@@ -6,6 +6,7 @@ use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
 use anyhow::{Ok, Result};
 use core::actions::action::Action;
+use core::keybind_manager::KeybindManager;
 use core::mode::Mode;
 use crossterm::{
     event::{self, read},
@@ -31,6 +32,7 @@ pub struct CursorBlock {
 pub struct Editor {
     pub toast: Toast,
     pub mode: Mode,
+    pub keybinds: KeybindManager,
     pub command: String,
     pub search: String,
     pub stdout: Stdout,
@@ -86,6 +88,7 @@ impl Editor {
         Ok(Editor {
             toast: Toast::new(),
             mode: Mode::Normal,
+            keybinds: KeybindManager::new(),
             search: String::new(),
             command: String::new(),
             stdout: std::io::stdout(),
