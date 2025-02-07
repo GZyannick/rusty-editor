@@ -1,7 +1,6 @@
 pub mod core;
 pub mod ui;
 
-use crate::modal::modal_trait::ModalContent;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
@@ -14,6 +13,7 @@ use crossterm::{
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::io::Stdout;
+use ui::modal::modal_trait::ModalContent;
 use ui::toast::Toast;
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
 // 1: stop on char, 0: stop after the char
