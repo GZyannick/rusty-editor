@@ -2,7 +2,6 @@ use std::io::Write;
 
 use crate::{
     editor::{core::mode::Mode, Editor, TERMINAL_SIZE_MINUS},
-    modal::modal_trait::ModalContent,
     theme::colors,
 };
 use anyhow::Result;
@@ -11,6 +10,8 @@ use crossterm::{
     style::{Color, PrintStyledContent, Stylize},
     QueueableCommand,
 };
+
+use super::modal::modal_trait::ModalContent;
 
 impl Editor {
     pub fn draw(&mut self) -> Result<()> {

@@ -13,10 +13,9 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
-use crate::log_message;
-use crate::modal::create::ModalCreateFD;
-use crate::modal::delete::ModalDeleteFD;
-use crate::modal::rename::ModalRenameFD;
+use crate::editor::ui::modal::{
+    create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
+};
 use crate::viewport::Viewport;
 
 use super::super::Editor;
