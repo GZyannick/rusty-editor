@@ -8,8 +8,6 @@ use std::{
 
 use anyhow::Result;
 
-use crate::log_message;
-
 #[derive(Debug)]
 pub struct Buffer {
     pub file: Option<File>,

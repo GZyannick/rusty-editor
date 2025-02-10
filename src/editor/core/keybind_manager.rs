@@ -1,5 +1,5 @@
 use core::fmt;
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
 use crossterm::event::{KeyCode, KeyModifiers};
 
@@ -25,14 +25,16 @@ impl fmt::Debug for ActionOrClosure {
     }
 }
 
+pub type Keybinds = HashMap<(KeyCode, KeyModifiers), ActionOrClosure>;
+
 #[derive(Debug)]
 pub struct KeybindManager {
-    pub normal_mode: HashMap<(KeyCode, KeyModifiers), ActionOrClosure>,
-    pub visual_mode: HashMap<(KeyCode, KeyModifiers), ActionOrClosure>,
-    pub command_mode: HashMap<(KeyCode, KeyModifiers), ActionOrClosure>,
-    pub search_mode: HashMap<(KeyCode, KeyModifiers), ActionOrClosure>,
-    pub insert_mode: HashMap<(KeyCode, KeyModifiers), ActionOrClosure>,
-    pub file_explorer: HashMap<(KeyCode, KeyModifiers), ActionOrClosure>,
+    pub normal_mode: Keybinds,
+    pub visual_mode: Keybinds,
+    pub command_mode: Keybinds,
+    pub search_mode: Keybinds,
+    pub insert_mode: Keybinds,
+    pub file_explorer: Keybinds,
 }
 
 impl KeybindManager {
@@ -47,7 +49,31 @@ impl KeybindManager {
         }
     }
 
-    pub fn init_normal_mode_keybind() -> HashMap<(KeyCode, KeyModifiers), ActionOrClosure> {
+    // allow us mem::take each keybinds by mode
+    pub fn take_by_mode(&mut self, mode: &Mode, is_file_explorer: bool) -> Keybinds {
+        let mode = match mode {
+            Mode::Normal if is_file_explorer => &mut self.file_explorer,
+            Mode::Normal => &mut self.normal_mode,
+            Mode::Insert => &mut self.insert_mode,
+            Mode::Command => &mut self.command_mode,
+            Mode::Visual => &mut self.visual_mode,
+            Mode::Search => &mut self.search_mode,
+        };
+        mem::take(mode)
+    }
+
+    pub fn push_by_mode(&mut self, mode: &Mode, keybinds: Keybinds, is_file_explorer: bool) {
+        match mode {
+            Mode::Normal if is_file_explorer => self.file_explorer = keybinds,
+            Mode::Normal => self.normal_mode = keybinds,
+            Mode::Insert => self.insert_mode = keybinds,
+            Mode::Command => self.command_mode = keybinds,
+            Mode::Visual => self.visual_mode = keybinds,
+            Mode::Search => self.search_mode = keybinds,
+        };
+    }
+
+    pub fn init_normal_mode_keybind() -> Keybinds {
         let mut keybinds = HashMap::new();
 
         // Static keybinds
@@ -118,7 +144,7 @@ impl KeybindManager {
             ActionOrClosure::Static(Action::NewLineInsertionBelowCursor),
         );
         keybinds.insert(
-            (KeyCode::Char('O'), KeyModifiers::empty()),
+            (KeyCode::Char('O'), KeyModifiers::SHIFT),
             ActionOrClosure::Static(Action::NewLineInsertionAtCursor),
         );
 
@@ -138,7 +164,7 @@ impl KeybindManager {
             ActionOrClosure::Static(Action::PageDown),
         );
         keybinds.insert(
-            (KeyCode::Char('G'), KeyModifiers::empty()),
+            (KeyCode::Char('G'), KeyModifiers::SHIFT),
             ActionOrClosure::Static(Action::EndOfFile),
         );
         keybinds.insert(
@@ -173,7 +199,7 @@ impl KeybindManager {
     }
 
     pub fn handle_keybind(
-        hash: &mut HashMap<(KeyCode, KeyModifiers), ActionOrClosure>,
+        hash: &mut Keybinds,
         code: KeyCode,
         modifiers: KeyModifiers,
         editor: &mut Editor,
@@ -199,7 +225,7 @@ impl KeybindManager {
         Ok(None)
     }
 
-    fn init_command_mode_keybind() -> HashMap<(KeyCode, KeyModifiers), ActionOrClosure> {
+    fn init_command_mode_keybind() -> Keybinds {
         let mut keybinds = HashMap::new();
         // Movement with Modifiers
         keybinds.insert(
@@ -224,7 +250,7 @@ impl KeybindManager {
         keybinds
     }
 
-    fn init_file_explorer_keybind() -> HashMap<(KeyCode, KeyModifiers), ActionOrClosure> {
+    fn init_file_explorer_keybind() -> Keybinds {
         let mut keybinds = HashMap::new();
         // Movement with Modifiers
         keybinds.insert(
@@ -263,7 +289,7 @@ impl KeybindManager {
         );
 
         keybinds.insert(
-            (KeyCode::Char('G'), KeyModifiers::empty()),
+            (KeyCode::Char('G'), KeyModifiers::SHIFT),
             ActionOrClosure::Static(Action::EndOfFile),
         );
 
@@ -274,7 +300,7 @@ impl KeybindManager {
         keybinds
     }
 
-    fn init_search_mode_keybind() -> HashMap<(KeyCode, KeyModifiers), ActionOrClosure> {
+    fn init_search_mode_keybind() -> Keybinds {
         let mut keybinds = HashMap::new();
         // Movement with Modifiers
         keybinds.insert(
@@ -292,7 +318,7 @@ impl KeybindManager {
         keybinds
     }
 
-    fn init_insert_mode_keybind() -> HashMap<(KeyCode, KeyModifiers), ActionOrClosure> {
+    fn init_insert_mode_keybind() -> Keybinds {
         let mut keybinds = HashMap::new();
         // Movement with Modifiers
 
@@ -315,7 +341,7 @@ impl KeybindManager {
         keybinds
     }
 
-    fn init_visual_mode_keybind() -> HashMap<(KeyCode, KeyModifiers), ActionOrClosure> {
+    fn init_visual_mode_keybind() -> Keybinds {
         let mut keybinds = HashMap::new();
         // Movement with Modifiers
 

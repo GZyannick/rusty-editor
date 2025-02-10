@@ -1,5 +1,3 @@
-use std::mem;
-
 use crate::editor::Editor;
 use anyhow::{Ok, Result};
 use crossterm::QueueableCommand;
@@ -42,18 +40,22 @@ impl Editor {
                 return Ok(nav);
             }
 
-            return match self.mode {
-                Mode::Normal if self.viewports.c_viewport().is_file_explorer() => {
-                    self.handle_file_explorer(code, modifiers)
-                }
-                Mode::Normal => self.handle_normal_event(code, modifiers),
-                Mode::Command => self.handle_command_event(code, modifiers),
-                Mode::Insert => self.handle_insert_event(code, modifiers),
-                Mode::Visual => self.handle_visual_event(code, modifiers),
-                Mode::Search => self.handle_search_event(code, modifiers),
-            };
+            return self.handle_keybinds(code, modifiers);
         }
         Ok(None)
+    }
+
+    fn handle_keybinds(
+        &mut self,
+        code: KeyCode,
+        modifiers: KeyModifiers, // not used for now
+    ) -> Result<Option<Action>> {
+        let is_file_explorer = self.viewports.c_viewport().is_file_explorer();
+        let mut temp_keybinds = self.keybinds.take_by_mode(&self.mode, is_file_explorer);
+        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
+        self.keybinds
+            .push_by_mode(&self.mode, temp_keybinds, is_file_explorer);
+        result
     }
 
     fn handle_waiting_command(&mut self, c: char, code: &KeyCode) -> Option<Action> {
@@ -82,81 +84,6 @@ impl Editor {
             },
             _ => None,
         }
-    }
-
-    fn handle_search_event(
-        &mut self,
-        code: KeyCode,
-        modifiers: KeyModifiers, // not used for now
-    ) -> Result<Option<Action>> {
-        let mut temp_keybinds = mem::take(&mut self.keybinds.search_mode);
-        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
-        self.keybinds.search_mode = temp_keybinds;
-        result
-
-        // let action = match code {
-        //     KeyCode::Enter => Some(Action::EnterMode(Mode::Normal)),
-        //     KeyCode::Esc => Some(Action::ClearToNormalMode),
-        //     KeyCode::Char(c) => Some(Action::AddSearchChar(*c)),
-        //     KeyCode::Backspace => Some(Action::RemoveCharFrom(true)),
-        //     _ => None,
-        // };
-        // Ok(action)
-    }
-
-    fn handle_insert_event(
-        &mut self,
-        code: KeyCode,
-        modifiers: KeyModifiers, // not used for now
-    ) -> Result<Option<Action>> {
-        let mut temp_keybinds = mem::take(&mut self.keybinds.insert_mode);
-        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
-        self.keybinds.insert_mode = temp_keybinds;
-        result
-    }
-
-    fn handle_visual_event(
-        &mut self,
-        code: KeyCode,
-        modifiers: KeyModifiers,
-    ) -> Result<Option<Action>> {
-        let mut temp_keybinds = mem::take(&mut self.keybinds.visual_mode);
-        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
-        self.keybinds.visual_mode = temp_keybinds;
-        result
-    }
-
-    fn handle_file_explorer(
-        &mut self,
-        code: KeyCode,
-        modifiers: KeyModifiers,
-    ) -> Result<Option<Action>> {
-        let mut temp_keybinds = mem::take(&mut self.keybinds.file_explorer);
-        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
-        self.keybinds.file_explorer = temp_keybinds;
-        result
-    }
-
-    fn handle_normal_event(
-        &mut self,
-        code: KeyCode,
-        modifiers: KeyModifiers,
-    ) -> Result<Option<Action>> {
-        let mut temp_keybinds = mem::take(&mut self.keybinds.normal_mode);
-        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
-        self.keybinds.normal_mode = temp_keybinds;
-        result
-    }
-
-    fn handle_command_event(
-        &mut self,
-        code: KeyCode,
-        modifiers: KeyModifiers, // not used for now
-    ) -> Result<Option<Action>> {
-        let mut temp_keybinds = mem::take(&mut self.keybinds.command_mode);
-        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
-        self.keybinds.command_mode = temp_keybinds;
-        result
     }
 
     fn navigation(&mut self, code: &KeyCode, modifiers: &KeyModifiers) -> Result<Option<Action>> {
