@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem};
 
 use crossterm::event::{KeyCode, KeyModifiers};
 
-use crate::editor::Editor;
+use crate::{editor::Editor, log_message};
 
 use super::{actions::action::Action, mode::Mode};
 
@@ -25,7 +25,18 @@ impl fmt::Debug for ActionOrClosure {
     }
 }
 
-pub type Keybinds = HashMap<(KeyCode, KeyModifiers), ActionOrClosure>;
+#[derive(Debug)]
+pub struct KeyAction {
+    pub action: ActionOrClosure,
+    pub desc: String,
+}
+
+impl KeyAction {
+    pub fn new(action: ActionOrClosure, desc: String) -> Self {
+        Self { action, desc }
+    }
+}
+pub type Keybinds = HashMap<(KeyCode, KeyModifiers), KeyAction>;
 
 #[derive(Debug)]
 pub struct KeybindManager {
@@ -77,121 +88,207 @@ impl KeybindManager {
         let mut keybinds = HashMap::new();
 
         // Static keybinds
+
         keybinds.insert(
             (KeyCode::Char('v'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Visual)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Visual)),
+                "Switches to Visual mode.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char('z'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd('z')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd('z')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char(' '), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd(' ')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd(' ')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char('u'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::Undo),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::Undo),
+                "Reverts the last performed action.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char(':'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Command)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Command)),
+                "Switches to Command mode.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char('p'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::Past),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::Past),
+                "Pastes previously copied text.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Esc, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::ClearToNormalMode),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::ClearToNormalMode),
+                "Returns to Normal mode and clears the current state.".to_string(),
+            ),
         );
 
         // Search Actions
         keybinds.insert(
             (KeyCode::Char('/'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Search)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Search)),
+                "Switches to Search mode.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char('n'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::IterNextSearch),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::IterNextSearch),
+                "Jumps to the next search occurrence.".to_string(),
+            ),
         );
 
         // Insert Actions
         keybinds.insert(
             (KeyCode::Char('i'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Insert)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Insert)),
+                "Switches to Insert mode.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('a'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Insert)),
-        ); // TODO Move cursor
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Insert)),
+                "Switches to Insert mode.".to_string(),
+            ),
+        );
 
         // Delete Actions
         keybinds.insert(
             (KeyCode::Char('x'), KeyModifiers::empty()),
-            ActionOrClosure::Dynamic(Box::new(move |editor: &mut Editor| {
-                Action::RemoveCharAt(editor.v_cursor())
-            })),
+            KeyAction::new(
+                ActionOrClosure::Dynamic(Box::new(move |editor: &mut Editor| {
+                    Action::RemoveCharAt(editor.v_cursor())
+                })),
+                "Deletes a character at a specific position.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('d'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd('d')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd('d')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
 
-        // Create Actions
+        // Create line Actions
         keybinds.insert(
             (KeyCode::Char('o'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::NewLineInsertionBelowCursor),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::NewLineInsertionBelowCursor),
+                "Inserts a new line below the cursor and enters Insert mode.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('O'), KeyModifiers::SHIFT),
-            ActionOrClosure::Static(Action::NewLineInsertionAtCursor),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::NewLineInsertionAtCursor),
+                "Inserts a new line at the cursor position and enters Insert mode.".to_string(),
+            ),
         );
 
         // Yank Actions
         keybinds.insert(
             (KeyCode::Char('y'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd('y')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd('y')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
 
         // Movement Actions
         keybinds.insert(
             (KeyCode::PageUp, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::PageUp),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::PageUp),
+                "Scrolls up by one page.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::PageDown, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::PageDown),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::PageDown),
+                "Scrolls down by one page.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char('G'), KeyModifiers::SHIFT),
-            ActionOrClosure::Static(Action::EndOfFile),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EndOfFile),
+                "Moves the cursor to the end of the file.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('g'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd('g')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd('g')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Char('$'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EndOfLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EndOfFile),
+                "Moves the cursor to the end of the file.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('0'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::StartOfLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::StartOfLine),
+                "Moves the cursor to the beginning of the current line.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Home, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::StartOfLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::StartOfLine),
+                "Moves the cursor to the beginning of the current line.".to_string(),
+            ),
         );
 
         // Movement with Modifiers
         keybinds.insert(
             (KeyCode::Char('f'), KeyModifiers::CONTROL),
-            ActionOrClosure::Static(Action::PageDown),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::PageDown),
+                "Scrolls down by one page.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('b'), KeyModifiers::CONTROL),
-            ActionOrClosure::Static(Action::PageUp),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::PageUp),
+                "Scrolls up by one page.".to_string(),
+            ),
         );
 
         // Return all keybinds
@@ -204,12 +301,11 @@ impl KeybindManager {
         modifiers: KeyModifiers,
         editor: &mut Editor,
     ) -> anyhow::Result<Option<Action>> {
-        if let Some(action_or_closure) = hash.get_mut(&(code, modifiers)) {
-            let action = match action_or_closure {
+        if let Some(key_action) = hash.get_mut(&(code, modifiers)) {
+            let action = match &mut key_action.action {
                 ActionOrClosure::Static(action) => Some(action.clone()),
                 ActionOrClosure::Dynamic(closure) => Some(closure(editor)),
             };
-
             return Ok(action);
         }
 
@@ -229,23 +325,33 @@ impl KeybindManager {
         let mut keybinds = HashMap::new();
         // Movement with Modifiers
         keybinds.insert(
-            (KeyCode::Esc, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+            (KeyCode::Enter, KeyModifiers::empty()),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+                "Switches to Normal mode.".to_string(),
+            ),
         );
+
         keybinds.insert(
             (KeyCode::Backspace, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::RemoveCharFrom(false)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::RemoveCharFrom(false)),
+                "Deletes a character based on context (e.g., search or command).".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Enter, KeyModifiers::empty()),
-            ActionOrClosure::Dynamic(Box::new(move |editor: &mut Editor| {
-                if editor.command.as_str() == "q" {
-                    return Action::Quit;
-                } else if editor.command.as_str() == "q!" {
-                    return Action::ForceQuit;
-                }
-                Action::ExecuteCommand
-            })),
+            KeyAction::new(
+                ActionOrClosure::Dynamic(Box::new(move |editor: &mut Editor| {
+                    if editor.command.as_str() == "q" {
+                        return Action::Quit;
+                    } else if editor.command.as_str() == "q!" {
+                        return Action::ForceQuit;
+                    }
+                    Action::ExecuteCommand
+                })),
+                "Executes the entered command.".to_string(),
+            ),
         );
         keybinds
     }
@@ -255,47 +361,74 @@ impl KeybindManager {
         // Movement with Modifiers
         keybinds.insert(
             (KeyCode::Char(' '), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd(' ')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd(' ')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Enter, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterFileOrDirectory),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterFileOrDirectory),
+                "Opens a file or enters a directory in the file explorer.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Char('-'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::GotoParentDirectory),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::GotoParentDirectory),
+                "Moves up to the parent directory in the file explorer.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Char('d'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::DeleteInputModal),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::DeleteInputModal),
+                "Opens a dialog to confirm file or directory deletion.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Char('r'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::RenameInputModal),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::RenameInputModal),
+                "Opens a dialog to rename a file or directory.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Char('a'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::CreateInputModal),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::CreateInputModal),
+                "Opens a dialog to create a new file or directory.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Char('i'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::CreateInputModal),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::CreateInputModal),
+                "Opens a dialog to create a new file or directory.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Char('G'), KeyModifiers::SHIFT),
-            ActionOrClosure::Static(Action::EndOfFile),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EndOfFile),
+                "Moves the cursor to the end of the file.".to_string(),
+            ),
         );
 
         keybinds.insert(
             (KeyCode::Char('g'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd('g')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd('g')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
         keybinds
     }
@@ -305,15 +438,24 @@ impl KeybindManager {
         // Movement with Modifiers
         keybinds.insert(
             (KeyCode::Esc, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::ClearToNormalMode),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::ClearToNormalMode),
+                "Returns to Normal mode and clears the current state.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Backspace, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::RemoveCharFrom(true)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::RemoveCharFrom(true)),
+                "Deletes a character based on context (e.g., search or command).".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Enter, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+                "Switches to Normal mode.".to_string(),
+            ),
         );
         keybinds
     }
@@ -324,19 +466,31 @@ impl KeybindManager {
 
         keybinds.insert(
             (KeyCode::Esc, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+                "Switches to Normal mode.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Backspace, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::RemoveChar),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::RemoveChar),
+                "Deletes the character before the cursor.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Enter, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::NewLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::NewLine),
+                "Inserts a new line below the current line.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Tab, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::AddStr("  ".into())),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::AddStr("  ".into())),
+                "Adds a string of text at the cursor position.".to_string(),
+            ),
         );
         keybinds
     }
@@ -348,56 +502,142 @@ impl KeybindManager {
         // Mode Switching
         keybinds.insert(
             (KeyCode::Esc, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Normal)),
+                "Switches to Normal mode.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char(':'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EnterMode(Mode::Command)),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EnterMode(Mode::Command)),
+                "Switches to Command mode.".to_string(),
+            ),
         );
 
         // Actions
         keybinds.insert(
             (KeyCode::Char('d'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::DeleteBlock),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::DeleteBlock),
+                "Deletes a selected block of text.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('y'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::YankBlock),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::YankBlock),
+                "Copies a selected block of text.".to_string(),
+            ),
         );
 
         // Movement
         keybinds.insert(
             (KeyCode::PageUp, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::PageUp),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::PageUp),
+                "Scrolls up by one page.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::PageDown, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::PageDown),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::PageDown),
+                "Scrolls down by one page.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('G'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EndOfFile),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EndOfFile),
+                "Moves the cursor to the end of the file.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('g'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::WaitingCmd('g')),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::WaitingCmd('g')),
+                "Waits for a second key press to execute a complex command.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('$'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EndOfLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EndOfLine),
+                "Moves the cursor to the end of the current line.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::End, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::EndOfLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::EndOfLine),
+                "Moves the cursor to the end of the current line.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Char('0'), KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::StartOfLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::StartOfLine),
+                "Moves the cursor to the beginning of the current line.".to_string(),
+            ),
         );
         keybinds.insert(
             (KeyCode::Home, KeyModifiers::empty()),
-            ActionOrClosure::Static(Action::StartOfLine),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::StartOfLine),
+                "Moves the cursor to the beginning of the current line.".to_string(),
+            ),
         );
         keybinds
+    }
+
+    pub fn show_keybinds(&self) -> Vec<String> {
+        let mut lines: Vec<String> = vec![];
+        let chain_keybinds = self
+            .normal_mode
+            .iter()
+            .chain(self.visual_mode.iter())
+            .chain(self.command_mode.iter())
+            .chain(self.search_mode.iter())
+            .chain(self.insert_mode.iter())
+            .chain(self.file_explorer.iter());
+
+        for (k, v) in chain_keybinds {
+            let key = match k.1 != KeyModifiers::empty() {
+                true => format!("{} {}: {}", k.1, k.0, v.desc),
+                false => format!("{}: {}", k.0, v.desc),
+            };
+            lines.push(key);
+            lines.push(String::new());
+        }
+        lines
+    }
+
+    pub fn specific_keybinds(&self, mode: &str) -> Vec<String> {
+        let mode = match mode.to_lowercase().as_str() {
+            "explorer" => Some((&self.file_explorer, "File Explorer Keybinds")),
+            "normal" => Some((&self.normal_mode, "Normal Keybinds")),
+            "command" => Some((&self.command_mode, "Command Keybinds")),
+            "insert" => Some((&self.insert_mode, "Insert Keybinds")),
+            "visual" => Some((&self.visual_mode, "Visual Keybinds")),
+            "search" => Some((&self.search_mode, "Search Keybinds")),
+            _ => None,
+        };
+        if let Some((keybinds, name)) = mode {
+            log_message!("ICI");
+            let mut lines: Vec<String> = vec![];
+            lines.push(format!("----{name}----"));
+            for (k, v) in keybinds {
+                let key = match k.1 != KeyModifiers::empty() {
+                    true => format!("{} {}: {}", k.1, k.0, v.desc),
+                    false => format!("{}: {}", k.0, v.desc),
+                };
+                lines.push(key);
+                lines.push(String::new());
+            }
+            lines
+        } else {
+            self.show_keybinds()
+        }
     }
 }

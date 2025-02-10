@@ -16,10 +16,12 @@ use crate::editor::ui::clear::ClearDraw;
 use crate::editor::ui::modal::{
     create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
 };
+use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
 use super::command::Command;
+use super::keybind_manager::Keybinds;
 use super::mode::Mode;
 
 impl ClearDraw for Viewport {}
@@ -253,6 +255,25 @@ impl Action {
                     let modal_input =
                         ModalDeleteFD::new(format!("Are you you wan to delete {line} Y/N"));
                     editor.set_modal(Box::new(modal_input));
+                }
+            }
+
+            Action::HelpKeybinds(keybind_type) => {
+                //TODO: For now we need to save all viewports before viewing keybinds because it remove the current
+                //buffer
+                if !editor.viewports.viewports_save_status()? {
+                    return Ok(());
+                }
+                if let Some(viewport) = editor.viewports.get_original_viewport() {
+                    viewport.buffer = match keybind_type {
+                        Some(keybind_type) => Buffer::new_tmp(
+                            editor.keybinds.specific_keybinds(keybind_type),
+                            "Keybinds".to_string(),
+                        ),
+                        None => {
+                            Buffer::new_tmp(editor.keybinds.show_keybinds(), "Keybinds".to_string())
+                        }
+                    }
                 }
             }
 

@@ -14,9 +14,20 @@ pub struct Buffer {
     pub is_directory: bool,
     pub path: String,
     pub lines: Vec<String>,
+    pub is_tmp: bool, // like that we can create tmp buffer should not be saved
 }
 
 impl Buffer {
+    pub fn new_tmp(lines: Vec<String>, path: String) -> Buffer {
+        Buffer {
+            file: None,
+            is_directory: false,
+            lines,
+            path,
+            is_tmp: true,
+        }
+    }
+
     pub fn new(file_path: Option<String>) -> Buffer {
         if let Some(f_path) = file_path {
             match std::fs::metadata(f_path.clone()) {
@@ -35,6 +46,7 @@ impl Buffer {
             is_directory: false,
             lines: vec![String::new()],
             path: "Empty".to_string(),
+            is_tmp: false,
         }
     }
 
@@ -60,6 +72,7 @@ impl Buffer {
             is_directory: false,
             lines,
             path,
+            is_tmp: false,
         }
     }
 
@@ -80,6 +93,7 @@ impl Buffer {
             is_directory: true,
             lines,
             path: d_path,
+            is_tmp: false,
         }
     }
 
