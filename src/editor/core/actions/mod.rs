@@ -11,17 +11,15 @@ use action::Action;
 use anyhow::Ok;
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
+use super::super::Editor;
+use super::command::Command;
+use super::mode::Mode;
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::ui::modal::{
     create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
 };
 use crate::viewport::Viewport;
-use crate::{log_message, viewport};
-
-use super::super::Editor;
-use super::command::Command;
-use super::mode::Mode;
 
 impl ClearDraw for Viewport {}
 
