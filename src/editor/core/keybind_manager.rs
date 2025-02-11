@@ -600,29 +600,39 @@ impl KeybindManager {
 
     pub fn show_keybinds(&self) -> Vec<String> {
         let mut lines: Vec<String> = vec![];
-        let chain_keybinds = self
-            .normal_mode
-            .iter()
-            .chain(self.visual_mode.iter())
-            .chain(self.command_mode.iter())
-            .chain(self.search_mode.iter())
-            .chain(self.insert_mode.iter())
-            .chain(self.file_explorer.iter());
+
+        let chain_keybinds = vec![
+            ("Normal Mode", &self.normal_mode),
+            ("Command Mode", &self.command_mode),
+            ("Search Mode", &self.search_mode),
+            ("Insert Mode", &self.insert_mode),
+            ("Visual Mode", &self.visual_mode),
+            ("File Explorer", &self.file_explorer),
+        ];
 
         lines.push("--- For specific keybinds you can type ---".to_string());
         lines.push("".to_string());
         lines.push("map e / explorer      n / normal      c / command".to_string());
         lines.push("map i / insert        e / visual      s / search".to_string());
         lines.push("".to_string());
-        lines.push("".to_string());
 
-        for (k, v) in chain_keybinds {
-            let key = match k.1 != KeyModifiers::empty() {
-                true => format!("{} {}: {}", k.1, k.0, v.desc),
-                false => format!("{}: {}", k.0, v.desc),
-            };
-            lines.push(key);
-            lines.push(String::new());
+        for (label, map) in chain_keybinds {
+            if map.is_empty() {
+                continue;
+            }
+
+            lines.push("".to_string());
+            lines.push(format!("------ {label} ------"));
+            lines.push("".to_string());
+
+            for (k, v) in map {
+                let key = match k.1 != KeyModifiers::empty() {
+                    true => format!("{} {}: {}", k.1, k.0, v.desc),
+                    false => format!("{}: {}", k.0, v.desc),
+                };
+                lines.push(key);
+                lines.push(String::new());
+            }
         }
         lines
     }
