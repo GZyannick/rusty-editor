@@ -8,7 +8,7 @@ use crossterm::{
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Parser, QueryCursor};
 
-use crate::{log_message, viewport::LINE_NUMBERS_WIDTH};
+use crate::viewport::LINE_NUMBERS_WIDTH;
 use crate::{
     theme::{color_highligther::ColorHighligter, colors},
     viewport::Viewport,

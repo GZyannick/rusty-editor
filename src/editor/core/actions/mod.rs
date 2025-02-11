@@ -87,7 +87,11 @@ impl Action {
             }
             Action::Save => {
                 if !editor.viewports.c_viewport().is_file_explorer() {
-                    editor.buffer_actions.push(Action::SaveFile);
+                    let current_viewport = editor.viewports.c_mut_viewport();
+                    current_viewport.buffer.save()?;
+                    editor
+                        .toast
+                        .indication(format!("file: {} is saved", current_viewport.buffer.path));
                 }
             }
             Action::CreateFileOrDirectory(filename) => {
@@ -144,13 +148,6 @@ impl Action {
                     };
                     editor.buffer_actions.push(Action::LeaveModal);
                 }
-            }
-            Action::SaveFile => {
-                let current_viewport = editor.viewports.c_mut_viewport();
-                current_viewport.buffer.save()?;
-                editor
-                    .toast
-                    .indication(format!("file: {} is saved", current_viewport.buffer.path));
             }
             Action::WaitingCmd(c) => {
                 editor
@@ -256,6 +253,25 @@ impl Action {
                     let modal_input =
                         ModalDeleteFD::new(format!("Are you you wan to delete {line} Y/N"));
                     editor.set_modal(Box::new(modal_input));
+                }
+            }
+
+            Action::HelpKeybinds(keybind_type) => {
+                //TODO: For now we need to save all viewports before viewing keybinds because it remove the current
+                //buffer
+                if !editor.viewports.viewports_save_status()? {
+                    return Ok(());
+                }
+                if let Some(viewport) = editor.viewports.get_original_viewport() {
+                    viewport.buffer = match keybind_type {
+                        Some(keybind_type) => Buffer::new_tmp(
+                            editor.keybinds.specific_keybinds(keybind_type),
+                            "Keybinds".to_string(),
+                        ),
+                        None => {
+                            Buffer::new_tmp(editor.keybinds.show_keybinds(), "Keybinds".to_string())
+                        }
+                    }
                 }
             }
 

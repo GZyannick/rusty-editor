@@ -5,7 +5,6 @@ mod buff;
 mod theme;
 mod viewports;
 use buff::Buffer;
-
 mod helper;
 use crossterm::{terminal, ExecutableCommand};
 use helper::logger::Logger;

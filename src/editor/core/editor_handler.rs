@@ -7,6 +7,7 @@ use crossterm::{
 };
 
 use super::actions::action::Action;
+use super::keybind_manager::KeybindManager;
 use super::mode::Mode;
 
 impl Editor {
@@ -20,6 +21,9 @@ impl Editor {
             let modifiers = ev.modifiers;
 
             if let Some(ref mut modal) = self.modal {
+                // this keybinds will still be related to handle_action
+                // and not keybind manager because there are not global to the editor
+                // but specific to each modal
                 return modal.handle_action(&code, &modifiers);
             }
 
@@ -36,18 +40,22 @@ impl Editor {
                 return Ok(nav);
             }
 
-            return match self.mode {
-                Mode::Normal if self.viewports.c_viewport().is_file_explorer() => {
-                    self.handle_file_explorer(&code, &modifiers)
-                }
-                Mode::Normal => self.handle_normal_event(&code, &modifiers),
-                Mode::Command => self.handle_command_event(&code, &modifiers),
-                Mode::Insert => self.handle_insert_event(&code, &modifiers),
-                Mode::Visual => self.handle_visual_event(&code, &modifiers),
-                Mode::Search => self.handle_search_event(&code, &modifiers),
-            };
+            return self.handle_keybinds(code, modifiers);
         }
         Ok(None)
+    }
+
+    fn handle_keybinds(
+        &mut self,
+        code: KeyCode,
+        modifiers: KeyModifiers, // not used for now
+    ) -> Result<Option<Action>> {
+        let is_file_explorer = self.viewports.c_viewport().is_file_explorer();
+        let mut temp_keybinds = self.keybinds.take_by_mode(&self.mode, is_file_explorer);
+        let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
+        self.keybinds
+            .push_by_mode(&self.mode, temp_keybinds, is_file_explorer);
+        result
     }
 
     fn handle_waiting_command(&mut self, c: char, code: &KeyCode) -> Option<Action> {
@@ -76,166 +84,6 @@ impl Editor {
             },
             _ => None,
         }
-    }
-
-    fn handle_search_event(
-        &mut self,
-        code: &KeyCode,
-        _modifiers: &KeyModifiers, // not used for now
-    ) -> Result<Option<Action>> {
-        let action = match code {
-            KeyCode::Enter => Some(Action::EnterMode(Mode::Normal)),
-            KeyCode::Esc => Some(Action::ClearToNormalMode),
-            KeyCode::Char(c) => Some(Action::AddSearchChar(*c)),
-            KeyCode::Backspace => Some(Action::RemoveCharFrom(true)),
-            _ => None,
-        };
-        Ok(action)
-    }
-
-    fn handle_insert_event(
-        &mut self,
-        code: &KeyCode,
-        _modifiers: &KeyModifiers, // not used for now
-    ) -> Result<Option<Action>> {
-        let action = match code {
-            KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
-            KeyCode::Tab => Some(Action::AddStr("  ".into())),
-            KeyCode::Backspace => Some(Action::RemoveChar),
-            KeyCode::Enter => Some(Action::NewLine),
-            KeyCode::Char(c) => Some(Action::AddChar(*c)),
-            _ => None,
-        };
-
-        Ok(action)
-    }
-
-    fn handle_visual_event(
-        &mut self,
-        code: &KeyCode,
-        _modifiers: &KeyModifiers,
-    ) -> Result<Option<Action>> {
-        let action = match code {
-            KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
-            KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
-
-            // action
-            KeyCode::Char('d') => Some(Action::DeleteBlock),
-            KeyCode::Char('y') => Some(Action::YankBlock),
-
-            // movement
-            KeyCode::PageUp => Some(Action::PageUp),
-            KeyCode::PageDown => Some(Action::PageDown),
-            KeyCode::Char('G') => Some(Action::EndOfFile),
-            KeyCode::Char('g') => Some(Action::WaitingCmd('g')),
-            KeyCode::Char('$') | KeyCode::End => Some(Action::EndOfLine),
-            KeyCode::Char('0') | KeyCode::Home => Some(Action::StartOfLine),
-            _ => None,
-        };
-
-        Ok(action)
-    }
-
-    fn handle_file_explorer(
-        &mut self,
-        code: &KeyCode,
-        _modifiers: &KeyModifiers,
-    ) -> Result<Option<Action>> {
-        let action = match code {
-            KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
-            // handle file_explorer viewport
-            KeyCode::Enter => Some(Action::EnterFileOrDirectory),
-            KeyCode::Char('-') => Some(Action::GotoParentDirectory),
-            KeyCode::Char('d') => Some(Action::DeleteInputModal),
-            KeyCode::Char('r') => Some(Action::RenameInputModal),
-            KeyCode::Char('a') => Some(Action::CreateInputModal),
-            KeyCode::Char('i') => Some(Action::CreateInputModal),
-            KeyCode::Char('G') => Some(Action::EndOfFile),
-            KeyCode::Char('g') => Some(Action::WaitingCmd('g')),
-            _ => None,
-        };
-
-        Ok(action)
-    }
-
-    fn handle_normal_event(
-        &mut self,
-        code: &KeyCode,
-        modifiers: &KeyModifiers,
-    ) -> Result<Option<Action>> {
-        let action = match code {
-            KeyCode::Char('v') => Some(Action::EnterMode(Mode::Visual)),
-            KeyCode::Char('z') => Some(Action::WaitingCmd('z')),
-            KeyCode::Char(' ') => Some(Action::WaitingCmd(' ')),
-            KeyCode::Char('u') => Some(Action::Undo),
-            KeyCode::Char(':') => Some(Action::EnterMode(Mode::Command)),
-            KeyCode::Char('p') => Some(Action::Past),
-            KeyCode::Esc => Some(Action::ClearToNormalMode),
-            // Search Action
-            KeyCode::Char('/') => Some(Action::EnterMode(Mode::Search)),
-            KeyCode::Char('n') => Some(Action::IterNextSearch),
-
-            // Insert Action
-            KeyCode::Char('i') => Some(Action::EnterMode(Mode::Insert)),
-            KeyCode::Char('a') => Some(Action::EnterMode(Mode::Insert)), //TODO Move cursor to
-            //cursor right 1 time
-
-            // Delete Action
-            KeyCode::Char('x') => Some(Action::RemoveCharAt(self.v_cursor())),
-            KeyCode::Char('d') => Some(Action::WaitingCmd('d')),
-
-            // Create Action
-            KeyCode::Char('o') => Some(Action::NewLineInsertionBelowCursor),
-            KeyCode::Char('O') => Some(Action::NewLineInsertionAtCursor),
-
-            // Yank Action
-            KeyCode::Char('y') => Some(Action::WaitingCmd('y')),
-
-            //Movement Action
-            KeyCode::PageUp => Some(Action::PageUp),
-            KeyCode::PageDown => Some(Action::PageDown),
-            KeyCode::Char('G') => Some(Action::EndOfFile),
-            KeyCode::Char('g') => Some(Action::WaitingCmd('g')),
-            KeyCode::Char('$') | KeyCode::End => Some(Action::EndOfLine),
-            KeyCode::Char('0') | KeyCode::Home => Some(Action::StartOfLine),
-
-            // Movement with Modifiers
-            KeyCode::Char('f') if matches!(modifiers, &KeyModifiers::CONTROL) => {
-                Some(Action::PageDown)
-            }
-
-            KeyCode::Char('b') if matches!(modifiers, &KeyModifiers::CONTROL) => {
-                Some(Action::PageUp)
-            }
-
-            _ => None,
-        };
-
-        Ok(action)
-    }
-
-    fn handle_command_event(
-        &mut self,
-        code: &KeyCode,
-        _modifiers: &KeyModifiers, // not used for now
-    ) -> Result<Option<Action>> {
-        let action = match code {
-            KeyCode::Esc => Some(Action::EnterMode(Mode::Normal)),
-            KeyCode::Char(c) => Some(Action::AddCommandChar(*c)),
-            KeyCode::Enter => {
-                // handle the quit here to break the loop
-                if self.command.as_str() == "q" {
-                    return Ok(Some(Action::Quit));
-                } else if self.command.as_str() == "q!" {
-                    return Ok(Some(Action::ForceQuit));
-                }
-                Some(Action::ExecuteCommand)
-            }
-            KeyCode::Backspace => Some(Action::RemoveCharFrom(false)),
-            _ => None,
-        };
-
-        Ok(action)
     }
 
     fn navigation(&mut self, code: &KeyCode, modifiers: &KeyModifiers) -> Result<Option<Action>> {

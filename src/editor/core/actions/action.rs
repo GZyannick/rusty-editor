@@ -33,7 +33,6 @@ pub enum Action {
     EndOfLine,
     StartOfLine,
     Save,
-    SaveFile,
     CreateFileOrDirectory(String),
     EndOfFile,
     StartOfFile,
@@ -76,4 +75,5 @@ pub enum Action {
     CreateInputModal,
     RenameInputModal,
     DeleteInputModal,
+    HelpKeybinds(Option<String>),
 }
