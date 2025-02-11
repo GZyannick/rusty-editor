@@ -16,12 +16,10 @@ use crate::editor::ui::clear::ClearDraw;
 use crate::editor::ui::modal::{
     create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
 };
-use crate::log_message;
 use crate::viewport::Viewport;
 
 use super::super::Editor;
 use super::command::Command;
-use super::keybind_manager::Keybinds;
 use super::mode::Mode;
 
 impl ClearDraw for Viewport {}

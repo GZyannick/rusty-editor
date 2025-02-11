@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem};
 
 use crossterm::event::{KeyCode, KeyModifiers};
 
-use crate::{editor::Editor, log_message};
+use crate::editor::Editor;
 
 use super::{actions::action::Action, mode::Mode};
 
@@ -602,6 +602,13 @@ impl KeybindManager {
             .chain(self.insert_mode.iter())
             .chain(self.file_explorer.iter());
 
+        lines.push("--- For specific keybinds you can type ---".to_string());
+        lines.push("".to_string());
+        lines.push("map e / explorer      n / normal      c / command".to_string());
+        lines.push("map i / insert        e / visual      s / search".to_string());
+        lines.push("".to_string());
+        lines.push("".to_string());
+
         for (k, v) in chain_keybinds {
             let key = match k.1 != KeyModifiers::empty() {
                 true => format!("{} {}: {}", k.1, k.0, v.desc),
@@ -615,16 +622,15 @@ impl KeybindManager {
 
     pub fn specific_keybinds(&self, mode: &str) -> Vec<String> {
         let mode = match mode.to_lowercase().as_str() {
-            "explorer" => Some((&self.file_explorer, "File Explorer Keybinds")),
-            "normal" => Some((&self.normal_mode, "Normal Keybinds")),
-            "command" => Some((&self.command_mode, "Command Keybinds")),
-            "insert" => Some((&self.insert_mode, "Insert Keybinds")),
-            "visual" => Some((&self.visual_mode, "Visual Keybinds")),
-            "search" => Some((&self.search_mode, "Search Keybinds")),
+            "explorer" | "e" => Some((&self.file_explorer, "File Explorer Keybinds")),
+            "normal" | "n" => Some((&self.normal_mode, "Normal Keybinds")),
+            "command" | "c" => Some((&self.command_mode, "Command Keybinds")),
+            "insert" | "i" => Some((&self.insert_mode, "Insert Keybinds")),
+            "visual" | "v" => Some((&self.visual_mode, "Visual Keybinds")),
+            "search" | "s" => Some((&self.search_mode, "Search Keybinds")),
             _ => None,
         };
         if let Some((keybinds, name)) = mode {
-            log_message!("ICI");
             let mut lines: Vec<String> = vec![];
             lines.push(format!("----{name}----"));
             for (k, v) in keybinds {
