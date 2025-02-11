@@ -331,6 +331,13 @@ impl KeybindManager {
                 "Switches to Normal mode.".to_string(),
             ),
         );
+        keybinds.insert(
+            (KeyCode::Esc, KeyModifiers::empty()),
+            KeyAction::new(
+                ActionOrClosure::Static(Action::ClearToNormalMode),
+                "Returns to Normal mode and clears the current state.".to_string(),
+            ),
+        );
 
         keybinds.insert(
             (KeyCode::Backspace, KeyModifiers::empty()),

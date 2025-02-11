@@ -40,7 +40,7 @@ impl Popup {
 
 impl Viewport {
     // Can be used later
-    pub fn _popup(buffer: Buffer, width: u16, height: u16) -> Viewport {
+    pub fn _popup(buffer: Buffer, width: u16, height: u16, modifiable: bool) -> Viewport {
         let language = tree_sitter_rust::LANGUAGE;
         let popup = Popup::new(width, height);
 
@@ -51,6 +51,7 @@ impl Viewport {
             min_vwidth: popup.left,
             min_vheight: popup.top,
             buffer_position: (0, 0, 0, 0),
+            modifiable,
             left: 0,
             top: 0,
             language: language.into(),

@@ -61,10 +61,12 @@ impl Editor {
             size.0,
             size.1 - TERMINAL_SIZE_MINUS,
             0,
+            true,
         );
 
         if buffer.is_directory {
-            explorer_viewport = Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0);
+            explorer_viewport =
+                Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0, true);
 
             // this is an empty file viewport
             viewports.push(Viewport::new(
@@ -72,6 +74,7 @@ impl Editor {
                 size.0,
                 size.1 - TERMINAL_SIZE_MINUS,
                 0,
+                true,
             ));
 
             // Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS, 0)
@@ -81,6 +84,7 @@ impl Editor {
                 size.0,
                 size.1 - TERMINAL_SIZE_MINUS,
                 0,
+                true,
             ));
         }
         viewports.push(explorer_viewport);

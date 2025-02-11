@@ -11,16 +11,15 @@ use action::Action;
 use anyhow::Ok;
 use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
+use super::super::Editor;
+use super::command::Command;
+use super::mode::Mode;
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::ui::modal::{
     create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
 };
 use crate::viewport::Viewport;
-
-use super::super::Editor;
-use super::command::Command;
-use super::mode::Mode;
 
 impl ClearDraw for Viewport {}
 
@@ -80,6 +79,11 @@ impl Action {
         // other that dont really need a file for themselve
         match self {
             Action::EnterMode(mode) => {
+                // to check if the viewport is modifiable to enter the insert_mode
+                if matches!(mode, Mode::Insert) && !editor.viewports.c_viewport().modifiable {
+                    editor.toast.error("viewport cannot be modifiable".into());
+                    return Ok(());
+                }
                 self.enter_mode_insert(editor, mode)?;
                 self.enter_mode_visual(editor, mode)?;
                 self.enter_mode_command(editor, mode)?;
@@ -174,6 +178,7 @@ impl Action {
             Action::GotoParentDirectory => {
                 let current_viewport = editor.viewports.c_mut_viewport();
                 if let Some(parent_buffer) = current_viewport.buffer.parent_dir() {
+                    current_viewport.modifiable = true;
                     current_viewport.buffer = parent_buffer;
                 }
             }
@@ -188,12 +193,15 @@ impl Action {
                             editor.buffer_actions.push(Action::GotoParentDirectory);
                         }
                         true => {
-                            editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));
+                            let viewport = editor.viewports.c_mut_viewport();
+                            viewport.modifiable = true;
+                            viewport.buffer = Buffer::new(Some(path));
                         }
                         false => {
                             // editor.viewports.c_mut_viewport().as_normal();
-                            editor.viewports.get_original_viewport().unwrap().buffer =
-                                Buffer::new(Some(path));
+                            let viewport = editor.viewports.get_original_viewport().unwrap();
+                            viewport.modifiable = true;
+                            viewport.buffer = Buffer::new(Some(path));
                             editor.buffer_actions.push(Action::SwapViewportToExplorer);
                         }
                     }
@@ -263,6 +271,7 @@ impl Action {
                     return Ok(());
                 }
                 if let Some(viewport) = editor.viewports.get_original_viewport() {
+                    viewport.modifiable = false;
                     viewport.buffer = match keybind_type {
                         Some(keybind_type) => Buffer::new_tmp(
                             editor.keybinds.specific_keybinds(keybind_type),

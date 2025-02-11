@@ -20,6 +20,8 @@ pub struct Viewport {
     // and if we want to retrieve its old position we use the buffer_position
     //                    vw , vh , mvw, mvh
     pub buffer_position: (u16, u16, u16, u16),
+
+    pub modifiable: bool,
     pub vwidth: u16,
     pub vheight: u16,
     pub query: Query,
@@ -32,13 +34,20 @@ pub struct Viewport {
 }
 
 impl Viewport {
-    pub fn new(buffer: Buffer, vwidth: u16, vheight: u16, min_vwidth: u16) -> Viewport {
+    pub fn new(
+        buffer: Buffer,
+        vwidth: u16,
+        vheight: u16,
+        min_vwidth: u16,
+        modifiable: bool,
+    ) -> Viewport {
         let language = tree_sitter_rust::LANGUAGE;
         // i am in obligation to put the Query::new in viewport or it will make lag the app
         // and make it unspossible to use tree_sitter without delay in the input
         let min_vwidth = min_vwidth + LINE_NUMBERS_WIDTH;
         Viewport {
             buffer,
+            modifiable,
             vwidth,
             vheight,
             min_vwidth,
