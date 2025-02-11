@@ -627,8 +627,8 @@ impl KeybindManager {
 
             for (k, v) in map {
                 let key = match k.1 != KeyModifiers::empty() {
-                    true => format!("{} {}: {}", k.1, k.0, v.desc),
-                    false => format!("{}: {}", k.0, v.desc),
+                    true => format!("{} {}  : {}", k.1, k.0, v.desc),
+                    false => format!("{}  : {}", k.0, v.desc),
                 };
                 lines.push(key);
                 lines.push(String::new());
@@ -652,8 +652,8 @@ impl KeybindManager {
             lines.push(format!("----{name}----"));
             for (k, v) in keybinds {
                 let key = match k.1 != KeyModifiers::empty() {
-                    true => format!("{} {}: {}", k.1, k.0, v.desc),
-                    false => format!("{}: {}", k.0, v.desc),
+                    true => format!("{} {}  : {}", k.1, k.0, v.desc),
+                    false => format!("{}  : {}", k.0, v.desc),
                 };
                 lines.push(key);
                 lines.push(String::new());
