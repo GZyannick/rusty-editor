@@ -174,8 +174,8 @@ impl Buffer {
             indent_n_time = line.chars().take_while(|&c| c == ' ').count();
 
             match line.chars().last().unwrap() {
-                '{' => indent_n_time += 2,
-                '}' => indent_n_time = indent_n_time.saturating_sub(2),
+                '{' => indent_n_time += 4,
+                '}' => indent_n_time = indent_n_time.saturating_sub(4),
                 _ => (),
             }
         }
