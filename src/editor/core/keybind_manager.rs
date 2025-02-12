@@ -1,11 +1,8 @@
-use core::fmt;
-use std::{collections::HashMap, mem};
-
-use crossterm::event::{KeyCode, KeyModifiers};
-
-use crate::editor::Editor;
-
 use super::{actions::action::Action, mode::Mode};
+use crate::editor::Editor;
+use core::fmt;
+use crossterm::event::{KeyCode, KeyModifiers};
+use std::{collections::HashMap, mem};
 
 pub enum ActionOrClosure {
     Static(Action),
