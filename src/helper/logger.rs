@@ -5,21 +5,22 @@ pub struct Logger {
     file: std::fs::File,
 }
 
-
 impl Logger {
     pub fn new(file: &str) -> anyhow::Result<Logger> {
-        let file = OpenOptions::new().create(true).read(true).append(true).open(file)?;
+        let file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .append(true)
+            .open(file)?;
 
-        Ok(Logger {file})
+        Ok(Logger { file })
     }
 
     pub fn log(&mut self, message: &str) -> anyhow::Result<()> {
         writeln!(self.file, "{}", message)?;
         Ok(())
     }
-    
 }
-
 
 #[macro_export]
 macro_rules! log_message {

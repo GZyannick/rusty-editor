@@ -52,4 +52,8 @@ impl ModalContent for ModalCreateFD {
             self.content.pop();
         }
     }
+
+    fn draw_modal(&self, editor: &mut crate::editor::Editor) -> anyhow::Result<()> {
+        self.draw_default(editor)
+    }
 }
