@@ -1,0 +1,26 @@
+Error:
+[ ] a, i does not work as intended both are the same
+	 (need to find how to make it bug to repair it)
+[ ] line 0 still not properly draw each loop
+[ ] line 0 when doing search is not clear properly and think is not search the cause
+
+TODO LIST
+[x] transform help keybinds to  map {} , normal, explorer, ....
+
+[x] get a modifiable bool in viewport
+
+[ x] Separate keybind in show_keybinds with name of each and remove duplicate keybinds instead show the keybind with the associated mode
+
+[ ] Make a check up on the app, document it
+[ ] Start writing test 
+
+[ ] make a fn where i check if i can insert with + 1 if line is not empty 
+[ ] make that tmp buffer doesn't need to check if viewport is saved before
+[ ] handle multiple viewport
+or see if i can somehow transform a part of viewport draw to clojure like that the user can do whatever he want with
+or like give him stdout
+
+
+[ ] make the possibility to change keybind in a config file by the user that i loaded before running KeyManager 
+[ ] Later: draw keybind like whichkey or lazyvim
+[] :remap to be able to remap a keybind directly
