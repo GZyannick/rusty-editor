@@ -136,3 +136,26 @@ impl Viewport {
         self.search_pos = vec![];
     }
 }
+
+impl Default for Viewport {
+    fn default() -> Self {
+        let language = tree_sitter_rust::LANGUAGE;
+        Viewport {
+            buffer: Buffer::new(None),
+            modifiable: true,
+            vwidth: 80,
+            vheight: 20,
+            min_vwidth: LINE_NUMBERS_WIDTH,
+            min_vheight: 0,
+            left: 0,
+            top: 0,
+            buffer_position: (0, 0, 0, 0),
+            language: language.into(),
+            query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
+            bg_color: Color::from(DARK0),
+            is_popup: false,
+            search_pos: vec![],
+            search_index: 0,
+        }
+    }
+}

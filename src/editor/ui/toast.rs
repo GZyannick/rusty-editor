@@ -58,7 +58,7 @@ impl Toast {
         });
     }
 
-    pub fn draw(&mut self, stdout: &mut std::io::Stdout, size_x: &u16) -> anyhow::Result<()> {
+    pub fn draw<W: std::io::Write>(&mut self, stdout: &mut W, size_x: &u16) -> anyhow::Result<()> {
         let messages = &mut self.messages;
         if let Some(toast_message) = messages.first_mut() {
             if toast_message.is_elapsed() {

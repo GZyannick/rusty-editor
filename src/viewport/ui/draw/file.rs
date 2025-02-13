@@ -8,9 +8,9 @@ use crate::{theme::colors, viewport::Viewport};
 
 use super::{tree_highlight::highlight, visual_block::draw_block};
 
-pub fn draw_file(
+pub fn draw_file<W: std::io::Write>(
     viewport: &Viewport,
-    stdout: &mut std::io::Stdout,
+    stdout: &mut W,
     start_v_mode: Option<(u16, u16)>,
     end_v_mode: Option<(u16, u16)>,
 ) -> anyhow::Result<u16> {
@@ -100,4 +100,102 @@ pub fn draw_file(
         }
     }
     Ok(y)
+}
+
+#[cfg(test)]
+mod tests_draw_file {
+    use crate::buff::Buffer;
+
+    use super::*;
+    use std::io::Cursor;
+
+    fn create_mock_stdout() -> Cursor<Vec<u8>> {
+        Cursor::new(Vec::new()) // Create a new Cursor to capture the output
+    }
+
+    // Test with an empty buffer
+    #[test]
+    fn test_draw_file_empty_buffer() {
+        let buffer = Buffer {
+            file: None,
+            is_directory: false,
+            path: "".to_string(),
+            lines: vec![], // Empty buffer
+            is_tmp: false,
+        };
+
+        let viewport = Viewport {
+            buffer,
+            ..Viewport::default()
+        };
+
+        let mut mock_stdout = create_mock_stdout();
+        let result = draw_file(&viewport, &mut mock_stdout, None, None);
+
+        assert!(
+            result.is_ok(),
+            "draw_file() should succeed even with an empty buffer"
+        );
+    }
+
+    // Test with file content
+    #[test]
+    fn test_draw_file_with_content() {
+        let buffer = Buffer {
+            file: None,
+            is_directory: false,
+            path: "example.rs".to_string(),
+            lines: vec![
+                "fn main() {".to_string(),
+                "    let x = 42;".to_string(),
+                "    println!(\"{{}}\", x);".to_string(),
+                "}".to_string(),
+            ],
+            is_tmp: false,
+        };
+
+        let viewport = Viewport {
+            buffer,
+            ..Viewport::default()
+        };
+
+        let mut mock_stdout = create_mock_stdout();
+        let result = draw_file(&viewport, &mut mock_stdout, None, None);
+
+        assert!(
+            result.is_ok(),
+            "draw_file() should succeed with content in buffer"
+        );
+    }
+
+    // Test with search enabled
+    #[test]
+    fn test_draw_file_with_search() {
+        let buffer = crate::buff::Buffer {
+            file: None,
+            is_directory: false,
+            path: "example.rs".to_string(),
+            lines: vec![
+                "fn main() {".to_string(),
+                "    let x = 42;".to_string(),
+                "    println!(\"{{}}\", x);".to_string(),
+                "}".to_string(),
+            ],
+            is_tmp: false,
+        };
+
+        let viewport = Viewport {
+            buffer,
+            search_pos: vec![(5, 5, 3)], // Search result at "main"
+            ..Viewport::default()
+        };
+
+        let mut mock_stdout = create_mock_stdout();
+        let result = draw_file(&viewport, &mut mock_stdout, None, None);
+
+        assert!(
+            result.is_ok(),
+            "draw_file() should succeed with search results"
+        );
+    }
 }

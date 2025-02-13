@@ -445,3 +445,15 @@ impl Buffer {
         sorted_file.sort();
     }
 }
+
+impl Default for Buffer {
+    fn default() -> Self {
+        Self {
+            file: Default::default(),
+            is_directory: Default::default(),
+            path: Default::default(),
+            lines: Default::default(),
+            is_tmp: Default::default(),
+        }
+    }
+}
