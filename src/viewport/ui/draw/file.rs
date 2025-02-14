@@ -121,7 +121,6 @@ mod tests_draw_file {
             is_directory: false,
             path: "".to_string(),
             lines: vec![], // Empty buffer
-            is_tmp: false,
         };
 
         let viewport = Viewport {
@@ -151,7 +150,6 @@ mod tests_draw_file {
                 "    println!(\"{{}}\", x);".to_string(),
                 "}".to_string(),
             ],
-            is_tmp: false,
         };
 
         let viewport = Viewport {
@@ -181,7 +179,6 @@ mod tests_draw_file {
                 "    println!(\"{{}}\", x);".to_string(),
                 "}".to_string(),
             ],
-            is_tmp: false,
         };
 
         let viewport = Viewport {

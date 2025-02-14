@@ -12,6 +12,12 @@ impl OldCursorPosition {
     }
 }
 
+impl PartialEq for OldCursorPosition {
+    fn eq(&self, other: &Self) -> bool {
+        self.cursor == other.cursor && self.top == other.top
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Action {
     MoveUp,
@@ -76,4 +82,39 @@ pub enum Action {
     RenameInputModal,
     DeleteInputModal,
     HelpKeybinds(Option<String>),
+}
+
+impl PartialEq for Action {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::EnterMode(l0), Self::EnterMode(r0)) => l0 == r0,
+            (Self::AddChar(l0), Self::AddChar(r0)) => l0 == r0,
+            (Self::RemoveCharAt(l0), Self::RemoveCharAt(r0)) => l0 == r0,
+            (Self::RemoveCharFrom(l0), Self::RemoveCharFrom(r0)) => l0 == r0,
+            (Self::WaitingCmd(l0), Self::WaitingCmd(r0)) => l0 == r0,
+            (Self::AddCommandChar(l0), Self::AddCommandChar(r0)) => l0 == r0,
+            (Self::CreateFileOrDirectory(l0), Self::CreateFileOrDirectory(r0)) => l0 == r0,
+            (Self::UndoDeleteLine(l0, l1), Self::UndoDeleteLine(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::UndoDeleteBlock(l0, l1), Self::UndoDeleteBlock(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::UndoNewLine(l0), Self::UndoNewLine(r0)) => l0 == r0,
+            (Self::UndoMultiple(l0), Self::UndoMultiple(r0)) => l0 == r0,
+            (Self::UndoCharAt(l0, l1), Self::UndoCharAt(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::UndoPast(l0, l1, l2), Self::UndoPast(r0, r1, r2)) => {
+                l0 == r0 && l1 == r1 && l2 == r2
+            }
+            (Self::AddSearchChar(l0), Self::AddSearchChar(r0)) => l0 == r0,
+            (Self::GotoPos(l0), Self::GotoPos(r0)) => l0 == r0,
+            (Self::UndoNewLineWithText(l0, l1), Self::UndoNewLineWithText(r0, r1)) => {
+                l0 == r0 && l1 == r1
+            }
+            (Self::AddStr(l0), Self::AddStr(r0)) => l0 == r0,
+            (Self::UndoStrAt(l0, l1, l2), Self::UndoStrAt(r0, r1, r2)) => {
+                l0 == r0 && l1 == r1 && l2 == r2
+            }
+            (Self::RenameFileOrDirectory(l0), Self::RenameFileOrDirectory(r0)) => l0 == r0,
+            (Self::AddModalChar(l0), Self::AddModalChar(r0)) => l0 == r0,
+            (Self::HelpKeybinds(l0), Self::HelpKeybinds(r0)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }

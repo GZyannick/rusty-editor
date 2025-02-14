@@ -30,6 +30,12 @@ pub struct CursorBlock {
     pub end: (u16, u16),
 }
 
+impl PartialEq for CursorBlock {
+    fn eq(&self, other: &Self) -> bool {
+        self.start == other.start && self.end == other.end
+    }
+}
+
 pub struct Editor<W: Write> {
     pub toast: Toast,
     pub mode: Mode,

@@ -20,3 +20,9 @@ impl Display for Mode {
         }
     }
 }
+
+impl PartialEq for Mode {
+    fn eq(&self, other: &Self) -> bool {
+        core::mem::discriminant(self) == core::mem::discriminant(other)
+    }
+}

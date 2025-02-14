@@ -82,22 +82,134 @@ pub fn draw_line_counter<W: Write>(editor: &mut Editor<W>, pos: String) -> Resul
 
 #[cfg(test)]
 mod test_draw_bottom {
-
     use super::*;
     use std::io::Cursor;
 
-    // Helper function to mock Stdout with a Vec<u8>
-    #[test]
-    fn test_draw_bottom() {
-        let mut editor = Editor::<Cursor<Vec<u8>>>::default();
+    // Helper function to create a mock Editor with Cursor<Vec<u8>>
+    fn create_mock_editor() -> Editor<Cursor<Vec<u8>>> {
+        Editor::<Cursor<Vec<u8>>>::default()
+    }
 
+    #[test]
+    fn test_draw_bottom_success() {
+        let mut editor = create_mock_editor();
+
+        // Call the draw_bottom function
         let result = draw_bottom(&mut editor);
 
-        let output = editor.stdout.get_ref().clone();
-        println!("output: {:#?}", output);
+        // Check if the result is Ok
+        assert!(result.is_ok(), "draw_bottom should execute without errors");
+
+        // Extract the output from stdout (a Cursor<Vec<u8>>)
+        let output_str = String::from_utf8(editor.stdout.get_ref().clone())
+            .expect("Failed to convert stdout to string");
+
+        // Check if some expected content (like the mode or position) is printed
+        assert!(
+            output_str.contains(" "),
+            "Output should contain space indicating status bar content."
+        );
+    }
+
+    #[test]
+    fn test_draw_status_line_success() {
+        let mut editor = create_mock_editor();
+
+        // Prepare some test strings for mode and filename
+        let mode = "Normal ";
+        let filename = "test_file.txt";
+
+        // Call the draw_status_line function
+        let result = draw_status_line(&mut editor, mode.to_string(), filename.to_string());
+
+        // Check if the result is Ok
         assert!(
             result.is_ok(),
-            "draw_bottom devrait s'exécuter sans erreurs"
+            "draw_status_line should execute without errors"
+        );
+
+        // Extract the output and check if it contains expected parts
+        let output_str = String::from_utf8(editor.stdout.get_ref().clone())
+            .expect("Failed to convert stdout to string");
+
+        assert!(output_str.contains(mode), "Output should contain the mode");
+        assert!(
+            output_str.contains(filename),
+            "Output should contain the filename"
+        );
+    }
+
+    #[test]
+    fn test_draw_last_line_command_mode() {
+        let mut editor = create_mock_editor();
+        editor.mode = Mode::Command;
+        editor.command = ":w".to_string(); // Simulate a command
+
+        // Call the draw_last_line function
+        let result = draw_last_line(&mut editor);
+
+        // Check if the result is Ok
+        assert!(
+            result.is_ok(),
+            "draw_last_line should execute without errors in Command mode"
+        );
+
+        // Extract the output and check if it contains the command
+        let output_str = String::from_utf8(editor.stdout.get_ref().clone())
+            .expect("Failed to convert stdout to string");
+
+        assert!(
+            output_str.contains(":w"),
+            "Output should contain the command"
+        );
+    }
+
+    #[test]
+    fn test_draw_last_line_search_mode() {
+        let mut editor = create_mock_editor();
+        editor.mode = Mode::Search;
+        editor.search = "/search_term".to_string(); // Simulate a search term
+
+        // Call the draw_last_line function
+        let result = draw_last_line(&mut editor);
+
+        // Check if the result is Ok
+        assert!(
+            result.is_ok(),
+            "draw_last_line should execute without errors in Search mode"
+        );
+
+        // Extract the output and check if it contains the search term
+        let output_str = String::from_utf8(editor.stdout.get_ref().clone())
+            .expect("Failed to convert stdout to string");
+
+        assert!(
+            output_str.contains("/search_term"),
+            "Output should contain the search term"
+        );
+    }
+
+    #[test]
+    fn test_draw_line_counter() {
+        let mut editor = create_mock_editor();
+        let position = "10:20"; // Simulate cursor position
+
+        // Call the draw_line_counter function
+        let result = draw_line_counter(&mut editor, position.to_string());
+
+        // Check if the result is Ok
+        assert!(
+            result.is_ok(),
+            "draw_line_counter should execute without errors"
+        );
+
+        // Extract the output and check if it contains the position
+        let output_str = String::from_utf8(editor.stdout.get_ref().clone())
+            .expect("Failed to convert stdout to string");
+
+        assert!(
+            output_str.contains(position),
+            "Output should contain the position"
         );
     }
 }

@@ -91,3 +91,29 @@ impl Toast {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests_toast {
+    use std::io::Cursor;
+
+    use crate::editor::Editor;
+
+    // Helper function to create a mock Editor with Cursor<Vec<u8>>
+    fn create_mock_editor() -> Editor<Cursor<Vec<u8>>> {
+        Editor::<Cursor<Vec<u8>>>::default()
+    }
+
+    #[test]
+    fn test_toast_indication() {
+        let mut editor = create_mock_editor();
+        editor.toast.indication("Hello_word".to_string());
+
+        let first_toast = editor.toast.messages.first().unwrap();
+
+        assert!(!first_toast.is_error, "should not be an error");
+        assert!(
+            first_toast.message.eq("Hello_word"),
+            "the content should be Hello_word"
+        )
+    }
+}

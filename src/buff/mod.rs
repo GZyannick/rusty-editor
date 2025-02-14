@@ -14,7 +14,6 @@ pub struct Buffer {
     pub is_directory: bool,
     pub path: String,
     pub lines: Vec<String>,
-    pub is_tmp: bool, // like that we can create tmp buffer should not be saved
 }
 
 impl Buffer {
@@ -24,7 +23,6 @@ impl Buffer {
             is_directory: false,
             lines,
             path,
-            is_tmp: true,
         }
     }
 
@@ -46,7 +44,6 @@ impl Buffer {
             is_directory: false,
             lines: vec![String::new()],
             path: "Empty".to_string(),
-            is_tmp: false,
         }
     }
 
@@ -72,7 +69,6 @@ impl Buffer {
             is_directory: false,
             lines,
             path,
-            is_tmp: false,
         }
     }
 
@@ -93,7 +89,6 @@ impl Buffer {
             is_directory: true,
             lines,
             path: d_path,
-            is_tmp: false,
         }
     }
 
@@ -443,5 +438,107 @@ impl Buffer {
         let (sorted_dir, sorted_file) = lines.split_at_mut(j);
         sorted_dir.sort();
         sorted_file.sort();
+    }
+}
+
+#[cfg(test)]
+mod tests_buffer {
+    use super::*;
+    use std::{env, fs, io::Write};
+    use tempfile::{NamedTempFile, TempDir};
+
+    // Helper function to create a temporary directory and a few files.
+    fn setup_temp_dir() -> (TempDir, NamedTempFile, NamedTempFile) {
+        let dir = TempDir::new().unwrap();
+        let file1 = NamedTempFile::new().unwrap();
+        let file2 = NamedTempFile::new().unwrap();
+
+        // Create some files in the directory
+        let _dir_path = dir.path().to_str().unwrap().to_string();
+        let file1_path = file1.path().to_str().unwrap().to_string();
+        let file2_path = file2.path().to_str().unwrap().to_string();
+
+        // Create some content in files
+        fs::write(&file1_path, "File 1 content").unwrap();
+        fs::write(&file2_path, "File 2 content").unwrap();
+
+        (dir, file1, file2)
+    }
+
+    #[test]
+    fn test_create_buffer_for_file() {
+        let (_temp_dir, file1, _file2) = setup_temp_dir();
+
+        let file1_path = file1.path().to_str().unwrap().to_string();
+        let buffer = Buffer::new(Some(file1_path.clone()));
+
+        assert_eq!(buffer.path, file1_path);
+        assert!(!buffer.is_directory);
+        assert!(!buffer.lines.is_empty());
+    }
+
+    #[test]
+    fn test_create_buffer_for_directory() {
+        let (dir, _file1, _file2) = setup_temp_dir();
+
+        let dir_path = dir.path().to_str().unwrap().to_string();
+        let buffer = Buffer::new(Some(dir_path.clone()));
+
+        assert_eq!(buffer.path, dir_path);
+        assert!(buffer.is_directory);
+        assert!(!buffer.lines.is_empty());
+    }
+
+    #[test]
+    fn test_sort_file() {
+        let (dir, file1, file2) = setup_temp_dir();
+
+        let dir_path = dir.path().to_str().unwrap().to_string();
+        let file1_path = file1.path().to_str().unwrap().to_string();
+        let file2_path = file2.path().to_str().unwrap().to_string();
+
+        // Simulating the directory and file paths in the `lines` vector.
+        let mut lines = vec![file1_path.clone(), dir_path.clone(), file2_path.clone()];
+
+        Buffer::sort_file(&mut lines);
+
+        // Verify the directory appears before the files, and both directories and files are sorted
+        assert_eq!(lines[0], dir_path);
+        assert!(lines[1] == file1_path || lines[1] == file2_path);
+        assert!(lines[2] == file1_path || lines[2] == file2_path);
+    }
+
+    #[test]
+    fn test_remove() {
+        let (_temp_dir, file1, _file2) = setup_temp_dir();
+
+        let file1_path = file1.path().to_str().unwrap().to_string();
+        let mut buffer = Buffer::new(Some(file1_path.clone()));
+
+        buffer.remove(0);
+
+        assert!(buffer.lines.is_empty());
+    }
+
+    #[test]
+    fn test_save() {
+        let (_temp_dir, file1, _file2) = setup_temp_dir();
+
+        let file1_path = file1.path().to_str().unwrap().to_string();
+        let mut buffer = Buffer::new(Some(file1_path.clone()));
+
+        buffer.add_str("New content".to_string(), (0, 0));
+
+        // Save the buffer back to the file
+        buffer.save().unwrap();
+
+        // Check the file content to ensure it was saved correctly
+        let mut file_content = String::new();
+        File::open(&file1_path)
+            .unwrap()
+            .read_to_string(&mut file_content)
+            .unwrap();
+
+        assert!(file_content.contains("New content"));
     }
 }
