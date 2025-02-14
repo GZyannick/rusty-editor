@@ -1,6 +1,7 @@
 pub mod core;
 pub mod ui;
 
+use crate::editor::fmt::Debug;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
@@ -13,7 +14,8 @@ use crossterm::{
     style::Color,
     terminal, ExecutableCommand, QueueableCommand,
 };
-use std::io::Stdout;
+use std::fmt;
+use std::io::{stdout, Cursor, Stdout, Write};
 use ui::modal::modal_trait::ModalContent;
 use ui::toast::Toast;
 // TERMINAL_LINE_LEN_MINUS if we want the cursor to go behind the last char or stop before,
@@ -28,19 +30,18 @@ pub struct CursorBlock {
     pub end: (u16, u16),
 }
 
-#[derive(Debug)]
-pub struct Editor {
+pub struct Editor<W: Write> {
     pub toast: Toast,
     pub mode: Mode,
-    pub keybinds: KeybindManager,
+    pub keybinds: KeybindManager<W>,
     pub command: String,
     pub search: String,
-    pub stdout: Stdout,
+    pub stdout: W,
     pub size: (u16, u16),
     pub cursor: (u16, u16),
     pub visual_cursor: Option<(u16, u16)>,
 
-    pub modal: Option<Box<dyn ModalContent>>,
+    pub modal: Option<Box<dyn ModalContent<W>>>,
     pub buffer_x_cursor: u16,
     pub waiting_command: Option<char>,
     pub viewports: Viewports,
@@ -51,8 +52,8 @@ pub struct Editor {
                                      // PS i could do better on comment
 }
 
-impl Editor {
-    pub fn new(buffer: Buffer) -> Result<Editor> {
+impl<W: Write> Editor<W> {
+    pub fn new(buffer: Buffer, stdout: W) -> Result<Editor<W>> {
         let size = terminal::size()?;
 
         let mut viewports = Viewports::new();
@@ -95,7 +96,7 @@ impl Editor {
             keybinds: KeybindManager::new(),
             search: String::new(),
             command: String::new(),
-            stdout: std::io::stdout(),
+            stdout,
             size,
             cursor: (0, 0),
             visual_cursor: None,
@@ -255,17 +256,77 @@ impl Editor {
         c_mut_viewport.left = 0;
     }
 
-    pub fn set_modal(&mut self, modal: Box<dyn ModalContent>) {
+    pub fn set_modal(&mut self, modal: Box<dyn ModalContent<W>>) {
         self.modal = Some(modal)
     }
 }
 
-impl Drop for Editor {
+impl<W: Write> Drop for Editor<W> {
     fn drop(&mut self) {
         let _ = self
             .stdout
             .execute(terminal::Clear(terminal::ClearType::Purge));
         let _ = self.stdout.execute(terminal::LeaveAlternateScreen);
         let _ = terminal::disable_raw_mode();
+    }
+}
+
+impl Default for Editor<Stdout> {
+    fn default() -> Self {
+        Self {
+            toast: Toast::new(),
+            mode: Mode::Normal,
+            keybinds: KeybindManager::new(),
+            search: String::new(),
+            command: String::new(),
+            stdout: stdout(),
+            size: (80, 20),
+            cursor: (0, 0),
+            visual_cursor: None,
+            modal: None,
+            buffer_x_cursor: 0,
+            waiting_command: None,
+            viewports: Viewports::default(),
+            buffer_actions: vec![],
+            undo_actions: vec![],
+            undo_insert_actions: vec![],
+        }
+    }
+}
+
+impl Default for Editor<Cursor<Vec<u8>>> {
+    fn default() -> Self {
+        Self {
+            toast: Toast::new(),
+            mode: Mode::Normal,
+            keybinds: KeybindManager::new(),
+            search: String::new(),
+            command: String::new(),
+            stdout: Cursor::new(Vec::new()),
+            size: (80, 20),
+            cursor: (0, 0),
+            visual_cursor: None,
+            modal: None,
+            buffer_x_cursor: 0,
+            waiting_command: None,
+            viewports: Viewports::default(),
+            buffer_actions: vec![],
+            undo_actions: vec![],
+            undo_insert_actions: vec![],
+        }
+    }
+}
+
+impl<W: Write> Debug for Editor<W> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Editor")
+            .field("size", &self.size)
+            .field("mode", &self.mode)
+            .field("cursor", &self.cursor)
+            .field("command", &self.command)
+            .field("search", &self.search)
+            .field("viewports", &self.viewports)
+            .field("stdout", &"stdout (not debuggable)") // Just print a placeholder message for stdout
+            .finish()
     }
 }

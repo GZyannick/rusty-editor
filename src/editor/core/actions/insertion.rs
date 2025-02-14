@@ -1,9 +1,11 @@
+use std::io::Write;
+
 use crate::editor::{core::mode::Mode, Editor};
 
 use super::action::{Action, OldCursorPosition};
 
 impl Action {
-    pub fn insertion(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    pub fn insertion<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
             Action::AddStr(s) => {
                 let len = s.len();

@@ -1,9 +1,11 @@
+use std::io::Write;
+
 use crate::editor::{core::chartype::CharType, Editor, TERMINAL_LINE_LEN_MINUS};
 
 use super::action::Action;
 
 impl Action {
-    pub fn movement(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    pub fn movement<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
             Action::MoveUp => {
                 editor.move_prev_line();

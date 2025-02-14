@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::editor::Editor;
 use anyhow::{Ok, Result};
 use crossterm::QueueableCommand;
@@ -10,7 +12,7 @@ use super::actions::action::Action;
 use super::keybind_manager::KeybindManager;
 use super::mode::Mode;
 
-impl Editor {
+impl<W: Write> Editor<W> {
     pub fn handle_action(&mut self, event: Event) -> Result<Option<Action>> {
         if let event::Event::Key(ev) = event {
             if ev.kind == event::KeyEventKind::Release {

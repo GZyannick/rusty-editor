@@ -1,9 +1,6 @@
+use crate::theme::colors;
 use crate::viewport::{Viewport, LINE_NUMBERS_WIDTH};
 use crossterm::style::Color;
-use tree_sitter::Query;
-use tree_sitter_rust::HIGHLIGHTS_QUERY;
-
-use crate::{buff::Buffer, theme::colors};
 
 const POPUP_PERCENTAGE: u16 = 30;
 
@@ -76,7 +73,9 @@ impl Viewport {
 
 #[cfg(test)]
 mod test_popup {
-    use super::*;
+    use tree_sitter::Query;
+    use tree_sitter_rust::HIGHLIGHTS_QUERY;
+
     use crate::{buff::Buffer, viewport::Viewport};
     use crossterm::style::Color;
 

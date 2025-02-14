@@ -1,4 +1,4 @@
-use crate::viewport::Viewport;
+use crate::{buff::Buffer, editor::TERMINAL_SIZE_MINUS, viewport::Viewport};
 
 #[derive(Debug)]
 pub struct Viewports {
@@ -56,5 +56,19 @@ impl Viewports {
 
     fn get_by_index(&mut self, index: usize) -> Option<&mut Viewport> {
         self.values.get_mut(index)
+    }
+}
+
+impl Default for Viewports {
+    fn default() -> Self {
+        let values = vec![
+            Viewport::new(Buffer::new(None), 80, 20, 0, true),
+            Viewport::new(Buffer::new(Some("./".to_string())), 80, 20, 0, true),
+        ];
+        Self {
+            values,
+            index: 0,
+            buffer_index: 0,
+        }
     }
 }

@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::editor::core::actions::action::Action;
@@ -19,7 +21,7 @@ impl ModalDeleteFD {
     }
 }
 
-impl ModalContent for ModalDeleteFD {
+impl<W: Write> ModalContent<W> for ModalDeleteFD {
     fn title(&self) -> &str {
         &self.title
     }
@@ -45,7 +47,7 @@ impl ModalContent for ModalDeleteFD {
         };
         match action.is_some() {
             true => Ok(action),
-            false => Ok(self.basic_action(code)),
+            false => Ok(<ModalDeleteFD as ModalContent<W>>::basic_action(self, code)),
         }
     }
 
@@ -58,7 +60,7 @@ impl ModalContent for ModalDeleteFD {
             self.content.pop();
         }
     }
-    fn draw_modal(&self, editor: &mut crate::editor::Editor) -> anyhow::Result<()> {
+    fn draw_modal(&self, editor: &mut crate::editor::Editor<W>) -> anyhow::Result<()> {
         self.draw_default(editor)
     }
 }

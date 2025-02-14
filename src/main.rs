@@ -20,7 +20,7 @@ mod viewport;
 fn main() -> anyhow::Result<()> {
     let file_path = std::env::args().nth(1);
     let buffer = Buffer::new(file_path.clone());
-    let mut editor = Editor::new(buffer)?;
+    let mut editor = Editor::new(buffer, stdout())?;
     editor.enter_raw_mode()?;
 
     panic::set_hook(Box::new(|info| {
@@ -36,6 +36,8 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod main_tests {
+    use std::io::stdout;
+
     use crate::{
         buff::Buffer,
         editor::{core::mode::Mode, Editor},
@@ -71,7 +73,7 @@ mod main_tests {
         let file_path = Some(path.clone());
         let buffer = Buffer::new(file_path);
 
-        let editor = Editor::new(buffer)?;
+        let editor = Editor::new(buffer, stdout())?;
         assert!(matches!(editor.mode, Mode::Normal));
         assert!(!editor.keybinds.normal_mode.is_empty());
         assert!(!editor.keybinds.visual_mode.is_empty());

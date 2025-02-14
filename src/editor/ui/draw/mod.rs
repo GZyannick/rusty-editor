@@ -7,7 +7,7 @@ mod bottom;
 mod current_viewport;
 mod modal;
 
-impl Editor {
+impl<W: Write> Editor<W> {
     pub fn draw(&mut self) -> Result<()> {
         // some terminal line windows default show the cursor when drawing the tui so hide and show
         // it at the end of draw

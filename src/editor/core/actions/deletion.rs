@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     editor::{core::mode::Mode, Editor},
     helper::clipboard::copy_to_clipboard,
@@ -6,7 +8,7 @@ use crate::{
 use super::action::{Action, OldCursorPosition};
 
 impl Action {
-    pub fn deletion(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    pub fn deletion<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
             Action::RemoveCharAt(cursor) => {
                 if editor.viewports.c_viewport().get_line_len(cursor) > 0 {

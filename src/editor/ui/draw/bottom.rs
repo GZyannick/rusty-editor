@@ -9,7 +9,8 @@ use crossterm::{
     QueueableCommand,
 };
 
-pub fn draw_bottom(editor: &mut Editor) -> anyhow::Result<()> {
+use std::io::Write;
+pub fn draw_bottom<W: Write>(editor: &mut Editor<W>) -> anyhow::Result<()> {
     editor
         .stdout
         .queue(cursor::MoveTo(0, editor.size.1 - TERMINAL_SIZE_MINUS))?;
@@ -33,7 +34,11 @@ pub fn draw_bottom(editor: &mut Editor) -> anyhow::Result<()> {
 
     Ok(())
 }
-pub fn draw_status_line(editor: &mut Editor, mode: String, filename: String) -> Result<()> {
+pub fn draw_status_line<W: Write>(
+    editor: &mut Editor<W>,
+    mode: String,
+    filename: String,
+) -> Result<()> {
     editor.stdout.queue(PrintStyledContent(
         mode.with(Color::White)
             .bold()
@@ -49,7 +54,7 @@ pub fn draw_status_line(editor: &mut Editor, mode: String, filename: String) -> 
     Ok(())
 }
 // this method will draw command or search depending on the mode
-pub fn draw_last_line(editor: &mut Editor) -> Result<()> {
+pub fn draw_last_line<W: Write>(editor: &mut Editor<W>) -> Result<()> {
     let (symbol, cmd) = match editor.mode {
         Mode::Command => (':', &editor.command),
         Mode::Search => ('/', &editor.search),
@@ -66,11 +71,33 @@ pub fn draw_last_line(editor: &mut Editor) -> Result<()> {
     Ok(())
 }
 
-pub fn draw_line_counter(editor: &mut Editor, pos: String) -> Result<()> {
+pub fn draw_line_counter<W: Write>(editor: &mut Editor<W>, pos: String) -> Result<()> {
     // print the cursor position
     editor.stdout.queue(PrintStyledContent(
         pos.with(Color::Black).on(Color::from(colors::BRIGHT_GREEN)),
     ))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test_draw_bottom {
+
+    use super::*;
+    use std::io::Cursor;
+
+    // Helper function to mock Stdout with a Vec<u8>
+    #[test]
+    fn test_draw_bottom() {
+        let mut editor = Editor::<Cursor<Vec<u8>>>::default();
+
+        let result = draw_bottom(&mut editor);
+
+        let output = editor.stdout.get_ref().clone();
+        println!("output: {:#?}", output);
+        assert!(
+            result.is_ok(),
+            "draw_bottom devrait s'exécuter sans erreurs"
+        );
+    }
 }

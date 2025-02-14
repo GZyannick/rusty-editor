@@ -1,5 +1,7 @@
+use std::io::Write;
+
 use crate::editor::Editor;
-pub fn draw_current_viewport(editor: &mut Editor) -> anyhow::Result<()> {
+pub fn draw_current_viewport<W: Write>(editor: &mut Editor<W>) -> anyhow::Result<()> {
     let current_viewport = editor.viewports.c_viewport();
     {
         match editor.is_visual_mode() {

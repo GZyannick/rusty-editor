@@ -6,6 +6,7 @@ pub mod search;
 pub mod undo;
 pub mod yank_past;
 use std::fs::metadata;
+use std::io::Write;
 
 use action::Action;
 use anyhow::Ok;
@@ -25,7 +26,11 @@ impl ClearDraw for Viewport {}
 
 impl Action {
     // handle insert and leaving visual mode
-    fn enter_mode_visual(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+    fn enter_mode_visual<W: Write>(
+        &self,
+        editor: &mut Editor<W>,
+        mode: &Mode,
+    ) -> anyhow::Result<()> {
         // create visual_cursor if we enter Visual Mode
         if !matches!(editor.mode, Mode::Visual) && matches!(mode, Mode::Visual) {
             editor.visual_cursor = Some(editor.cursor);
@@ -39,7 +44,11 @@ impl Action {
     }
 
     // handle insert and leaving insert mode
-    fn enter_mode_insert(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+    fn enter_mode_insert<W: Write>(
+        &self,
+        editor: &mut Editor<W>,
+        mode: &Mode,
+    ) -> anyhow::Result<()> {
         // if we enter insert mode
         if !matches!(editor.mode, Mode::Insert) && matches!(mode, Mode::Insert) {
             editor.stdout.execute(cursor::SetCursorStyle::SteadyBar)?;
@@ -58,7 +67,11 @@ impl Action {
     }
 
     // handle insert and leaving command mode
-    fn enter_mode_command(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+    fn enter_mode_command<W: Write>(
+        &self,
+        editor: &mut Editor<W>,
+        mode: &Mode,
+    ) -> anyhow::Result<()> {
         // if we leave command clear bottom line
         if matches!(editor.mode, Mode::Command) && !matches!(mode, Mode::Command) {
             editor.command = String::new();
@@ -66,7 +79,7 @@ impl Action {
         Ok(())
     }
 
-    pub fn execute(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    pub fn execute<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         // i could use a tree pattern like in movement i call delete in delete i call for find ...
         // but i prefer to call all of them in a single file
         self.movement(editor)?;

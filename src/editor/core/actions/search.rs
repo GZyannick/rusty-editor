@@ -1,8 +1,10 @@
+use std::io::Write;
+
 use super::action::Action;
 use crate::editor::{core::mode::Mode, Editor};
 
 impl Action {
-    pub fn search(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    pub fn search<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
             // allow us to clear search string
             Action::ClearToNormalMode => {
