@@ -261,14 +261,52 @@ mod tests_movement {
 
         assert!(
             bl as u16 - 1 == editor.cursor.1,
-            "cursor.0 should be at the end of line"
+            "cursor.0 should be at the end of file"
         );
 
         Action::StartOfFile.execute(&mut editor).unwrap();
 
         assert!(
             0 == editor.cursor.1,
-            "cursor.0 should be at the start of line"
+            "cursor.0 should be at the start of file"
+        );
+    }
+
+    #[test]
+    fn test_goto_pos() {
+        let mut editor = mock_file_editor();
+        Action::GotoPos((0, 20)).execute(&mut editor).unwrap();
+        assert!(editor.cursor == (0, 0), "cursor should not move");
+
+        Action::GotoPos((2, 2)).execute(&mut editor).unwrap();
+        assert!(editor.cursor == (2, 2), "cursor should be at 2, 2");
+    }
+
+    #[test]
+    fn test_move_next() {
+        let mut editor = mock_file_editor();
+
+        // set cursor where there are multiple word on the line
+        editor.cursor = (0, 1);
+        Action::MoveNext.execute(&mut editor).unwrap();
+
+        assert!(
+            editor.cursor.0 > 1,
+            "Cursor should move to the start of the next word"
+        );
+    }
+
+    #[test]
+    fn test_move_prev() {
+        let mut editor = mock_file_editor();
+
+        editor.cursor = (10, 1); // Assuming cursor is inside "keyword"
+
+        Action::MovePrev.execute(&mut editor).unwrap();
+
+        assert!(
+            editor.cursor.0 < 10,
+            "Cursor should move to the start of the previous word"
         );
     }
 }
