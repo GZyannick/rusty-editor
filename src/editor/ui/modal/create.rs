@@ -6,7 +6,7 @@ use crate::editor::{core::actions::action::Action, Editor};
 
 use super::modal_trait::ModalContent;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModalCreateFD {
     title: String,
     content: String,

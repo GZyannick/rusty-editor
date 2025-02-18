@@ -6,7 +6,7 @@ use crate::editor::core::actions::action::Action;
 
 use super::modal_trait::ModalContent;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModalRenameFD {
     title: String,
     content: String,

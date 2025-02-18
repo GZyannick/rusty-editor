@@ -107,3 +107,145 @@ impl Action {
         Ok(())
     }
 }
+#[cfg(test)]
+mod tests_insertion {
+    use crate::{
+        buff::Buffer,
+        editor::{
+            core::{actions::action::Action, mode::Mode},
+            ui::modal::rename::ModalRenameFD,
+            Editor,
+        },
+        log_message,
+    };
+    use std::io::{Cursor, Seek, Write};
+    use tempfile::NamedTempFile;
+
+    fn setup_temp_file() -> NamedTempFile {
+        let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let content = "Line1\nLine2\nLine3";
+        temp_file
+            .write_all(content.as_bytes())
+            .expect("Failed to write");
+        temp_file.flush().expect("Failed to flush");
+        temp_file
+            .seek(std::io::SeekFrom::Start(0))
+            .expect("Failed to seek");
+        temp_file
+    }
+
+    fn mock_file_editor() -> Editor<Cursor<Vec<u8>>> {
+        let tmp_file = setup_temp_file();
+        let path = tmp_file.path().to_str().unwrap().to_string();
+        let mut editor = Editor::default();
+        editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));
+        editor
+    }
+
+    #[test]
+    fn test_add_str() {
+        let mut editor = mock_file_editor();
+
+        Action::AddStr("Hello".to_string())
+            .execute(&mut editor)
+            .unwrap();
+
+        let line = editor.viewports.c_viewport().buffer.get(0).unwrap();
+        assert_eq!(line, "HelloLine1");
+    }
+
+    #[test]
+    fn test_add_char() {
+        let mut editor = mock_file_editor();
+        let initial_cursor = editor.cursor;
+
+        Action::AddChar('X').execute(&mut editor).unwrap();
+
+        assert_eq!(editor.cursor.0, initial_cursor.0 + 1);
+        assert_eq!(
+            editor
+                .viewports
+                .c_viewport()
+                .buffer
+                ._get_char(&initial_cursor),
+            Some('X')
+        );
+    }
+
+    #[test]
+    fn test_add_command_char() {
+        let mut editor = mock_file_editor();
+        Action::AddCommandChar('X').execute(&mut editor).unwrap();
+
+        assert_eq!(editor.command, "X");
+    }
+
+    // #[test]
+    // fn test_add_modal_char() {
+    //     let mut editor = mock_file_editor();
+    //     editor.modal = Some(Box::new(ModalRenameFD::new("Test".into(), "".into())));
+    //
+    //     Action::AddModalChar('Y').execute(&mut editor).unwrap();
+    //     if let Some(modal) = editor.modal.clone() {
+    //         assert_eq!(modal.body(), "Y");
+    //     }
+    //
+    //     assert_eq!(&editor.modal.unwrap().body().clone(), &"Y");
+    // }
+    //
+    #[test]
+    fn test_add_search_char() {
+        let mut editor = mock_file_editor();
+        Action::AddSearchChar('Z').execute(&mut editor).unwrap();
+        assert_eq!(editor.search, "Z");
+    }
+
+    #[test]
+    fn test_new_line_insertion_at_cursor() {
+        let mut editor = mock_file_editor();
+        let initial_cursor = editor.cursor;
+        let initial_buffer_len = editor.viewports.c_viewport().get_buffer_len();
+
+        Action::NewLineInsertionAtCursor
+            .execute(&mut editor)
+            .unwrap();
+
+        assert_eq!(editor.cursor, initial_cursor);
+        assert_eq!(
+            editor.viewports.c_viewport().get_buffer_len(),
+            initial_buffer_len + 1
+        );
+        assert!(
+            matches!(editor.mode, Mode::Insert),
+            "should be in insert mode"
+        );
+    }
+
+    #[test]
+    fn test_new_line_insertion_below_cursor() {
+        let mut editor = mock_file_editor();
+        let initial_cursor = editor.cursor;
+
+        Action::NewLineInsertionBelowCursor
+            .execute(&mut editor)
+            .unwrap();
+
+        assert_eq!(editor.cursor.0, 0);
+        assert_eq!(editor.cursor.1, initial_cursor.1 + 1);
+        assert!(
+            matches!(editor.mode, Mode::Insert),
+            "should be in insert mode"
+        );
+    }
+
+    #[test]
+    fn test_new_line() {
+        let mut editor = mock_file_editor();
+        let initial_cursor = editor.cursor;
+
+        Action::NewLine.execute(&mut editor).unwrap();
+
+        assert_eq!(editor.cursor.0, 0);
+        assert_eq!(editor.cursor.1, initial_cursor.1 + 1);
+    }
+}

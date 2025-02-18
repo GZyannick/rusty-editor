@@ -58,6 +58,13 @@ impl Toast {
         });
     }
 
+    pub fn _last_message(&self) -> Option<&str> {
+        if let Some(toast_message) = self.messages.last() {
+            return Some(&toast_message.message);
+        }
+        None
+    }
+
     pub fn draw<W: std::io::Write>(&mut self, stdout: &mut W, size_x: &u16) -> anyhow::Result<()> {
         let messages = &mut self.messages;
         if let Some(toast_message) = messages.first_mut() {

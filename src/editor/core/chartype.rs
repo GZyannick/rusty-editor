@@ -56,3 +56,37 @@ impl std::cmp::PartialEq for CharType {
         core::mem::discriminant(self) == core::mem::discriminant(other)
     }
 }
+
+#[cfg(test)]
+mod tests_chartype {
+    use crate::editor::core::chartype::CharType;
+
+    #[test]
+    fn test_char_type_new() {
+        assert_eq!(CharType::new(&'a'), CharType::Alphabetic);
+        assert_eq!(CharType::new(&'Z'), CharType::Alphabetic);
+        assert_eq!(CharType::new(&'1'), CharType::Numeric);
+        assert_eq!(CharType::new(&' '), CharType::Whitespace);
+        assert_eq!(CharType::new(&'!'), CharType::AsciiPunctuation);
+        assert_eq!(CharType::new(&'@'), CharType::AsciiPunctuation);
+        assert_eq!(CharType::new(&'✓'), CharType::None);
+    }
+
+    #[test]
+    fn test_goto_diff_type() {
+        let mut cursor_x = 0;
+        CharType::goto_diff_type("abc 123".to_string(), Some(0), &mut cursor_x);
+        assert_eq!(cursor_x, 4); // Moves to first numeric character
+        cursor_x = 0;
+        CharType::goto_diff_type("abc123".to_string(), Some(0), &mut cursor_x);
+        assert_eq!(cursor_x, 3); // Moves to first numeric character
+
+        cursor_x = 0;
+        CharType::goto_diff_type("abc!def".to_string(), Some(0), &mut cursor_x);
+        assert_eq!(cursor_x, 3); // Moves to punctuation
+
+        cursor_x = 0;
+        CharType::goto_diff_type("123 abc".to_string(), Some(0), &mut cursor_x);
+        assert_eq!(cursor_x, 4); // Moves to first alphabetic character
+    }
+}

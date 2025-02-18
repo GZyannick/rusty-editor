@@ -117,3 +117,113 @@ impl Action {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests_deletion {
+    use crate::{
+        buff::Buffer,
+        editor::{
+            core::{actions::action::Action, mode::Mode},
+            Editor,
+        },
+        log_message,
+    };
+    use std::io::{Cursor, Seek, Write};
+    use tempfile::NamedTempFile;
+
+    fn setup_temp_file() -> NamedTempFile {
+        let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let content = "Line1\nLine2\nLine3";
+        temp_file
+            .write_all(content.as_bytes())
+            .expect("Failed to write");
+        temp_file.flush().expect("Failed to flush");
+        temp_file
+            .seek(std::io::SeekFrom::Start(0))
+            .expect("Failed to seek");
+        temp_file
+    }
+
+    fn mock_file_editor() -> Editor<Cursor<Vec<u8>>> {
+        let tmp_file = setup_temp_file();
+        let path = tmp_file.path().to_str().unwrap().to_string();
+        let mut editor = Editor::default();
+        editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(path));
+        editor
+    }
+
+    #[test]
+    fn test_remove_char_at() {
+        let mut editor = mock_file_editor();
+        editor.cursor = (2, 0); // Set cursor to 'n' in "Line1"
+        Action::RemoveCharAt(editor.cursor)
+            .execute(&mut editor)
+            .unwrap();
+        let line = editor.viewports.c_viewport().buffer.get(0).unwrap();
+        assert_eq!(line, "Lie1"); // 'n' should be removed
+    }
+
+    #[test]
+    fn test_remove_char() {
+        let mut editor = mock_file_editor();
+        editor.cursor = (5, 0); // Cursor at the end of "Line1"
+        Action::RemoveChar.execute(&mut editor).unwrap();
+        let line = editor.viewports.c_viewport().buffer.get(0).unwrap();
+        assert_eq!(line, "Line"); // '1' should be removed
+    }
+
+    // #[test]
+    // fn test_remove_modal_char() {
+    //     let mut editor = mock_file_editor();
+    //     editor.modal = Some(ModalCreateFD::new("Test"));
+    //     Action::RemoveModalChar.execute(&mut editor).unwrap();
+    //     assert_eq!(editor.modal.unwrap(), "tes"); // Last char removed
+    // }
+
+    #[test]
+    fn test_delete_line() {
+        let mut editor = mock_file_editor();
+        editor.cursor.1 = 1; // Delete "Line2"
+        Action::DeleteLine.execute(&mut editor).unwrap();
+        let buffer = &editor.viewports.c_viewport().buffer.lines;
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(buffer[0], "Line1");
+        assert_eq!(buffer[1], "Line3");
+    }
+
+    // #[test]
+    // fn test_delete_word() { -- delete block is not implemented for now so no need test
+    //     let mut editor = mock_file_editor();
+    //     editor.cursor = (4, 0); // "Line1"
+    //     Action::DeleteWord.execute(&mut editor).unwrap();
+    //     let line = editor.viewports.c_viewport().buffer.get(0).unwrap();
+    //     assert_eq!(line, ""); // Whole word removed
+    // }
+
+    #[test]
+    fn test_remove_char_from_search() {
+        let mut editor = mock_file_editor();
+        editor.search = "hello".to_string();
+        Action::RemoveCharFrom(true).execute(&mut editor).unwrap();
+        assert_eq!(editor.search, "hell"); // Last char removed
+    }
+
+    #[test]
+    fn test_remove_char_from_command() {
+        let mut editor = mock_file_editor();
+        editor.command = ":wq".to_string();
+        Action::RemoveCharFrom(false).execute(&mut editor).unwrap();
+        assert_eq!(editor.command, ":w"); // Last char removed
+    }
+
+    #[test]
+    fn test_delete_block() {
+        let mut editor = mock_file_editor();
+        editor.mode = Mode::Visual;
+        editor.visual_cursor = Some((4, 1));
+        Action::DeleteBlock.execute(&mut editor).unwrap();
+        let buffer = &editor.viewports.c_viewport().buffer.lines;
+        assert_eq!(buffer.len(), 1); // Only one line remains
+        assert_eq!(buffer[0], "Line3"); // The selected block was deleted
+    }
+}
