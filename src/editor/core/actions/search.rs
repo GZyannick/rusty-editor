@@ -50,7 +50,7 @@ impl Action {
 
 #[cfg(test)]
 mod tests_search {
-    use tempfile::{tempfile, NamedTempFile};
+    use tempfile::NamedTempFile;
 
     use crate::{
         buff::Buffer,
@@ -58,12 +58,8 @@ mod tests_search {
             core::{actions::action::Action, mode::Mode},
             Editor,
         },
-        log_message,
     };
-    use std::{
-        fs::File,
-        io::{Cursor, Seek, Write},
-    };
+    use std::io::{Cursor, Seek, Write};
 
     fn setup_temp_file() -> NamedTempFile {
         let mut temp_file = NamedTempFile::new().expect("Failed to create a temporary_file");

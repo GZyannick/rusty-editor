@@ -126,7 +126,6 @@ mod tests_deletion {
             core::{actions::action::Action, mode::Mode},
             Editor,
         },
-        log_message,
     };
     use std::io::{Cursor, Seek, Write};
     use tempfile::NamedTempFile;

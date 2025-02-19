@@ -313,19 +313,18 @@ impl Action {
 #[cfg(test)]
 mod tests_other_actions {
     use std::fs::{self, File};
-    use std::io::{Cursor, Seek, Write};
-    use std::path::Path;
+    use std::io::Cursor;
 
     use crate::buff::Buffer;
     use crate::editor::core::actions::action::Action;
     use crate::editor::core::mode::Mode;
-    use crate::editor::{self, Editor};
+    use crate::editor::Editor;
 
     fn mock_editor() -> Editor<Cursor<Vec<u8>>> {
         Editor::default()
     }
 
-    const TMP_DIR: &'static str = "./target/tmp";
+    const TMP_DIR: &str = "./target/tmp";
 
     // --- EnterMode Tests ---
     #[test]

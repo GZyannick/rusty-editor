@@ -113,10 +113,8 @@ mod tests_insertion {
         buff::Buffer,
         editor::{
             core::{actions::action::Action, mode::Mode},
-            ui::modal::rename::ModalRenameFD,
             Editor,
         },
-        log_message,
     };
     use std::io::{Cursor, Seek, Write};
     use tempfile::NamedTempFile;
