@@ -1,9 +1,6 @@
+use crate::theme::colors;
 use crate::viewport::{Viewport, LINE_NUMBERS_WIDTH};
 use crossterm::style::Color;
-use tree_sitter::Query;
-use tree_sitter_rust::HIGHLIGHTS_QUERY;
-
-use crate::{buff::Buffer, theme::colors};
 
 const POPUP_PERCENTAGE: u16 = 30;
 
@@ -39,30 +36,6 @@ impl Popup {
 }
 
 impl Viewport {
-    // Can be used later
-    pub fn _popup(buffer: Buffer, width: u16, height: u16, modifiable: bool) -> Viewport {
-        let language = tree_sitter_rust::LANGUAGE;
-        let popup = Popup::new(width, height);
-
-        Viewport {
-            buffer,
-            vwidth: popup.width,
-            vheight: popup.height,
-            min_vwidth: popup.left,
-            min_vheight: popup.top,
-            buffer_position: (0, 0, 0, 0),
-            modifiable,
-            left: 0,
-            top: 0,
-            language: language.into(),
-            query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
-            bg_color: Color::from(colors::DARK1),
-            is_popup: true,
-            search_pos: vec![],
-            search_index: 0,
-        }
-    }
-
     fn buffer_current_position(&mut self) {
         self.buffer_position = (self.vwidth, self.vheight, self.min_vwidth, self.min_vheight);
     }
@@ -95,5 +68,65 @@ impl Viewport {
         self.buffer_position = (0, 0, 0, 0);
         self.bg_color = Color::from(colors::DARK0);
         self.is_popup = false;
+    }
+}
+
+#[cfg(test)]
+mod test_popup {
+    use tree_sitter::Query;
+    use tree_sitter_rust::HIGHLIGHTS_QUERY;
+
+    use crate::{buff::Buffer, viewport::Viewport};
+    use crossterm::style::Color;
+
+    fn create_test_viewport() -> Viewport {
+        Viewport {
+            buffer: Buffer::new(None),
+            vwidth: 50,
+            vheight: 20,
+            min_vwidth: 5,
+            min_vheight: 5,
+            buffer_position: (0, 0, 0, 0),
+            modifiable: true,
+            left: 0,
+            top: 0,
+            language: tree_sitter_rust::LANGUAGE.into(),
+            query: Query::new(&tree_sitter_rust::LANGUAGE.into(), HIGHLIGHTS_QUERY)
+                .expect("Query Error"),
+            bg_color: Color::Black,
+            is_popup: false,
+            search_pos: vec![],
+            search_index: 0,
+        }
+    }
+
+    #[test]
+    fn test_as_popup() {
+        let mut viewport = create_test_viewport();
+
+        // Calling as_popup should update viewport properties
+        viewport.as_popup();
+
+        assert_eq!(viewport.vwidth, 35);
+        assert_eq!(viewport.vheight, 14);
+        assert_eq!(viewport.min_vwidth, 12);
+        assert_eq!(viewport.min_vheight, 3);
+        assert!(viewport.is_popup);
+    }
+
+    #[test]
+    fn test_as_normal() {
+        let mut viewport = create_test_viewport();
+
+        // First, set it to popup mode
+        viewport.as_popup();
+
+        // Calling as_normal should reset to the original values
+        viewport.as_normal();
+        assert_eq!(viewport.vwidth, 50);
+        assert_eq!(viewport.vheight, 20);
+        assert_eq!(viewport.min_vwidth, 5);
+        assert_eq!(viewport.min_vheight, 5);
+        assert!(!viewport.is_popup);
     }
 }

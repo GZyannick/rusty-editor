@@ -26,3 +26,40 @@ pub fn highlight(viewport: &Viewport, code: &String) -> anyhow::Result<Vec<Color
     }
     Ok(colors)
 }
+
+#[cfg(test)]
+mod test_highlighting {
+    use super::*;
+
+    #[test]
+    fn test_highlight() {
+        // Création d'un Viewport par défaut
+        let viewport = Viewport::default();
+
+        // Code simple pour le test
+        let code = r#"
+fn main() {
+    let x = 42;
+    println!("{}", x);
+}
+"#
+        .to_string();
+
+        // Appel de la fonction highlight
+        let result = highlight(&viewport, &code);
+
+        // Vérification des résultats
+        assert!(result.is_ok());
+        let colors = result.unwrap();
+
+        // Vérification qu'il y a des éléments dans le vecteur de surbrillance
+        assert!(!colors.is_empty());
+
+        // Optionnel: tester des couleurs spécifiques ou des positions
+        for color in colors {
+            // On peut ajouter des vérifications supplémentaires ici selon le comportement attendu
+            assert!(color.start > 0);
+            assert!(color.end >= color.start);
+        }
+    }
+}

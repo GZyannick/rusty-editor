@@ -7,9 +7,9 @@ use crossterm::{
 use crate::theme::colors;
 
 pub trait ClearDraw {
-    fn clear_at(
+    fn clear_at<W: std::io::Write>(
         &mut self,
-        stdout: &mut std::io::Stdout,
+        stdout: &mut W,
         start_x: u16,
         start_y: u16,
         width: u16,

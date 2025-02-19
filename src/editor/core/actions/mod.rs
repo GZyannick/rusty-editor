@@ -6,6 +6,7 @@ pub mod search;
 pub mod undo;
 pub mod yank_past;
 use std::fs::metadata;
+use std::io::Write;
 
 use action::Action;
 use anyhow::Ok;
@@ -25,7 +26,11 @@ impl ClearDraw for Viewport {}
 
 impl Action {
     // handle insert and leaving visual mode
-    fn enter_mode_visual(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+    fn enter_mode_visual<W: Write>(
+        &self,
+        editor: &mut Editor<W>,
+        mode: &Mode,
+    ) -> anyhow::Result<()> {
         // create visual_cursor if we enter Visual Mode
         if !matches!(editor.mode, Mode::Visual) && matches!(mode, Mode::Visual) {
             editor.visual_cursor = Some(editor.cursor);
@@ -39,7 +44,11 @@ impl Action {
     }
 
     // handle insert and leaving insert mode
-    fn enter_mode_insert(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+    fn enter_mode_insert<W: Write>(
+        &self,
+        editor: &mut Editor<W>,
+        mode: &Mode,
+    ) -> anyhow::Result<()> {
         // if we enter insert mode
         if !matches!(editor.mode, Mode::Insert) && matches!(mode, Mode::Insert) {
             editor.stdout.execute(cursor::SetCursorStyle::SteadyBar)?;
@@ -58,7 +67,11 @@ impl Action {
     }
 
     // handle insert and leaving command mode
-    fn enter_mode_command(&self, editor: &mut Editor, mode: &Mode) -> anyhow::Result<()> {
+    fn enter_mode_command<W: Write>(
+        &self,
+        editor: &mut Editor<W>,
+        mode: &Mode,
+    ) -> anyhow::Result<()> {
         // if we leave command clear bottom line
         if matches!(editor.mode, Mode::Command) && !matches!(mode, Mode::Command) {
             editor.command = String::new();
@@ -66,7 +79,7 @@ impl Action {
         Ok(())
     }
 
-    pub fn execute(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    pub fn execute<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         // i could use a tree pattern like in movement i call delete in delete i call for find ...
         // but i prefer to call all of them in a single file
         self.movement(editor)?;
@@ -294,5 +307,185 @@ impl Action {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests_other_actions {
+    use std::fs::{self, File};
+    use std::io::{Cursor, Seek, Write};
+    use std::path::Path;
+
+    use crate::buff::Buffer;
+    use crate::editor::core::actions::action::Action;
+    use crate::editor::core::mode::Mode;
+    use crate::editor::{self, Editor};
+
+    fn mock_editor() -> Editor<Cursor<Vec<u8>>> {
+        Editor::default()
+    }
+
+    const TMP_DIR: &'static str = "./target/tmp";
+
+    // --- EnterMode Tests ---
+    #[test]
+    fn test_enter_mode_insert_not_modifiable() {
+        let mut editor = mock_editor();
+        editor.viewports.c_mut_viewport().modifiable = false;
+
+        Action::EnterMode(Mode::Insert)
+            .execute(&mut editor)
+            .unwrap();
+
+        assert_ne!(editor.mode, Mode::Insert);
+        assert_eq!(
+            editor.toast._last_message(),
+            Some("viewport cannot be modifiable")
+        );
+    }
+
+    #[test]
+    fn test_enter_mode_successfully() {
+        let mut editor = mock_editor();
+        editor.viewports.c_mut_viewport().modifiable = true;
+
+        Action::EnterMode(Mode::Insert)
+            .execute(&mut editor)
+            .unwrap();
+
+        assert_eq!(editor.mode, Mode::Insert);
+    }
+
+    // --- Save File Test ---
+    #[test]
+    fn test_save_file() {
+        let mut editor = mock_editor();
+        editor.viewports.c_mut_viewport().buffer.path = "test_file.txt".to_string();
+        File::create("test_file.txt").unwrap();
+
+        Action::Save.execute(&mut editor).unwrap();
+
+        assert!(fs::metadata("test_file.txt").is_ok());
+        assert_eq!(
+            editor.toast._last_message(),
+            Some("file: test_file.txt is saved")
+        );
+
+        fs::remove_file("test_file.txt").unwrap();
+    }
+
+    // --- File Operations ---
+    #[test]
+    fn test_create_file_or_directory_success() {
+        let mut editor = mock_editor();
+        editor.viewports.set_current_to_file_explorer_viewport();
+        editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(TMP_DIR.to_string()));
+        let filename = format!("{TMP_DIR}/test_folder");
+
+        match Action::CreateFileOrDirectory("test_folder/".to_string()).execute(&mut editor) {
+            Ok(a) => println!("{a:?}"),
+            Err(err) => println!("this is error: {err:?}"),
+        }
+        assert!(fs::metadata(&filename).is_ok());
+        assert_eq!(
+            editor.toast._last_message(),
+            Some("test_folder/ has been created")
+        );
+        fs::remove_dir(filename).unwrap();
+    }
+
+    #[test]
+    fn test_rename_and_delete_file_or_directory() {
+        let mut editor = mock_editor();
+        editor.viewports.set_current_to_file_explorer_viewport();
+        File::create(format!("{TMP_DIR}/old_file.txt")).unwrap();
+        editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(TMP_DIR.to_string()));
+        let filename = format!("{TMP_DIR}/new_file.txt");
+        editor.cursor.1 = 1; // poiting the file to rename (old_file.txt)
+        println!(
+            "current_file {:?}",
+            editor.viewports.c_viewport().buffer.get(1)
+        );
+
+        match Action::RenameFileOrDirectory(filename.to_string()).execute(&mut editor) {
+            Ok(_) => (),
+            Err(e) => println!("{e}"),
+        }
+
+        assert!(fs::metadata(&filename).is_ok());
+        println!("toast: {:?}", editor.toast._last_message());
+
+        match Action::DeleteFileOrDirectory.execute(&mut editor) {
+            Ok(_) => (),
+            Err(e) => println!("err: {e}"),
+        }
+
+        assert!(fs::metadata(&filename).is_err());
+        if fs::metadata(&filename).is_ok() {
+            fs::remove_file(&filename).unwrap();
+        }
+
+        assert_eq!(
+            editor.toast._last_message(),
+            Some("./target/tmp/new_file.txt has been deleted")
+        );
+    }
+
+    // #[test]
+    // fn test_delete_file_or_directory() {
+    //     let mut editor = mock_editor();
+    //     editor.viewports.set_current_to_file_explorer_viewport();
+    //     editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(TMP_DIR.to_string()));
+    //     let filename = format!("{TMP_DIR}/delete_me.txt");
+    //     File::create(&filename).unwrap();
+    //     editor.cursor.1 = 1; // poiting the file to rename (delete_me.txt)
+    //
+    //         }
+    //
+    // // --- Modal Tests ---
+    // #[test]
+    // fn test_leave_modal() {
+    //     let mut editor = mock_editor();
+    //     editor.modal = Some("Test Modal".to_string());
+    //
+    //     Action::LeaveModal.execute(&mut editor).unwrap();
+    //
+    //     assert!(editor.modal.is_none());
+    // }
+    //
+    // #[test]
+    // fn test_create_input_modal() {
+    //     let mut editor = mock_editor();
+    //
+    //     Action::CreateInputModal.execute(&mut editor).unwrap();
+    //
+    //     assert!(editor.modal.is_some());
+    // }
+    //
+    // --- Navigation Tests ---
+    #[test]
+    fn test_goto_parent_directory() {
+        let mut editor = mock_editor();
+        let current_path = std::env::current_dir().unwrap();
+        let parent_path = current_path.parent().unwrap().to_str().unwrap().to_string();
+
+        editor.viewports.c_mut_viewport().buffer.path = current_path.to_str().unwrap().to_string();
+
+        Action::GotoParentDirectory.execute(&mut editor).unwrap();
+
+        assert_eq!(editor.viewports.c_viewport().buffer.path, parent_path);
+    }
+
+    // --- Command Execution Tests ---
+    #[test]
+    fn test_execute_command() {
+        let mut editor = mock_editor();
+        editor.command = "w".to_string();
+
+        Action::ExecuteCommand.execute(&mut editor).unwrap();
+        assert!(
+            editor.toast._last_message().is_some(),
+            "Should contains a toast"
+        )
     }
 }

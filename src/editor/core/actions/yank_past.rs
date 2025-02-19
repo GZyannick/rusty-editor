@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     editor::{core::mode::Mode, CursorBlock, Editor},
     helper::clipboard,
@@ -6,7 +8,7 @@ use crate::{
 use super::action::Action;
 
 impl Action {
-    pub fn yank_past(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    pub fn yank_past<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
             Action::YankLine => {
                 let current_viewport = editor.viewports.c_mut_viewport();

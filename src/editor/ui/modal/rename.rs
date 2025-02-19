@@ -1,10 +1,12 @@
+use std::io::Write;
+
 use crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::editor::core::actions::action::Action;
 
 use super::modal_trait::ModalContent;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModalRenameFD {
     title: String,
     content: String,
@@ -16,7 +18,7 @@ impl ModalRenameFD {
     }
 }
 
-impl ModalContent for ModalRenameFD {
+impl<W: Write> ModalContent<W> for ModalRenameFD {
     fn title(&self) -> &str {
         &self.title
     }
@@ -36,7 +38,7 @@ impl ModalContent for ModalRenameFD {
         };
         match action.is_some() {
             true => Ok(action),
-            false => Ok(self.basic_action(code)),
+            false => Ok(<ModalRenameFD as ModalContent<W>>::basic_action(self, code)),
         }
     }
 
@@ -49,7 +51,7 @@ impl ModalContent for ModalRenameFD {
             self.content.pop();
         }
     }
-    fn draw_modal(&self, editor: &mut crate::editor::Editor) -> anyhow::Result<()> {
+    fn draw_modal(&self, editor: &mut crate::editor::Editor<W>) -> anyhow::Result<()> {
         self.draw_default(editor)
     }
 }

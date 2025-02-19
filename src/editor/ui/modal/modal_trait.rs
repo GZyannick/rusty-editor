@@ -12,7 +12,7 @@ use crate::{
     theme::colors,
 };
 
-pub trait ModalContent: Debug {
+pub trait ModalContent<W: Write>: Debug {
     fn title(&self) -> &str;
     fn body(&self) -> &str;
     fn handle_action(
@@ -22,9 +22,9 @@ pub trait ModalContent: Debug {
     ) -> anyhow::Result<Option<Action>>;
     fn push(&mut self, ch: char);
     fn pop(&mut self);
-    fn draw_modal(&self, editor: &mut Editor) -> anyhow::Result<()>;
+    fn draw_modal(&self, editor: &mut Editor<W>) -> anyhow::Result<()>;
 
-    fn draw_default(&self, editor: &mut Editor) -> anyhow::Result<()> {
+    fn draw_default(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         let width = editor.size.0;
         let height = editor.size.1;
         let modal_width = width / 4;
