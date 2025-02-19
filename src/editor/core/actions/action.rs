@@ -118,3 +118,69 @@ impl PartialEq for Action {
         }
     }
 }
+impl From<String> for Action {
+    fn from(value: String) -> Self {
+        let parts: Vec<&str> = value.split_whitespace().collect();
+        match parts.as_slice() {
+            ["MoveUp"] => Action::MoveUp,
+            ["MoveDown"] => Action::MoveDown,
+            ["MoveLeft"] => Action::MoveLeft,
+            ["MoveRight"] => Action::MoveRight,
+            ["EnterMode", mode] => Action::EnterMode(Mode::from(mode.to_string())),
+            ["AddChar", c] if c.len() == 1 => Action::AddChar(c.chars().next().unwrap()),
+            ["RemoveChar"] => Action::RemoveChar,
+            // ["RemoveCharAt"] => panic!("RemoveCharAt requires a cursor position"),
+            ["RemoveCharFrom", pos] => Action::RemoveCharFrom(pos.parse::<bool>().unwrap_or(false)),
+            ["WaitingCmd", c] if c.len() == 1 => Action::WaitingCmd(c.chars().next().unwrap()),
+            ["DeleteLine"] => Action::DeleteLine,
+            ["DeleteWord"] => Action::DeleteWord,
+            ["AddCommandChar", c] if c.len() == 1 => {
+                Action::AddCommandChar(c.chars().next().unwrap())
+            }
+            ["NewLine"] => Action::NewLine,
+            ["PageDown"] => Action::PageDown,
+            ["PageUp"] => Action::PageUp,
+            ["EndOfLine"] => Action::EndOfLine,
+            ["StartOfLine"] => Action::StartOfLine,
+            ["Save"] => Action::Save,
+            ["CreateFileOrDirectory", path] => Action::CreateFileOrDirectory(path.to_string()),
+            ["EndOfFile"] => Action::EndOfFile,
+            ["StartOfFile"] => Action::StartOfFile,
+            ["CenterLine"] => Action::CenterLine,
+            ["Quit"] => Action::Quit,
+            ["ForceQuit"] => Action::ForceQuit,
+            ["NewLineInsertionBelowCursor"] => Action::NewLineInsertionBelowCursor,
+            ["NewLineInsertionAtCursor"] => Action::NewLineInsertionAtCursor,
+            ["ExecuteCommand"] => Action::ExecuteCommand,
+            ["EnterFileOrDirectory"] => Action::EnterFileOrDirectory,
+            ["SwapViewportToExplorer"] => Action::SwapViewportToExplorer,
+            ["SwapViewportToPopupExplorer"] => Action::SwapViewportToPopupExplorer,
+            ["DeleteBlock"] => Action::DeleteBlock,
+            ["YankBlock"] => Action::YankBlock,
+            ["Past"] => Action::Past,
+            ["YankLine"] => Action::YankLine,
+            ["MovePrev"] => Action::MovePrev,
+            ["MoveNext"] => Action::MoveNext,
+            ["ClearToNormalMode"] => Action::ClearToNormalMode,
+            ["AddSearchChar", c] if c.len() == 1 => {
+                Action::AddSearchChar(c.chars().next().unwrap())
+            }
+            ["FindSearchValue"] => Action::FindSearchValue,
+            ["GotoPos"] => panic!("GotoPos requires a cursor position"),
+            ["IterNextSearch"] => Action::IterNextSearch,
+            ["GotoParentDirectory"] => Action::GotoParentDirectory,
+            ["AddStr", s] => Action::AddStr(s.to_string()),
+            ["RenameFileOrDirectory", name] => Action::RenameFileOrDirectory(name.to_string()),
+            ["DeleteFileOrDirectory"] => Action::DeleteFileOrDirectory,
+            ["LeaveModal"] => Action::LeaveModal,
+            ["AddModalChar", c] if c.len() == 1 => Action::AddModalChar(c.chars().next().unwrap()),
+            ["RemoveModalChar"] => Action::RemoveModalChar,
+            ["CreateInputModal"] => Action::CreateInputModal,
+            ["RenameInputModal"] => Action::RenameInputModal,
+            ["DeleteInputModal"] => Action::DeleteInputModal,
+            ["HelpKeybinds", opt] => Action::HelpKeybinds(Some(opt.to_string())),
+            ["Undo"] => Action::Undo,
+            _ => panic!("Invalid Action string: {}", value),
+        }
+    }
+}

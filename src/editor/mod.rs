@@ -9,6 +9,7 @@ use anyhow::{Ok, Result};
 use core::actions::action::Action;
 use core::keybind_manager::KeybindManager;
 use core::mode::Mode;
+use core::new_keybind_manager::KeybindManagerV2;
 use crossterm::{
     event::{self, read},
     style::Color,
@@ -39,7 +40,7 @@ impl PartialEq for CursorBlock {
 pub struct Editor<W: Write> {
     pub toast: Toast,
     pub mode: Mode,
-    pub keybinds: KeybindManager<W>,
+    pub keybinds: KeybindManagerV2,
     pub command: String,
     pub search: String,
     pub stdout: W,
@@ -95,11 +96,13 @@ impl<W: Write> Editor<W> {
             ));
         }
         viewports.push(explorer_viewport);
+        let mut keybinds = KeybindManagerV2::new();
+        keybinds.init_keybinds();
 
         Ok(Editor {
             toast: Toast::new(),
             mode: Mode::Normal,
-            keybinds: KeybindManager::new(),
+            keybinds,
             search: String::new(),
             command: String::new(),
             stdout,
@@ -279,10 +282,12 @@ impl<W: Write> Drop for Editor<W> {
 
 impl Default for Editor<Stdout> {
     fn default() -> Self {
+        let mut keybinds = KeybindManagerV2::new();
+        keybinds.init_keybinds();
         Self {
             toast: Toast::new(),
             mode: Mode::Normal,
-            keybinds: KeybindManager::new(),
+            keybinds,
             search: String::new(),
             command: String::new(),
             stdout: stdout(),
@@ -302,10 +307,13 @@ impl Default for Editor<Stdout> {
 
 impl Default for Editor<Cursor<Vec<u8>>> {
     fn default() -> Self {
+        let mut keybinds = KeybindManagerV2::new();
+        keybinds.init_keybinds();
+
         Self {
             toast: Toast::new(),
             mode: Mode::Normal,
-            keybinds: KeybindManager::new(),
+            keybinds,
             search: String::new(),
             command: String::new(),
             stdout: Cursor::new(Vec::new()),

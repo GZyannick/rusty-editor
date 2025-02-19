@@ -1,5 +1,5 @@
 use super::{actions::action::Action, mode::Mode};
-use crate::editor::Editor;
+use crate::{editor::Editor, log_message};
 use core::fmt;
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::{collections::HashMap, io::Write, mem};
