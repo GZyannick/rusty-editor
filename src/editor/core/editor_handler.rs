@@ -9,7 +9,6 @@ use crossterm::{
 };
 
 use super::actions::action::Action;
-use super::keybind_manager::KeybindManager;
 use super::mode::Mode;
 
 impl<W: Write> Editor<W> {
@@ -53,9 +52,14 @@ impl<W: Write> Editor<W> {
         modifiers: KeyModifiers, // not used for now
     ) -> Result<Option<Action>> {
         let is_file_explorer = self.viewports.c_viewport().is_file_explorer();
-        let result =
-            self.keybinds
-                .handle_keybinds(self.mode, code, &self.v_cursor(), &self.command);
+        let result = self.keybinds.handle_keybinds(
+            self.mode,
+            code,
+            modifiers,
+            &self.v_cursor(),
+            &self.command,
+            is_file_explorer,
+        );
 
         // let mut temp_keybinds = self.keybinds.take_by_mode(&self.mode, is_file_explorer);
         // let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);

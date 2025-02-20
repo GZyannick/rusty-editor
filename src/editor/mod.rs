@@ -7,9 +7,8 @@ use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
 use anyhow::{Ok, Result};
 use core::actions::action::Action;
-use core::keybind_manager::KeybindManager;
+use core::keybind_manager::KeybindManagerV2;
 use core::mode::Mode;
-use core::new_keybind_manager::KeybindManagerV2;
 use crossterm::{
     event::{self, read},
     style::Color,
