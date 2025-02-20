@@ -119,7 +119,11 @@ return {
 			{ key = "Esc", action = "EnterMode Normal", description = "Switches to Normal mode." },
 			{ key = "Backspace", action = "RemoveChar", description = "Deletes the character before the cursor." },
 			{ key = "Return", action = "NewLine", description = "Inserts a new line below the current line." },
-			{ key = "Tab", action = 'AddStr "  "', description = "Adds a string of text at the cursor position." },
+			{
+				key = "Tab",
+				action = "AddStr /space/space",
+				description = "Adds a string of text at the cursor position.",
+			},
 		},
 
 		command = {

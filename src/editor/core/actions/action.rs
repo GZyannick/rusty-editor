@@ -120,7 +120,13 @@ impl PartialEq for Action {
 }
 impl From<String> for Action {
     fn from(value: String) -> Self {
-        let parts: Vec<&str> = value.split_whitespace().collect();
+        let parts: Vec<String> = value
+            .split_whitespace()
+            .map(|p| p.replace("/space", " "))
+            .collect();
+
+        let parts: Vec<&str> = parts.iter().map(|p| p.as_str()).collect();
+
         match parts.as_slice() {
             ["MoveUp"] => Action::MoveUp,
             ["MoveDown"] => Action::MoveDown,
