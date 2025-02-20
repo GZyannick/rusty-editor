@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum Mode {
     Normal,
     Insert,
@@ -21,8 +21,17 @@ impl Display for Mode {
     }
 }
 
-impl PartialEq for Mode {
-    fn eq(&self, other: &Self) -> bool {
-        core::mem::discriminant(self) == core::mem::discriminant(other)
+impl From<String> for Mode {
+    fn from(value: String) -> Self {
+        let value = value.to_lowercase();
+        let mode = match value.as_str() {
+            "visual" => Mode::Visual,
+            "insert" => Mode::Insert,
+            "command" => Mode::Command,
+            "normal" => Mode::Normal,
+            "search" => Mode::Search,
+            _ => panic!("couldnt find mode"),
+        };
+        mode
     }
 }

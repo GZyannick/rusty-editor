@@ -283,18 +283,19 @@ impl Action {
                 if !editor.viewports.viewports_save_status()? {
                     return Ok(());
                 }
-                if let Some(viewport) = editor.viewports.get_original_viewport() {
-                    viewport.modifiable = false;
-                    viewport.buffer = match keybind_type {
-                        Some(keybind_type) => Buffer::new_tmp(
-                            editor.keybinds.specific_keybinds(keybind_type),
-                            "Keybinds".to_string(),
-                        ),
-                        None => {
-                            Buffer::new_tmp(editor.keybinds.show_keybinds(), "Keybinds".to_string())
-                        }
-                    }
-                }
+                todo!()
+                // if let Some(viewport) = editor.viewports.get_original_viewport() {
+                //     viewport.modifiable = false;
+                //     viewport.buffer = match keybind_type {
+                //         Some(keybind_type) => Buffer::new_tmp(
+                //             editor.keybinds.specific_keybinds(keybind_type),
+                //             "Keybinds".to_string(),
+                //         ),
+                //         None => {
+                //             Buffer::new_tmp(editor.keybinds.show_keybinds(), "Keybinds".to_string())
+                //         }
+                //     }
+                // }
             }
 
             _ => {}
