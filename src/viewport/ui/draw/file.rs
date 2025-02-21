@@ -1,22 +1,54 @@
+use std::io::{stdout, BufWriter};
+
+use anyhow::Result;
 use crossterm::{
     cursor,
     style::{Color, PrintStyledContent, Stylize},
     QueueableCommand,
 };
 
-use crate::{theme::colors, viewport::Viewport};
+use crate::{log_message, theme::colors, viewport::Viewport};
 
-use super::{tree_highlight::highlight, visual_block::draw_block};
+use super::{
+    tree_highlight::{self, highlight},
+    visual_block::draw_block,
+};
+
+fn draw_new_line<W: std::io::Write>(
+    viewport: &Viewport,
+    stdout: &mut W,
+    x: &mut u16,
+    y: &mut u16,
+) -> Result<()> {
+    viewport.draw_line_number(stdout, *y)?;
+    stdout.queue(cursor::MoveTo(*x + viewport.min_vwidth, *y))?;
+    if *x < viewport.vwidth {
+        stdout.queue(PrintStyledContent(
+            " ".repeat(viewport.vwidth as usize - *x as usize)
+                .on(viewport.bg_color),
+        ))?;
+    }
+    Ok(())
+}
 
 pub fn draw_file<W: std::io::Write>(
-    viewport: &Viewport,
+    viewport: &mut Viewport,
     stdout: &mut W,
     start_v_mode: Option<(u16, u16)>,
     end_v_mode: Option<(u16, u16)>,
 ) -> anyhow::Result<u16> {
-    let v_width = viewport.vwidth;
     let viewport_buffer = viewport.viewport();
-    let colors = highlight(viewport, &viewport_buffer)?;
+    let mut buffer = BufWriter::new(Vec::new());
+
+    let colors = match viewport.last_highlighted_code != viewport_buffer {
+        true => {
+            let highlight = highlight(viewport, &viewport_buffer)?;
+            viewport.cached_highlight = Some(highlight.clone());
+            viewport.last_highlighted_code = viewport_buffer.clone();
+            highlight
+        }
+        false => viewport.cached_highlight.clone().unwrap_or_default(),
+    };
 
     let mut y: u16 = viewport.min_vheight;
     let mut x: u16 = 0;
@@ -32,14 +64,7 @@ pub fn draw_file<W: std::io::Write>(
         // so we draw the line number and empty char to end of terminal size to get the same bg
         // and dont have undesirable artifact like ghost char
         if c == '\n' {
-            viewport.draw_line_number(stdout, y)?;
-            stdout.queue(cursor::MoveTo(x + viewport.min_vwidth, y))?;
-            if x < viewport.vwidth {
-                stdout.queue(PrintStyledContent(
-                    " ".repeat(v_width as usize - x as usize)
-                        .on(viewport.bg_color),
-                ))?;
-            }
+            draw_new_line(viewport, &mut buffer, &mut x, &mut y)?;
             x = 0;
             y += 1;
             continue;
@@ -73,32 +98,29 @@ pub fn draw_file<W: std::io::Write>(
             }
         }
 
-        // change char color if its highlight
         let styled_char = match colorhighligter {
-            Some(ch) => format!("{c}").on(bg_color).with(ch.color),
-            None => format!("{c}",).on(bg_color),
+            Some(ch) => c.on(bg_color).with(ch.color),
+            None => c.on(bg_color),
         };
 
         // move cursor to draw the char
-        stdout
+        buffer
             .queue(cursor::MoveTo(x + viewport.min_vwidth, y))?
             .queue(PrintStyledContent(styled_char))?;
+        // stdout
+        //     .queue(cursor::MoveTo(x + viewport.min_vwidth, y))?
+        //     .queue(PrintStyledContent(styled_char))?;
 
         x += 1;
 
         // if we are at the end of the string
         if pos == chars_len {
-            viewport.draw_line_number(stdout, y)?;
-            stdout.queue(cursor::MoveTo(x + viewport.min_vwidth, y))?;
-            if x < viewport.vwidth {
-                stdout.queue(PrintStyledContent(
-                    " ".repeat(v_width as usize - x as usize)
-                        .on(viewport.bg_color),
-                ))?;
-            }
+            draw_new_line(viewport, &mut buffer, &mut x, &mut y)?;
             y += 1
         }
     }
+    stdout.write_all(&buffer.into_inner()?)?;
+    stdout.flush()?;
     Ok(y)
 }
 
@@ -123,13 +145,13 @@ mod tests_draw_file {
             lines: vec![], // Empty buffer
         };
 
-        let viewport = Viewport {
+        let mut viewport = Viewport {
             buffer,
             ..Viewport::default()
         };
 
         let mut mock_stdout = create_mock_stdout();
-        let result = draw_file(&viewport, &mut mock_stdout, None, None);
+        let result = draw_file(&mut viewport, &mut mock_stdout, None, None);
 
         assert!(
             result.is_ok(),
@@ -152,13 +174,13 @@ mod tests_draw_file {
             ],
         };
 
-        let viewport = Viewport {
+        let mut viewport = Viewport {
             buffer,
             ..Viewport::default()
         };
 
         let mut mock_stdout = create_mock_stdout();
-        let result = draw_file(&viewport, &mut mock_stdout, None, None);
+        let result = draw_file(&mut viewport, &mut mock_stdout, None, None);
 
         assert!(
             result.is_ok(),
@@ -181,14 +203,14 @@ mod tests_draw_file {
             ],
         };
 
-        let viewport = Viewport {
+        let mut viewport = Viewport {
             buffer,
             search_pos: vec![(5, 5, 3)], // Search result at "main"
             ..Viewport::default()
         };
 
         let mut mock_stdout = create_mock_stdout();
-        let result = draw_file(&viewport, &mut mock_stdout, None, None);
+        let result = draw_file(&mut viewport, &mut mock_stdout, None, None);
 
         assert!(
             result.is_ok(),

@@ -5,7 +5,10 @@ use crossterm::style::Color;
 use tree_sitter::{Language, Query};
 use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
-use crate::{buff::Buffer, theme::colors::DARK0};
+use crate::{
+    buff::Buffer,
+    theme::{color_highligther::ColorHighligter, colors::DARK0},
+};
 
 const LINE_NUMBERS_WIDTH: u16 = 5;
 // to implement scrolling and showing text of the size of our current terminal
@@ -31,6 +34,9 @@ pub struct Viewport {
     // when we do some search it will store all position of match content
     pub search_pos: Vec<(u16, u16, u16)>, // x, y, len
     pub search_index: usize,              // to iter through search_pos;
+
+    pub cached_highlight: Option<Vec<ColorHighligter>>,
+    pub last_highlighted_code: String,
 }
 
 impl Viewport {
@@ -61,6 +67,8 @@ impl Viewport {
             is_popup: false,
             search_pos: vec![],
             search_index: 0,
+            cached_highlight: None,
+            last_highlighted_code: String::new(),
         }
     }
 
@@ -156,6 +164,8 @@ impl Default for Viewport {
             is_popup: false,
             search_pos: vec![],
             search_index: 0,
+            cached_highlight: None,
+            last_highlighted_code: String::new(),
         }
     }
 }

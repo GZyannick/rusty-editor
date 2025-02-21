@@ -16,7 +16,7 @@ mod visual_block;
 // implementing all draw fn in ui file
 impl Viewport {
     pub fn draw<W: std::io::Write>(
-        &self,
+        &mut self,
         stdout: &mut W,
         start_v_mode: Option<(u16, u16)>,
         end_v_mode: Option<(u16, u16)>,
@@ -102,7 +102,7 @@ mod tests_viewport_draw {
 
     #[test]
     fn test_draw_empty_buffer() {
-        let viewport = Viewport {
+        let mut viewport = Viewport {
             buffer: crate::buff::Buffer::new(None),
             ..Viewport::default()
         };
@@ -117,7 +117,7 @@ mod tests_viewport_draw {
 
     #[test]
     fn test_draw_file_explorer() {
-        let viewport = Viewport {
+        let mut viewport = Viewport {
             buffer: crate::buff::Buffer::new(Some("./".to_string())),
             ..Viewport::default()
         };

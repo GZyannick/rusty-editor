@@ -15,7 +15,7 @@ pub fn highlight(viewport: &Viewport, code: &String) -> anyhow::Result<Vec<Color
     while let Some(m) = query_matches.next() {
         for cap in m.captures {
             let node = cap.node;
-            let punctuation = viewport.query.capture_names()[cap.index as usize];
+            let punctuation = &viewport.query.capture_names()[cap.index as usize];
 
             colors.push(ColorHighligter::new_from_capture(
                 node.start_byte(),
