@@ -97,6 +97,8 @@ mod test_popup {
             is_popup: false,
             search_pos: vec![],
             search_index: 0,
+            cached_highlight: None,
+            last_highlighted_code: String::new(),
         }
     }
 
