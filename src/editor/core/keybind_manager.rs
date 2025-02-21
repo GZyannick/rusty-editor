@@ -1,6 +1,6 @@
 use core::fmt;
 use std::{
-    collections::HashMap,
+    collections::{btree_map, BTreeMap, HashMap},
     time::{Duration, Instant},
 };
 
@@ -9,7 +9,6 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use mlua::{Lua, Table};
 
 const LEADER: &str = "Space";
-#[derive(Debug)]
 pub struct KeyAction {
     pub action: ActionOrClosure,
     pub desc: String,
@@ -20,6 +19,7 @@ impl KeyAction {
         Self { action, desc }
     }
 }
+
 pub enum ActionOrClosure {
     Static(Action),
     Dynamic(Box<dyn FnMut((&str, &(u16, u16))) -> Action>),
@@ -258,5 +258,65 @@ impl KeybindManagerV2 {
             return action;
         }
         None
+    }
+
+    pub fn show_keybinds(&self) -> Vec<String> {
+        let mut lines = vec![
+            "--- For specific keybinds you can type ---".to_string(),
+            "".to_string(),
+            "map e / explorer      n / normal      c / command".to_string(),
+            "map i / insert        e / visual      s / search".to_string(),
+            "".to_string(),
+        ];
+
+        for (mode, vec) in self.sort_by_mode() {
+            lines.push("".to_string());
+            lines.push("".to_string());
+            lines.push(format!("---- {mode} ----"));
+            lines.push("".to_string());
+
+            for ((key, modifier), desc) in vec {
+                match modifier.is_empty() {
+                    true => lines.push(format!("{key}   : {desc}")),
+                    false => lines.push(format!("{modifier} {key}   : {desc}")),
+                }
+            }
+        }
+
+        lines
+    }
+
+    fn sort_by_mode(&self) -> BTreeMap<String, Vec<((String, String), String)>> {
+        let mut sorted = BTreeMap::new();
+        for ((mode, key, modifiers), action) in &self.keybinds {
+            sorted
+                .entry(mode.clone())
+                .or_insert_with(Vec::new)
+                .push(((key.clone(), modifiers.clone()), action.desc.clone()));
+        }
+
+        sorted
+    }
+
+    pub fn show_specific_keybinds(&self, mode: &str) -> Vec<String> {
+        let mut lines = vec![format!("---- Keybind for {mode} ----"), "".to_string()];
+        let lowercase_mode = mode.to_lowercase();
+        let mode = match lowercase_mode.as_str() {
+            "e" | "explorer" => "file_explorer",
+            "n" => "normal",
+            "c" => "command",
+            "i" => "insert",
+            "v" => "visual",
+            "s" => "search",
+            m => m,
+        };
+
+        for ((_, key, modifier), action) in self.keybinds.iter().filter(|k| k.0 .0 == mode) {
+            match modifier.is_empty() {
+                true => lines.push(format!("{key}   : {}", action.desc)),
+                false => lines.push(format!("{modifier} {key}   : {}", action.desc)),
+            }
+        }
+        lines
     }
 }
