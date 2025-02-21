@@ -50,6 +50,9 @@ impl Action {
             }
 
             Action::NewLineInsertionAtCursor => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 let v_cursor = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();
 
@@ -65,6 +68,9 @@ impl Action {
             }
 
             Action::NewLineInsertionBelowCursor => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 let (v_x, v_y) = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();
 
@@ -82,6 +88,9 @@ impl Action {
             }
 
             Action::NewLine => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 let (v_x, v_y) = editor.v_cursor();
                 let indentation = editor
                     .viewports

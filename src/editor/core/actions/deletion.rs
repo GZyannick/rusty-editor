@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use anyhow::Ok;
+
 use crate::{
     editor::{core::mode::Mode, Editor},
     helper::clipboard::copy_to_clipboard,
@@ -11,6 +13,9 @@ impl Action {
     pub fn deletion<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
             Action::RemoveCharAt(cursor) => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 if editor.viewports.c_viewport().get_line_len(cursor) > 0 {
                     editor
                         .viewports
@@ -26,6 +31,9 @@ impl Action {
                 }
             }
             Action::RemoveChar => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 let cursor_viewport = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();
                 match cursor_viewport.0 > 0 {
@@ -48,6 +56,9 @@ impl Action {
                 }
             }
             Action::DeleteLine => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 let (_, y) = editor.v_cursor();
                 let current_viewport = editor.viewports.c_mut_viewport();
                 let content = current_viewport.buffer.get(y as usize).clone();
@@ -64,6 +75,9 @@ impl Action {
             }
 
             Action::DeleteWord => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 let v_cursor = editor.v_cursor();
                 editor
                     .viewports
@@ -92,6 +106,9 @@ impl Action {
             }
 
             Action::DeleteBlock => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 if let Some(v_block) = editor.get_visual_block_pos() {
                     let c_mut_viewport = editor.viewports.c_mut_viewport();
                     let v_cursor_start = c_mut_viewport.viewport_cursor(&v_block.start);
