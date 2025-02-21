@@ -1,3 +1,5 @@
+use std::io::{stdout, BufWriter};
+
 use anyhow::Result;
 use crossterm::{
     cursor,
@@ -36,6 +38,7 @@ pub fn draw_file<W: std::io::Write>(
     end_v_mode: Option<(u16, u16)>,
 ) -> anyhow::Result<u16> {
     let viewport_buffer = viewport.viewport();
+    let mut buffer = BufWriter::new(Vec::new());
 
     let colors = match viewport.last_highlighted_code != viewport_buffer {
         true => {
@@ -61,7 +64,7 @@ pub fn draw_file<W: std::io::Write>(
         // so we draw the line number and empty char to end of terminal size to get the same bg
         // and dont have undesirable artifact like ghost char
         if c == '\n' {
-            draw_new_line(viewport, stdout, &mut x, &mut y)?;
+            draw_new_line(viewport, &mut buffer, &mut x, &mut y)?;
             x = 0;
             y += 1;
             continue;
@@ -101,18 +104,23 @@ pub fn draw_file<W: std::io::Write>(
         };
 
         // move cursor to draw the char
-        stdout
+        buffer
             .queue(cursor::MoveTo(x + viewport.min_vwidth, y))?
             .queue(PrintStyledContent(styled_char))?;
+        // stdout
+        //     .queue(cursor::MoveTo(x + viewport.min_vwidth, y))?
+        //     .queue(PrintStyledContent(styled_char))?;
 
         x += 1;
 
         // if we are at the end of the string
         if pos == chars_len {
-            draw_new_line(viewport, stdout, &mut x, &mut y)?;
+            draw_new_line(viewport, &mut buffer, &mut x, &mut y)?;
             y += 1
         }
     }
+    stdout.write_all(&buffer.into_inner()?)?;
+    stdout.flush()?;
     Ok(y)
 }
 
