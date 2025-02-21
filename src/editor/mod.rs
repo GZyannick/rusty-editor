@@ -267,6 +267,15 @@ impl<W: Write> Editor<W> {
     pub fn set_modal(&mut self, modal: Box<dyn ModalContent<W>>) {
         self.modal = Some(modal)
     }
+
+    pub fn is_viewport_modifiable(&mut self) -> bool {
+        let modifiable = self.viewports.c_viewport().modifiable;
+        if !modifiable {
+            self.toast
+                .error("Viewport cannot be modifiable".to_string());
+        }
+        modifiable
+    }
 }
 
 impl<W: Write> Drop for Editor<W> {
