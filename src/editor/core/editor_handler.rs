@@ -61,10 +61,6 @@ impl<W: Write> Editor<W> {
             is_file_explorer,
         );
 
-        // let mut temp_keybinds = self.keybinds.take_by_mode(&self.mode, is_file_explorer);
-        // let result = KeybindManager::handle_keybind(&mut temp_keybinds, code, modifiers, self);
-        // self.keybinds
-        //     .push_by_mode(&self.mode, temp_keybinds, is_file_explorer);
         Ok(result)
     }
 

@@ -63,7 +63,6 @@ impl KeybindManagerV2 {
         let lua_code = std::fs::read_to_string("./config.lua").expect("cannot load lua file");
         let config: Table = lua.load(&lua_code).eval()?; // Charge le fichier Lua
         let keybinds_table: Table = config.get("keybinds")?; // Récupère la table "keybinds"
-                                                             // log_message!("--- KEYBIND TABLE ---\n{:#?}", keybinds_table);
 
         for keybind_pair in keybinds_table.pairs::<String, Table>() {
             let (mode, mode_table) = keybind_pair?;
@@ -235,7 +234,6 @@ impl KeybindManagerV2 {
         self.last_pressed
             .retain(|(_, _, _, time)| now.duration_since(*time) < self.double_tap_threshold);
 
-        //TODO: ajout KeyModifiers
         let mut sequence: String = self
             .last_pressed
             .iter()

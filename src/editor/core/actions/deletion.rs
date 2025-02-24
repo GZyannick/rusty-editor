@@ -188,14 +188,6 @@ mod tests_deletion {
         assert_eq!(line, "Line"); // '1' should be removed
     }
 
-    // #[test]
-    // fn test_remove_modal_char() {
-    //     let mut editor = mock_file_editor();
-    //     editor.modal = Some(ModalCreateFD::new("Test"));
-    //     Action::RemoveModalChar.execute(&mut editor).unwrap();
-    //     assert_eq!(editor.modal.unwrap(), "tes"); // Last char removed
-    // }
-
     #[test]
     fn test_delete_line() {
         let mut editor = mock_file_editor();
@@ -206,15 +198,6 @@ mod tests_deletion {
         assert_eq!(buffer[0], "Line1");
         assert_eq!(buffer[1], "Line3");
     }
-
-    // #[test]
-    // fn test_delete_word() { -- delete block is not implemented for now so no need test
-    //     let mut editor = mock_file_editor();
-    //     editor.cursor = (4, 0); // "Line1"
-    //     Action::DeleteWord.execute(&mut editor).unwrap();
-    //     let line = editor.viewports.c_viewport().buffer.get(0).unwrap();
-    //     assert_eq!(line, ""); // Whole word removed
-    // }
 
     #[test]
     fn test_remove_char_from_search() {

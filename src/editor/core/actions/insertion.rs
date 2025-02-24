@@ -187,19 +187,6 @@ mod tests_insertion {
         assert_eq!(editor.command, "X");
     }
 
-    // #[test]
-    // fn test_add_modal_char() {
-    //     let mut editor = mock_file_editor();
-    //     editor.modal = Some(Box::new(ModalRenameFD::new("Test".into(), "".into())));
-    //
-    //     Action::AddModalChar('Y').execute(&mut editor).unwrap();
-    //     if let Some(modal) = editor.modal.clone() {
-    //         assert_eq!(modal.body(), "Y");
-    //     }
-    //
-    //     assert_eq!(&editor.modal.unwrap().body().clone(), &"Y");
-    // }
-    //
     #[test]
     fn test_add_search_char() {
         let mut editor = mock_file_editor();
