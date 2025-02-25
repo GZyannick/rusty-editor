@@ -1,6 +1,9 @@
 mod core;
 mod ui;
 
+use core::languages::Languages;
+use std::collections::HashMap;
+
 use crossterm::style::Color;
 use tree_sitter::{Language, Query};
 use tree_sitter_rust::HIGHLIGHTS_QUERY;
@@ -27,8 +30,8 @@ pub struct Viewport {
     pub modifiable: bool,
     pub vwidth: u16,
     pub vheight: u16,
-    pub query: Query,
-    pub language: Language,
+    // pub query: Query,
+    pub languages: Languages,
     pub bg_color: Color,
     pub is_popup: bool,
     // when we do some search it will store all position of match content
@@ -61,8 +64,8 @@ impl Viewport {
             left: 0,
             top: 0,
             buffer_position: (0, 0, 0, 0),
-            language: language.into(),
-            query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
+            languages: Languages::new(),
+            // query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
             bg_color: Color::from(DARK0),
             is_popup: false,
             search_pos: vec![],
@@ -147,7 +150,6 @@ impl Viewport {
 
 impl Default for Viewport {
     fn default() -> Self {
-        let language = tree_sitter_rust::LANGUAGE;
         Viewport {
             buffer: Buffer::new(None),
             modifiable: true,
@@ -158,8 +160,8 @@ impl Default for Viewport {
             left: 0,
             top: 0,
             buffer_position: (0, 0, 0, 0),
-            language: language.into(),
-            query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
+            languages: Languages::new(),
+            // query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
             bg_color: Color::from(DARK0),
             is_popup: false,
             search_pos: vec![],
