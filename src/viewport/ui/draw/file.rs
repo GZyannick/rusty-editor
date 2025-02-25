@@ -7,12 +7,8 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::{log_message, theme::colors, viewport::Viewport};
-
-use super::{
-    tree_highlight::{self, highlight},
-    visual_block::draw_block,
-};
+use super::{tree_highlight::highlight, visual_block::draw_block};
+use crate::{theme::colors, viewport::Viewport};
 
 fn draw_new_line<W: std::io::Write>(
     viewport: &Viewport,
@@ -55,9 +51,9 @@ pub fn draw_file<W: std::io::Write>(
 
     let mut colorhighligter = None;
 
-    // let chars_len = viewport_buffer.len().wrapping_sub(1);
     let chars_len = viewport_buffer.len().saturating_sub(1);
     let mut bg_color = viewport.bg_color;
+    let tabstop = 4;
 
     for (pos, c) in viewport_buffer.chars().enumerate() {
         // tell us that we are at the end of the line
@@ -67,6 +63,17 @@ pub fn draw_file<W: std::io::Write>(
             draw_new_line(viewport, &mut buffer, &mut x, &mut y)?;
             x = 0;
             y += 1;
+            continue;
+        }
+
+        if c == '\t' {
+            let spaces_to_add = tabstop - (x % tabstop);
+            for _ in 0..spaces_to_add {
+                buffer
+                    .queue(cursor::MoveTo(x + viewport.min_vwidth, y))?
+                    .queue(PrintStyledContent(" ".on(bg_color)))?;
+                x += 1;
+            }
             continue;
         }
 

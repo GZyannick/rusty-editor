@@ -76,7 +76,10 @@ mod test_popup {
     use tree_sitter::Query;
     use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
-    use crate::{buff::Buffer, viewport::Viewport};
+    use crate::{
+        buff::Buffer,
+        viewport::{core::languages::Languages, Viewport},
+    };
     use crossterm::style::Color;
 
     fn create_test_viewport() -> Viewport {
@@ -90,9 +93,9 @@ mod test_popup {
             modifiable: true,
             left: 0,
             top: 0,
-            language: tree_sitter_rust::LANGUAGE.into(),
-            query: Query::new(&tree_sitter_rust::LANGUAGE.into(), HIGHLIGHTS_QUERY)
-                .expect("Query Error"),
+            languages: Languages::new(),
+            // query: Query::new(&tree_sitter_rust::LANGUAGE.into(), HIGHLIGHTS_QUERY)
+            // .expect("Query Error"),
             bg_color: Color::Black,
             is_popup: false,
             search_pos: vec![],

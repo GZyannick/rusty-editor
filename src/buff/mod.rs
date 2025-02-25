@@ -16,6 +16,7 @@ pub struct Buffer {
     pub lines: Vec<String>,
 }
 
+const TABSTOP: usize = 2;
 impl Buffer {
     pub fn new_tmp(lines: Vec<String>, path: String) -> Buffer {
         Buffer {
@@ -55,6 +56,7 @@ impl Buffer {
         if let Ok(mut c_file) = File::open(f_path) {
             let mut buf = String::new();
             c_file.read_to_string(&mut buf).unwrap();
+            buf = buf.replace('\t', format!("{:<tab$}", " ", tab = TABSTOP).as_str());
             file = Some(c_file);
             lines = buf.lines().map(|s| s.to_string()).collect();
             if lines.is_empty() {
