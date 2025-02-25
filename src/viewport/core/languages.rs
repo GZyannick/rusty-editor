@@ -40,6 +40,42 @@ impl Languages {
                 tree_sitter_lua::HIGHLIGHTS_QUERY.to_string(),
             ),
         );
+        languages.insert(
+            "html".to_string(),
+            (
+                tree_sitter_html::LANGUAGE.into(),
+                tree_sitter_html::HIGHLIGHTS_QUERY.to_string(),
+            ),
+        );
+        languages.insert(
+            "css".to_string(),
+            (
+                tree_sitter_css::LANGUAGE.into(),
+                tree_sitter_css::HIGHLIGHTS_QUERY.to_string(),
+            ),
+        );
+        languages.insert(
+            "js".to_string(),
+            (
+                tree_sitter_javascript::LANGUAGE.into(),
+                tree_sitter_javascript::HIGHLIGHT_QUERY.to_string(),
+            ),
+        );
+        languages.insert(
+            "rb".to_string(),
+            (
+                tree_sitter_ruby::LANGUAGE.into(),
+                tree_sitter_ruby::HIGHLIGHTS_QUERY.to_string(),
+            ),
+        );
+        languages.insert(
+            "py".to_string(),
+            (
+                tree_sitter_python::LANGUAGE.into(),
+                tree_sitter_python::HIGHLIGHTS_QUERY.to_string(),
+            ),
+        );
+
         languages
     }
 }
