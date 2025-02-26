@@ -2,14 +2,9 @@ use std::io::Write;
 
 use crate::editor::Editor;
 use anyhow::{Ok, Result};
-use crossterm::QueueableCommand;
-use crossterm::{
-    cursor,
-    event::{self, Event, KeyCode, KeyModifiers},
-};
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 
 use super::actions::action::Action;
-use super::mode::Mode;
 
 impl<W: Write> Editor<W> {
     pub fn handle_action(&mut self, event: Event) -> Result<Option<Action>> {
@@ -28,18 +23,13 @@ impl<W: Write> Editor<W> {
                 return modal.handle_action(&code, &modifiers);
             }
 
-            if let Some(c) = self.waiting_command {
-                let action = self.handle_waiting_command(c, &code);
-                self.waiting_command = None;
-                self.stdout
-                    .queue(cursor::SetCursorStyle::DefaultUserShape)?;
-                return Ok(action);
-            }
-
-            let nav = self.navigation(&code, &modifiers)?;
-            if nav.is_some() {
-                return Ok(nav);
-            }
+            // if let Some(c) = self.waiting_command {
+            //     let action = self.handle_waiting_command(c, &code);
+            //     self.waiting_command = None;
+            //     self.stdout
+            //         .queue(cursor::SetCursorStyle::DefaultUserShape)?;
+            //     return Ok(action);
+            // }
 
             return self.handle_keybinds(code, modifiers);
         }
@@ -62,70 +52,6 @@ impl<W: Write> Editor<W> {
         );
 
         Ok(result)
-    }
-
-    fn handle_waiting_command(&mut self, c: char, code: &KeyCode) -> Option<Action> {
-        match c {
-            'd' => match code {
-                KeyCode::Char('d') => Some(Action::DeleteLine),
-                KeyCode::Char('w') => Some(Action::DeleteWord),
-                _ => None,
-            },
-            'g' => match code {
-                KeyCode::Char('g') => Some(Action::StartOfFile),
-                _ => None,
-            },
-            'z' => match code {
-                KeyCode::Char('z') => Some(Action::CenterLine),
-                _ => None,
-            },
-            'y' => match code {
-                KeyCode::Char('y') => Some(Action::YankLine),
-                _ => None,
-            },
-            ' ' => match code {
-                KeyCode::Char('e') => Some(Action::SwapViewportToPopupExplorer),
-                KeyCode::Char('-') => Some(Action::SwapViewportToExplorer),
-                _ => None,
-            },
-            _ => None,
-        }
-    }
-
-    fn navigation(&mut self, code: &KeyCode, modifiers: &KeyModifiers) -> Result<Option<Action>> {
-        let mut action: Option<Action> = None;
-
-        if matches!(self.mode, Mode::Command) || matches!(self.mode, Mode::Search) {
-            return Ok(action);
-        }
-
-        action = match code {
-            KeyCode::Down => Some(Action::MoveDown),
-            KeyCode::Up => Some(Action::MoveUp),
-            KeyCode::Left => Some(Action::MoveLeft),
-            KeyCode::Right => Some(Action::MoveRight),
-            _ => None,
-        };
-
-        if !matches!(self.mode, Mode::Insert)
-            && action.is_none()
-            && matches!(modifiers, &KeyModifiers::NONE)
-        {
-            action = match code {
-                KeyCode::Char('h') => Some(Action::MoveLeft),
-                KeyCode::Char('j') => Some(Action::MoveDown),
-                KeyCode::Char('k') => Some(Action::MoveUp),
-                KeyCode::Char('l') => Some(Action::MoveRight),
-                KeyCode::Char('w') => Some(Action::MoveNext), // Move next until the char is not
-                // the same type than before
-                KeyCode::Char('b') => Some(Action::MovePrev), // Move prev until the char is not
-                // the same type than before
-                // exemple if char is a letter Move until char is diff from letter
-                _ => None,
-            }
-        };
-
-        Ok(action)
     }
 }
 
@@ -154,24 +80,6 @@ mod tests_editor_handler {
 
         // Check that the action is MoveDown
         assert_eq!(action, Some(Action::MoveDown));
-        Ok(())
-    }
-
-    #[test]
-    fn test_handle_navigation_with_letter() -> Result<()> {
-        let mut editor = create_mock_editor();
-
-        let move_left_event = event::Event::Key(event::KeyEvent {
-            kind: event::KeyEventKind::Press,
-            code: KeyCode::Char('h'),
-            modifiers: KeyModifiers::NONE,
-            state: KeyEventState::NONE,
-        });
-
-        let action = editor.handle_action(move_left_event)?;
-
-        // Check that the action is MoveLeft
-        assert_eq!(action, Some(Action::MoveLeft));
         Ok(())
     }
 
