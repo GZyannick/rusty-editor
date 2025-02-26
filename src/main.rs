@@ -2,6 +2,7 @@ use std::io::stdout;
 use std::panic;
 use std::sync::{Mutex, OnceLock};
 mod buff;
+mod languages;
 mod theme;
 mod viewports;
 use buff::Buffer;

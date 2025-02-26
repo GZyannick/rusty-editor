@@ -217,6 +217,7 @@ impl Action {
                             let viewport = editor.viewports.get_original_viewport().unwrap();
                             viewport.modifiable = true;
                             viewport.buffer = Buffer::new(Some(path));
+                            viewport.buffer.set_query_language(&viewport.languages);
                             editor.buffer_actions.push(Action::SwapViewportToExplorer);
                         }
                     }

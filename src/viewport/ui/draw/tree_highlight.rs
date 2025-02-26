@@ -6,10 +6,11 @@ use tree_sitter::{Parser, Query, QueryCursor};
 pub fn highlight(viewport: &Viewport, code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
     let mut colors: Vec<ColorHighligter> = vec![];
     let mut parser = Parser::new();
-    let query = match &viewport.languages.get(&viewport.buffer.path) {
-        Some((language, query_highlight)) => {
+
+    let query = match &viewport.buffer.query_language {
+        Some((query, language)) => {
             parser.set_language(language)?;
-            Query::new(language, query_highlight).expect("Querry Error")
+            query
         }
         None => return Ok(colors),
     };

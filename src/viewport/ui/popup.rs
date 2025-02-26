@@ -76,10 +76,7 @@ mod test_popup {
     use tree_sitter::Query;
     use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
-    use crate::{
-        buff::Buffer,
-        viewport::{core::languages::Languages, Viewport},
-    };
+    use crate::{buff::Buffer, languages::Languages, viewport::Viewport};
     use crossterm::style::Color;
 
     fn create_test_viewport() -> Viewport {

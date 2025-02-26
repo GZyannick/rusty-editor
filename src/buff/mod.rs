@@ -7,6 +7,9 @@ use std::{
 };
 
 use anyhow::Result;
+use tree_sitter::{Language, Query};
+
+use crate::languages::Languages;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -14,6 +17,7 @@ pub struct Buffer {
     pub is_directory: bool,
     pub path: String,
     pub lines: Vec<String>,
+    pub query_language: Option<(Query, Language)>,
 }
 
 const TABSTOP: usize = 2;
@@ -24,6 +28,7 @@ impl Buffer {
             is_directory: false,
             lines,
             path,
+            query_language: None,
         }
     }
 
@@ -45,6 +50,7 @@ impl Buffer {
             is_directory: false,
             lines: vec![String::new()],
             path: "Empty".to_string(),
+            query_language: None,
         }
     }
 
@@ -56,7 +62,7 @@ impl Buffer {
         if let Ok(mut c_file) = File::open(f_path) {
             let mut buf = String::new();
             c_file.read_to_string(&mut buf).unwrap();
-            buf = buf.replace('\t', format!("{:<tab$}", " ", tab = TABSTOP).as_str());
+            // buf = buf.replace('\t', format!("{:<tab$}", " ", tab = TABSTOP).as_str());
             file = Some(c_file);
             lines = buf.lines().map(|s| s.to_string()).collect();
             if lines.is_empty() {
@@ -71,6 +77,7 @@ impl Buffer {
             is_directory: false,
             lines,
             path,
+            query_language: None, //TODO: ici Mettre Some
         }
     }
 
@@ -91,6 +98,7 @@ impl Buffer {
             is_directory: true,
             lines,
             path: d_path,
+            query_language: None,
         }
     }
 
@@ -441,12 +449,20 @@ impl Buffer {
         sorted_dir.sort();
         sorted_file.sort();
     }
+
+    pub fn set_query_language(&mut self, languages: &Languages) {
+        if let Some((language, query_highlight)) = languages.get(&self.path) {
+            self.query_language = Some((
+                Query::new(language, query_highlight).expect("Query_error"),
+                language.clone(),
+            ));
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests_buffer {
     use super::*;
-    use std::{env, fs, io::Write};
     use tempfile::{NamedTempFile, TempDir};
 
     // Helper function to create a temporary directory and a few files.
