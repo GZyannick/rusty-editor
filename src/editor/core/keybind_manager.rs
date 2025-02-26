@@ -4,6 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::log_message;
+
 use super::{actions::action::Action, mode::Mode};
 use crossterm::event::{KeyCode, KeyModifiers};
 use mlua::{Lua, Table};
@@ -37,7 +39,7 @@ impl fmt::Debug for ActionOrClosure {
         }
     }
 }
-
+///                          Mode,   Key,    Modifier
 pub type Keybinds = HashMap<(String, String, String), KeyAction>;
 pub struct KeybindManagerV2 {
     keybinds: Keybinds,
@@ -52,7 +54,7 @@ impl KeybindManagerV2 {
             keybinds: HashMap::new(),
             last_pressed: Vec::new(),
             leader_pressed: false,
-            double_tap_threshold: Duration::from_millis(500),
+            double_tap_threshold: Duration::from_millis(1000),
         }
     }
 
@@ -154,6 +156,7 @@ impl KeybindManagerV2 {
             true => self.handle_leader_keybinds(mode, key, modifiers, v_cursor, cmd),
             false => self.handle_normal_keybinds(mode, key, modifiers, v_cursor, cmd),
         };
+
         if action.is_some() {
             self.clear_input();
         }
@@ -174,13 +177,22 @@ impl KeybindManagerV2 {
             false => modifiers.to_string(),
         };
 
-        match self.keybinds.get_mut(&(mode.clone(), sequence, modifier)) {
+        match self
+            .keybinds
+            .get_mut(&(mode.clone(), sequence.clone(), modifier))
+        {
             Some(key_action) => match &mut key_action.action {
                 ActionOrClosure::Static(action) => Some(action.clone()),
                 ActionOrClosure::Dynamic(closure) => Some(closure((cmd, v_cursor))),
             },
             None => self.handle_multiple_press(mode, key, modifiers, v_cursor, cmd),
         }
+    }
+
+    fn contains_keybinds(&self, seq: &String) -> bool {
+        self.keybinds
+            .iter()
+            .any(|((_, key, _), _)| key.contains(seq))
     }
 
     fn handle_normal_keybinds(
@@ -248,13 +260,21 @@ impl KeybindManagerV2 {
             true => "".to_string(),
             false => modifiers.to_string(),
         };
-        if let Some(key_action) = self.keybinds.get_mut(&(mode, sequence, modifier)) {
-            let action = match &mut key_action.action {
-                ActionOrClosure::Static(action) => Some(action.clone()),
-                ActionOrClosure::Dynamic(closure) => Some(closure((cmd, v_cursor))),
-            };
-            return action;
-        }
+
+        match self.keybinds.get_mut(&(mode, sequence.clone(), modifier)) {
+            Some(key_action) => {
+                let action = match &mut key_action.action {
+                    ActionOrClosure::Static(action) => Some(action.clone()),
+                    ActionOrClosure::Dynamic(closure) => Some(closure((cmd, v_cursor))),
+                };
+                return action;
+            }
+            None => {
+                if !self.contains_keybinds(&sequence) && self.leader_pressed {
+                    self.clear_input();
+                }
+            }
+        };
         None
     }
 
