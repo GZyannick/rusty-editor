@@ -53,7 +53,6 @@ pub fn draw_file<W: std::io::Write>(
 
     let chars_len = viewport_buffer.len().saturating_sub(1);
     let mut bg_color = viewport.bg_color;
-    let tabstop = 4;
 
     for (pos, c) in viewport_buffer.chars().enumerate() {
         // tell us that we are at the end of the line
@@ -63,17 +62,6 @@ pub fn draw_file<W: std::io::Write>(
             draw_new_line(viewport, &mut buffer, &mut x, &mut y)?;
             x = 0;
             y += 1;
-            continue;
-        }
-
-        if c == '\t' {
-            let spaces_to_add = tabstop - (x % tabstop);
-            for _ in 0..spaces_to_add {
-                buffer
-                    .queue(cursor::MoveTo(x + viewport.min_vwidth, y))?
-                    .queue(PrintStyledContent(" ".on(bg_color)))?;
-                x += 1;
-            }
             continue;
         }
 
@@ -133,6 +121,8 @@ pub fn draw_file<W: std::io::Write>(
 
 #[cfg(test)]
 mod tests_draw_file {
+    use tree_sitter::Query;
+
     use crate::buff::Buffer;
 
     use super::*;
@@ -150,6 +140,7 @@ mod tests_draw_file {
             is_directory: false,
             path: "".to_string(),
             lines: vec![], // Empty buffer
+            query_language: None,
         };
 
         let mut viewport = Viewport {
@@ -179,6 +170,14 @@ mod tests_draw_file {
                 "    println!(\"{{}}\", x);".to_string(),
                 "}".to_string(),
             ],
+            query_language: Some((
+                Query::new(
+                    &tree_sitter_rust::LANGUAGE.into(),
+                    tree_sitter_rust::HIGHLIGHTS_QUERY,
+                )
+                .expect("QueryErr"),
+                tree_sitter_rust::LANGUAGE.into(),
+            )),
         };
 
         let mut viewport = Viewport {
@@ -208,6 +207,14 @@ mod tests_draw_file {
                 "    println!(\"{{}}\", x);".to_string(),
                 "}".to_string(),
             ],
+            query_language: Some((
+                Query::new(
+                    &tree_sitter_rust::LANGUAGE.into(),
+                    tree_sitter_rust::HIGHLIGHTS_QUERY,
+                )
+                .expect("QueryErr"),
+                tree_sitter_rust::LANGUAGE.into(),
+            )),
         };
 
         let mut viewport = Viewport {

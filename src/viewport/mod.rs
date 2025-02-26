@@ -1,7 +1,6 @@
-mod core;
+pub mod core;
 mod ui;
 
-use core::languages::Languages;
 use std::collections::HashMap;
 
 use crossterm::style::Color;
@@ -10,6 +9,7 @@ use tree_sitter_rust::HIGHLIGHTS_QUERY;
 
 use crate::{
     buff::Buffer,
+    languages::{self, Languages},
     theme::{color_highligther::ColorHighligter, colors::DARK0},
 };
 
@@ -44,16 +44,19 @@ pub struct Viewport {
 
 impl Viewport {
     pub fn new(
-        buffer: Buffer,
+        mut buffer: Buffer,
         vwidth: u16,
         vheight: u16,
         min_vwidth: u16,
         modifiable: bool,
     ) -> Viewport {
-        let language = tree_sitter_rust::LANGUAGE;
         // i am in obligation to put the Query::new in viewport or it will make lag the app
         // and make it unspossible to use tree_sitter without delay in the input
         let min_vwidth = min_vwidth + LINE_NUMBERS_WIDTH;
+
+        let languages = Languages::new();
+
+        buffer.set_query_language(&languages);
         Viewport {
             buffer,
             modifiable,
@@ -64,8 +67,7 @@ impl Viewport {
             left: 0,
             top: 0,
             buffer_position: (0, 0, 0, 0),
-            languages: Languages::new(),
-            // query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
+            languages,
             bg_color: Color::from(DARK0),
             is_popup: false,
             search_pos: vec![],
