@@ -1,4 +1,4 @@
-use crate::viewport::Viewport;
+use crate::{log_message, viewport::Viewport};
 
 impl Viewport {
     pub fn scroll_up(&mut self) {
@@ -25,13 +25,17 @@ impl Viewport {
 
     pub fn move_end(&mut self, cursor: &mut (u16, u16)) {
         let buffer_len = self.get_buffer_len() as u16;
-        let vheight = self.vheight;
+        let vheight = self.max_vheight();
         if buffer_len > vheight {
             self.top = buffer_len - vheight;
             cursor.1 = vheight - 1;
         } else {
             cursor.1 = buffer_len - 1;
         }
+    }
+
+    pub fn max_vheight(&self) -> u16 {
+        self.vheight.saturating_sub(self.min_vheight)
     }
 
     pub fn page_down(&mut self, cursor: &(u16, u16)) {
@@ -51,15 +55,15 @@ impl Viewport {
 
     pub fn move_to(&mut self, cursor: &(u16, u16)) -> (u16, u16) {
         // calculate the editor cursor position from an v_cursor
-        let quotient = cursor.1 / self.vheight;
-        let remain = cursor.1 % self.vheight;
-        self.top = self.vheight * quotient;
-        (cursor.0, remain)
+        let quotient = cursor.1 / self.max_vheight();
+        let remain = cursor.1 % self.max_vheight();
+        self.top = self.max_vheight() * quotient;
+        (cursor.0, remain.saturating_sub(self.min_vheight))
     }
 
     pub fn center_line(&mut self, cursor: &mut (u16, u16)) {
         let c_y = cursor.1;
-        let half = self.vheight / 2;
+        let half = self.max_vheight() / 2;
         let v_cursor = self.viewport_cursor(cursor);
         match (c_y) < half {
             true => {

@@ -222,7 +222,7 @@ impl<W: Write> Editor<W> {
             .c_viewport()
             .is_under_buffer_len(&self.cursor)
         {
-            match self.cursor.1 >= (self.viewports.c_viewport().vheight - 1) {
+            match self.cursor.1 >= self.viewports.c_viewport().max_vheight().saturating_sub(1) {
                 true => self.viewports.c_mut_viewport().scroll_down(),
                 false => self.cursor.1 += 1,
             }
