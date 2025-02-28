@@ -1,5 +1,5 @@
 use crate::{buff::Buffer, editor::TERMINAL_SIZE_MINUS, viewport::Viewport};
-
+pub mod draw;
 #[derive(Debug)]
 pub struct Viewports {
     pub values: Vec<Viewport>,

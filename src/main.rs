@@ -12,7 +12,7 @@ use helper::logger::Logger;
 
 mod editor;
 use editor::Editor;
-
+pub const LINE_NUMBERS_WIDTH: u16 = 5;
 pub static INSTANCE: OnceLock<Mutex<Logger>> = OnceLock::new();
 
 use anyhow::Ok;

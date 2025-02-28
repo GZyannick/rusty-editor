@@ -17,12 +17,12 @@ use super::command::Command;
 use super::keybind_manager::Keybinds;
 use super::mode::Mode;
 use crate::buff::Buffer;
-use crate::editor;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::ui::modal::{
     create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
 };
 use crate::viewport::Viewport;
+use crate::{editor, log_message};
 
 impl ClearDraw for Viewport {}
 
@@ -298,6 +298,16 @@ impl Action {
                         }
                     }
                 }
+            }
+            Action::PushViewport => {
+                editor.viewports.push(Viewport::new(
+                    Buffer::new(Some("./src/main.rs".to_string())),
+                    editor.size.0,
+                    editor.size.1,
+                    0,
+                    true,
+                ));
+                log_message!("Hello");
             }
 
             _ => {}

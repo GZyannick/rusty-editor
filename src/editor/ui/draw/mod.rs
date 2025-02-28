@@ -12,6 +12,7 @@ impl<W: Write> Editor<W> {
         // some terminal line windows default show the cursor when drawing the tui so hide and show
         // it at the end of draw
         self.stdout.queue(cursor::Hide)?;
+        self.viewports.draw(&mut self.stdout, self.size.0)?;
 
         current_viewport::draw_current_viewport(self)?;
         modal::draw_modal(self)?;

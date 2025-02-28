@@ -11,9 +11,9 @@ use crate::{
     buff::Buffer,
     languages::{self, Languages},
     theme::{color_highligther::ColorHighligter, colors::DARK0},
+    LINE_NUMBERS_WIDTH,
 };
 
-const LINE_NUMBERS_WIDTH: u16 = 5;
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
 pub struct Viewport {
@@ -63,7 +63,7 @@ impl Viewport {
             vwidth,
             vheight,
             min_vwidth,
-            min_vheight: 0,
+            min_vheight: 1,
             left: 0,
             top: 0,
             buffer_position: (0, 0, 0, 0),
@@ -88,7 +88,10 @@ impl Viewport {
             return String::new();
         }
 
-        let height = std::cmp::min((self.top + self.vheight) as usize, self.get_buffer_len());
+        let height = std::cmp::min(
+            (self.top + self.max_vheight()) as usize,
+            self.get_buffer_len(),
+        );
         let vec = &self.buffer.lines;
         vec[self.top as usize..height].join("\n")
     }
@@ -158,7 +161,7 @@ impl Default for Viewport {
             vwidth: 80,
             vheight: 20,
             min_vwidth: LINE_NUMBERS_WIDTH,
-            min_vheight: 0,
+            min_vheight: 1,
             left: 0,
             top: 0,
             buffer_position: (0, 0, 0, 0),
