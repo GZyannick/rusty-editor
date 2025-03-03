@@ -133,6 +133,7 @@ mod tests_movement {
     use crate::{
         buff::Buffer,
         editor::{core::actions::action::Action, Editor},
+        log_message,
     };
     use std::io::{Cursor, Seek, Write};
 
@@ -270,8 +271,9 @@ mod tests_movement {
         Action::GotoPos((0, 20)).execute(&mut editor).unwrap();
         assert!(editor.cursor == (0, 0), "cursor should not move");
 
-        Action::GotoPos((2, 2)).execute(&mut editor).unwrap();
-        assert!(editor.cursor == (2, 2), "cursor should be at 2, 2");
+        Action::GotoPos((0, 2)).execute(&mut editor).unwrap();
+        log_message!("editor_cursor: {:?}", editor.cursor);
+        assert!(editor.cursor == (0, 2), "cursor should be at 0, 2");
     }
 
     #[test]

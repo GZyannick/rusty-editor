@@ -4,6 +4,7 @@ pub mod insertion;
 pub mod movement;
 pub mod search;
 pub mod undo;
+pub mod viewport;
 pub mod yank_past;
 use std::fs::metadata;
 use std::io::Write;
@@ -14,13 +15,13 @@ use crossterm::{cursor, ExecutableCommand, QueueableCommand};
 
 use super::super::Editor;
 use super::command::Command;
-use super::keybind_manager::Keybinds;
 use super::mode::Mode;
 use crate::buff::Buffer;
 use crate::editor::ui::clear::ClearDraw;
 use crate::editor::ui::modal::{
     create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
 };
+use crate::editor::TERMINAL_SIZE_MINUS;
 use crate::viewport::Viewport;
 use crate::{editor, log_message};
 
@@ -90,6 +91,7 @@ impl Action {
         self.insertion(editor)?;
         self.undo(editor)?;
         self.yank_past(editor)?;
+        self.viewport(editor)?;
 
         // other that dont really need a file for themselve
         match self {
@@ -213,11 +215,15 @@ impl Action {
                             viewport.buffer = Buffer::new(Some(path));
                         }
                         false => {
-                            // editor.viewports.c_mut_viewport().as_normal();
-                            let viewport = editor.viewports.get_original_viewport().unwrap();
-                            viewport.modifiable = true;
-                            viewport.buffer = Buffer::new(Some(path));
+                            let mut viewport = Viewport::new(
+                                Buffer::new(Some(path)),
+                                editor.size.0,
+                                editor.size.1 - TERMINAL_SIZE_MINUS,
+                                0,
+                                true,
+                            );
                             viewport.buffer.set_query_language(&viewport.languages);
+                            editor.viewports.push(viewport);
                             editor.buffer_actions.push(Action::SwapViewportToExplorer);
                         }
                     }
@@ -232,27 +238,14 @@ impl Action {
 
                 editor.reset_cursor();
 
-                match editor.viewports.c_viewport().is_file_explorer() {
-                    true => editor.viewports.set_current_to_original_viewport(),
-                    false => editor.viewports.set_current_to_file_explorer_viewport(),
-                }
+                editor.viewports.is_explorer = !editor.viewports.is_explorer;
                 editor.viewports.c_mut_viewport().as_normal();
             }
             Action::SwapViewportToPopupExplorer => {
                 editor.reset_cursor();
-                let c_mut_viewport = editor.viewports.c_mut_viewport();
-                match c_mut_viewport.is_file_explorer() {
-                    // if this is the file_explorer return to the viewport and make file_explorer
-                    // normal again
-                    true => {
-                        c_mut_viewport.as_normal();
-                        editor.viewports.set_current_to_original_viewport();
-                    }
-                    false => {
-                        editor.viewports.set_current_to_file_explorer_viewport();
-                        editor.viewports.c_mut_viewport().as_popup();
-                    }
-                }
+                editor.viewports.is_explorer = !editor.viewports.is_explorer;
+                editor.viewports.c_mut_viewport().as_normal();
+                editor.viewports.explorer.as_popup();
             }
             Action::LeaveModal => {
                 editor.modal = None;
@@ -390,7 +383,7 @@ mod tests_other_actions {
     #[test]
     fn test_create_file_or_directory_success() {
         let mut editor = mock_editor();
-        editor.viewports.set_current_to_file_explorer_viewport();
+        editor.viewports.is_explorer = true;
         editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(TMP_DIR.to_string()));
         let filename = format!("{TMP_DIR}/test_folder");
 
@@ -409,7 +402,7 @@ mod tests_other_actions {
     #[test]
     fn test_rename_and_delete_file_or_directory() {
         let mut editor = mock_editor();
-        editor.viewports.set_current_to_file_explorer_viewport();
+        editor.viewports.is_explorer = true;
         File::create(format!("{TMP_DIR}/old_file.txt")).unwrap();
         editor.viewports.c_mut_viewport().buffer = Buffer::new(Some(TMP_DIR.to_string()));
         let filename = format!("{TMP_DIR}/new_file.txt");

@@ -2,25 +2,24 @@ use std::io::Write;
 
 use crate::editor::Editor;
 pub fn draw_current_viewport<W: Write>(editor: &mut Editor<W>) -> anyhow::Result<()> {
-    {
-        match editor.is_visual_mode() {
-            true => {
-                // give us two option of (u16, u16) first is start second is end
-                if let Some(v_block) = editor.get_visual_block_pos() {
-                    editor.viewports.c_mut_viewport().draw(
-                        &mut editor.stdout,
-                        Some(v_block.start),
-                        Some(v_block.end),
-                    )?;
-                };
-            }
-            false => {
-                // draw normal viewport without visual block
-                editor
-                    .viewports
-                    .c_mut_viewport()
-                    .draw(&mut editor.stdout, None, None)?;
-            }
+    let is_explorer = editor.viewports.is_explorer;
+    match editor.is_visual_mode() {
+        true => {
+            // give us two option of (u16, u16) first is start second is end
+            if let Some(v_block) = editor.get_visual_block_pos() {
+                editor.viewports.c_mut_viewport().draw(
+                    &mut editor.stdout,
+                    Some(v_block.start),
+                    Some(v_block.end),
+                    is_explorer,
+                )?;
+            };
+        }
+        false => {
+            editor
+                .viewports
+                .c_mut_viewport()
+                .draw(&mut editor.stdout, None, None, is_explorer)?;
         }
     }
     Ok(())

@@ -4,6 +4,18 @@
 return {
 	keybinds = {
 		normal = {
+			{
+				key = "H",
+				action = "PrevViewport",
+				description = "Switch to the previous viewport",
+				modifiers = "Shift",
+			},
+			{
+				key = "L",
+				action = "NextViewport",
+				description = "Switch to the next viewport",
+				modifiers = "Shift",
+			},
 			{ key = "<leader>v", action = "PushViewport", description = "Switches to Visual mode.", modifiers = "" },
 			{ key = "v", action = "EnterMode Visual", description = "Switches to Visual mode.", modifiers = "" },
 			{ key = "h", action = "MoveLeft", description = "Move left by 1", modifiers = "" },

@@ -20,13 +20,13 @@ impl Viewport {
         stdout: &mut W,
         start_v_mode: Option<(u16, u16)>,
         end_v_mode: Option<(u16, u16)>,
+        is_file_explorer: bool,
     ) -> anyhow::Result<()> {
         if self.buffer.lines.is_empty() {
             return Ok(());
         }
 
-        //retrieve the last line position
-        let y = match self.is_file_explorer() {
+        let y = match is_file_explorer {
             true => file_explorer::draw_file_explorer(self, stdout)?,
             false => file::draw_file(self, stdout, start_v_mode, end_v_mode)?,
         };
@@ -108,7 +108,7 @@ mod tests_viewport_draw {
         };
 
         let mut mock_stdout = create_mock_stdout();
-        let result = viewport.draw(&mut mock_stdout, None, None);
+        let result = viewport.draw(&mut mock_stdout, None, None, false);
         assert!(
             result.is_ok(),
             "draw() devrait réussir même si le buffer est vide"
@@ -123,7 +123,7 @@ mod tests_viewport_draw {
         };
 
         let mut mock_stdout = create_mock_stdout();
-        let result = viewport.draw(&mut mock_stdout, None, None);
+        let result = viewport.draw(&mut mock_stdout, None, None, true);
         assert!(
             result.is_ok(),
             "draw() devrait réussir en mode file explorer"

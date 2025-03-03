@@ -2,17 +2,21 @@ use crate::{buff::Buffer, editor::TERMINAL_SIZE_MINUS, viewport::Viewport};
 pub mod draw;
 #[derive(Debug)]
 pub struct Viewports {
+    pub explorer: Viewport,
     pub values: Vec<Viewport>,
     pub index: usize,
     pub buffer_index: usize,
+    pub is_explorer: bool,
 }
 
 impl Viewports {
-    pub fn new() -> Viewports {
+    pub fn new(explorer: Viewport) -> Viewports {
         Viewports {
+            explorer,
             values: vec![],
             index: 0,
             buffer_index: 0,
+            is_explorer: false,
         }
     }
 
@@ -31,23 +35,17 @@ impl Viewports {
     }
 
     pub fn c_viewport(&self) -> &Viewport {
-        self.values.get(self.index).unwrap()
-    }
-
-    pub fn c_mut_viewport(&mut self) -> &mut Viewport {
-        self.values.get_mut(self.index).unwrap()
-    }
-
-    pub fn set_current_to_file_explorer_viewport(&mut self) {
-        if let Some(pos) = self.values.iter().position(|v| v.is_file_explorer()) {
-            self.buffer_index = self.index;
-            self.index = pos;
+        match self.is_explorer {
+            true => &self.explorer,
+            false => self.values.get(self.index).unwrap(),
         }
     }
 
-    pub fn set_current_to_original_viewport(&mut self) {
-        self.index = self.buffer_index;
-        self.buffer_index = 0;
+    pub fn c_mut_viewport(&mut self) -> &mut Viewport {
+        match self.is_explorer {
+            true => &mut self.explorer,
+            false => self.values.get_mut(self.index).unwrap(),
+        }
     }
 
     pub fn get_original_viewport(&mut self) -> Option<&mut Viewport> {
@@ -61,14 +59,13 @@ impl Viewports {
 
 impl Default for Viewports {
     fn default() -> Self {
-        let values = vec![
-            Viewport::new(Buffer::new(None), 80, 20, 0, true),
-            Viewport::new(Buffer::new(Some("./".to_string())), 80, 20, 0, true),
-        ];
+        let values = vec![Viewport::new(Buffer::new(None), 80, 20, 0, true)];
         Self {
+            explorer: Viewport::new(Buffer::new(Some("./".to_string())), 80, 20, 0, true),
             values,
             index: 0,
             buffer_index: 0,
+            is_explorer: false,
         }
     }
 }

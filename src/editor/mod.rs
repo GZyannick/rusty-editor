@@ -62,39 +62,32 @@ impl<W: Write> Editor<W> {
     pub fn new(buffer: Buffer, stdout: W) -> Result<Editor<W>> {
         let size = terminal::size()?;
 
-        let mut viewports = Viewports::new();
-        let mut explorer_viewport = Viewport::new(
-            Buffer::new(Some(String::from("./"))),
-            size.0,
-            size.1 - TERMINAL_SIZE_MINUS,
-            0,
-            true,
-        );
+        let (explorer, viewport) = match buffer.is_directory {
+            true => (
+                Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0, true),
+                Viewport::new(
+                    Buffer::new(None),
+                    size.0,
+                    size.1 - TERMINAL_SIZE_MINUS,
+                    0,
+                    true,
+                ),
+            ),
+            false => (
+                Viewport::new(
+                    Buffer::new(Some(String::from("./"))),
+                    size.0,
+                    size.1 - TERMINAL_SIZE_MINUS,
+                    0,
+                    true,
+                ),
+                Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0, true),
+            ),
+        };
 
-        if buffer.is_directory {
-            explorer_viewport =
-                Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0, true);
+        let mut viewports = Viewports::new(explorer);
+        viewports.push(viewport);
 
-            // this is an empty file viewport
-            viewports.push(Viewport::new(
-                Buffer::new(None),
-                size.0,
-                size.1 - TERMINAL_SIZE_MINUS,
-                0,
-                true,
-            ));
-
-            // Viewport::new(Buffer::new(None), size.0, size.1 - TERMINAL_SIZE_MINUS, 0)
-        } else {
-            viewports.push(Viewport::new(
-                buffer,
-                size.0,
-                size.1 - TERMINAL_SIZE_MINUS,
-                0,
-                true,
-            ));
-        }
-        viewports.push(explorer_viewport);
         let mut keybinds = KeybindManagerV2::new();
         keybinds.init_keybinds();
 

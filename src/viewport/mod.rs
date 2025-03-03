@@ -166,7 +166,6 @@ impl Default for Viewport {
             top: 0,
             buffer_position: (0, 0, 0, 0),
             languages: Languages::new(),
-            // query: Query::new(&language.into(), HIGHLIGHTS_QUERY).expect("Query Error"),
             bg_color: Color::from(DARK0),
             is_popup: false,
             search_pos: vec![],
