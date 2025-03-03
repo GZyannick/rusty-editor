@@ -5,6 +5,18 @@ return {
 	keybinds = {
 		normal = {
 			{
+				key = "<leader>bd",
+				action = "DeleteViewport",
+				description = "Delete current viewport",
+				modifiers = "",
+			},
+			{
+				key = "<leader>bo",
+				action = "DeleteOtherViewport",
+				description = "Delete other viewport",
+				modifiers = "",
+			},
+			{
 				key = "H",
 				action = "PrevViewport",
 				description = "Switch to the previous viewport",

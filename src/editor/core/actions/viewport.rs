@@ -8,6 +8,12 @@ impl Action {
         match self {
             Action::PrevViewport => editor.viewports.prev_viewport(),
             Action::NextViewport => editor.viewports.next_viewport(),
+            Action::DeleteViewport => {
+                todo!()
+            }
+            Action::DeleteOtherViewport => {
+                todo!()
+            }
 
             _ => {}
         }
