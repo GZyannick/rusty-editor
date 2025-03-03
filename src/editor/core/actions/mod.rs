@@ -223,7 +223,7 @@ impl Action {
                                 true,
                             );
                             viewport.buffer.set_query_language(&viewport.languages);
-                            editor.viewports.push(viewport);
+                            editor.viewports.index = editor.viewports.push(viewport);
                             editor.buffer_actions.push(Action::SwapViewportToExplorer);
                         }
                     }
@@ -292,17 +292,6 @@ impl Action {
                     }
                 }
             }
-            Action::PushViewport => {
-                editor.viewports.push(Viewport::new(
-                    Buffer::new(Some("./src/main.rs".to_string())),
-                    editor.size.0,
-                    editor.size.1,
-                    0,
-                    true,
-                ));
-                log_message!("Hello");
-            }
-
             _ => {}
         }
 

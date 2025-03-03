@@ -82,7 +82,6 @@ pub enum Action {
     RenameInputModal,
     DeleteInputModal,
     HelpKeybinds(Option<String>),
-    PushViewport,
     PrevViewport,
     NextViewport,
 }
@@ -189,7 +188,6 @@ impl From<String> for Action {
             ["DeleteInputModal"] => Action::DeleteInputModal,
             ["HelpKeybinds", opt] => Action::HelpKeybinds(Some(opt.to_string())),
             ["Undo"] => Action::Undo,
-            ["PushViewport"] => Action::PushViewport,
             ["PrevViewport"] => Action::PrevViewport,
             ["NextViewport"] => Action::NextViewport,
             _ => panic!("Invalid Action string: {}", value),

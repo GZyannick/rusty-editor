@@ -1,4 +1,4 @@
-use crate::{buff::Buffer, editor::TERMINAL_SIZE_MINUS, viewport::Viewport};
+use crate::{buff::Buffer, editor::TERMINAL_SIZE_MINUS, log_message, viewport::Viewport};
 pub mod draw;
 #[derive(Debug)]
 pub struct Viewports {
@@ -30,8 +30,9 @@ impl Viewports {
         Ok(true)
     }
 
-    pub fn push(&mut self, viewport: Viewport) {
+    pub fn push(&mut self, viewport: Viewport) -> usize {
         self.values.push(viewport);
+        self.values.len() - 1
     }
 
     pub fn c_viewport(&self) -> &Viewport {
@@ -54,6 +55,21 @@ impl Viewports {
 
     fn get_by_index(&mut self, index: usize) -> Option<&mut Viewport> {
         self.values.get_mut(index)
+    }
+
+    pub fn prev_viewport(&mut self) {
+        let prev_index = self.index.saturating_sub(1);
+        self.index = match self.index == 0 {
+            true => self.values.len() - 1,
+            false => prev_index,
+        }
+    }
+    pub fn next_viewport(&mut self) {
+        let next_index = self.index + 1;
+        self.index = match self.values.get(next_index).is_some() {
+            true => next_index,
+            false => 0,
+        }
     }
 }
 

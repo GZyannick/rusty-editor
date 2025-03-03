@@ -16,7 +16,6 @@ return {
 				description = "Switch to the next viewport",
 				modifiers = "Shift",
 			},
-			{ key = "<leader>v", action = "PushViewport", description = "Switches to Visual mode.", modifiers = "" },
 			{ key = "v", action = "EnterMode Visual", description = "Switches to Visual mode.", modifiers = "" },
 			{ key = "h", action = "MoveLeft", description = "Move left by 1", modifiers = "" },
 			{ key = "j", action = "MoveDown", description = "Move down by 1", modifiers = "" },
