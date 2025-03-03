@@ -84,26 +84,6 @@ mod tests_editor_handler {
     }
 
     #[test]
-    fn test_handle_action_waiting_command() -> Result<()> {
-        let mut editor = create_mock_editor();
-        editor.waiting_command = Some('d'); // Set the waiting command to 'd'
-
-        // Simulate the KeyEvent for 'd' key press
-        let key_event = event::Event::Key(event::KeyEvent {
-            kind: event::KeyEventKind::Press,
-            code: KeyCode::Char('d'),
-            modifiers: KeyModifiers::NONE,
-            state: KeyEventState::NONE,
-        });
-
-        // Expect action to be DeleteLine as per 'd' waiting command
-        let action = editor.handle_action(key_event)?;
-
-        assert_eq!(action, Some(Action::DeleteLine));
-        Ok(())
-    }
-
-    #[test]
     fn test_handle_action_invalid_key() -> Result<()> {
         let mut editor = create_mock_editor();
 

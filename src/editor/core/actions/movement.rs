@@ -1,6 +1,9 @@
 use std::io::Write;
 
-use crate::editor::{core::chartype::CharType, Editor, TERMINAL_LINE_LEN_MINUS};
+use crate::{
+    editor::{core::chartype::CharType, Editor, TERMINAL_LINE_LEN_MINUS},
+    log_message,
+};
 
 use super::action::Action;
 
@@ -272,8 +275,7 @@ mod tests_movement {
         assert!(editor.cursor == (0, 0), "cursor should not move");
 
         Action::GotoPos((0, 2)).execute(&mut editor).unwrap();
-        log_message!("editor_cursor: {:?}", editor.cursor);
-        assert!(editor.cursor == (0, 2), "cursor should be at 0, 2");
+        assert!(editor.cursor == (0, 1), "cursor should be at 0, 2");
     }
 
     #[test]

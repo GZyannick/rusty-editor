@@ -43,11 +43,11 @@ mod test_highlighting {
 
         // Code simple pour le test
         let code = r#"
-fn main() {
-    let x = 42;
-    println!("{}", x);
-}
-"#
+            fn main() {
+                let x = 42;
+                println!("{}", x);
+            }
+        "#
         .to_string();
 
         // Appel de la fonction highlight

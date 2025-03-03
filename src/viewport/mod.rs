@@ -55,7 +55,6 @@ impl Viewport {
         let min_vwidth = min_vwidth + LINE_NUMBERS_WIDTH;
 
         let languages = Languages::new();
-
         buffer.set_query_language(&languages);
         Viewport {
             buffer,
@@ -155,8 +154,18 @@ impl Viewport {
 
 impl Default for Viewport {
     fn default() -> Self {
+        let mut buffer = Buffer::new(None);
+        buffer.query_language = Some((
+            Query::new(
+                &tree_sitter_rust::LANGUAGE.into(),
+                tree_sitter_rust::HIGHLIGHTS_QUERY,
+            )
+            .expect("Query Error"),
+            tree_sitter_rust::LANGUAGE.into(),
+        ));
+
         Viewport {
-            buffer: Buffer::new(None),
+            buffer,
             modifiable: true,
             vwidth: 80,
             vheight: 20,
