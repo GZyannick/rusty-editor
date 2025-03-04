@@ -1,9 +1,6 @@
 use std::io::Write;
 
-use crate::{
-    editor::{core::chartype::CharType, Editor, TERMINAL_LINE_LEN_MINUS},
-    log_message,
-};
+use crate::editor::{core::chartype::CharType, Editor, TERMINAL_LINE_LEN_MINUS};
 
 use super::action::Action;
 
@@ -136,7 +133,6 @@ mod tests_movement {
     use crate::{
         buff::Buffer,
         editor::{core::actions::action::Action, Editor},
-        log_message,
     };
     use std::io::{Cursor, Seek, Write};
 

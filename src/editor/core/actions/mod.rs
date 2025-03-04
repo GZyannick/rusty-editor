@@ -23,10 +23,8 @@ use crate::editor::ui::modal::{
 };
 use crate::editor::TERMINAL_SIZE_MINUS;
 use crate::viewport::Viewport;
-use crate::{editor, log_message};
 
 impl ClearDraw for Viewport {}
-
 impl Action {
     // handle insert and leaving visual mode
     fn enter_mode_visual<W: Write>(
