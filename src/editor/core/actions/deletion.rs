@@ -12,16 +12,28 @@ use super::action::{Action, OldCursorPosition};
 impl Action {
     pub fn deletion<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
-            Action::RemoveCharAt(cursor) => {
+            Action::RemoveCharAt => {
+                // remove char at doenst take parameter because if we need to change at a specific
+                // position we set the cursor before like that it simplified how the keybind work
+                // in handle keybind
+                let v_cursor = editor.v_cursor();
                 if !editor.is_viewport_modifiable() {
                     return Ok(());
                 }
-                if editor.viewports.c_viewport().get_line_len(cursor) > 0 {
-                    editor
+                let top = editor.viewports.c_viewport().top;
+                if editor.viewports.c_viewport().get_line_len(&v_cursor) > 0 {
+                    let char = editor
                         .viewports
                         .c_mut_viewport()
                         .buffer
-                        .remove_char(*cursor);
+                        .remove_char(v_cursor);
+
+                    if let Some(char) = char {
+                        let old_cursor = OldCursorPosition::new(editor.cursor, top);
+                        editor
+                            .undo_actions
+                            .push(Action::UndoRemoveCharAt(old_cursor, char));
+                    }
                 }
             }
 
@@ -46,8 +58,8 @@ impl Action {
                     false if cursor_viewport.1 > 0 => {
                         // we get the size of the prev line before change
                         // because we want the text that will be added behind the cursor
-                        let new_x_pos =
-                            current_viewport.get_line_len(&(editor.cursor.0, editor.cursor.1 - 1));
+                        let new_x_pos = current_viewport
+                            .get_line_len_no_v_cursor(&(editor.cursor.0, editor.cursor.1 - 1));
                         current_viewport.buffer.remove_char_line(cursor_viewport);
                         editor.move_prev_line();
                         editor.cursor.0 = new_x_pos;
@@ -172,9 +184,8 @@ mod tests_deletion {
     fn test_remove_char_at() {
         let mut editor = mock_file_editor();
         editor.cursor = (2, 0); // Set cursor to 'n' in "Line1"
-        Action::RemoveCharAt(editor.cursor)
-            .execute(&mut editor)
-            .unwrap();
+        Action::RemoveCharAt.execute(&mut editor).unwrap();
+
         let line = editor.viewports.c_viewport().buffer.get(0).unwrap();
         assert_eq!(line, "Lie1"); // 'n' should be removed
     }

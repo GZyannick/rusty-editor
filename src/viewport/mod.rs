@@ -93,9 +93,16 @@ impl Viewport {
     }
 
     // retrieve the len of the line
-    pub fn get_line_len(&self, cursor: &(u16, u16)) -> u16 {
+    pub fn get_line_len_no_v_cursor(&self, cursor: &(u16, u16)) -> u16 {
         let (_, y) = self.viewport_cursor(cursor);
         match self.buffer.get(y as usize) {
+            Some(line) => line.len() as u16,
+            None => 0,
+        }
+    }
+    // retrieve the len of the line
+    pub fn get_line_len(&self, cursor: &(u16, u16)) -> u16 {
+        match self.buffer.get(cursor.1 as usize) {
             Some(line) => line.len() as u16,
             None => 0,
         }

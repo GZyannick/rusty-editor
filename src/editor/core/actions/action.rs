@@ -27,7 +27,7 @@ pub enum Action {
     EnterMode(Mode),
     AddChar(char),
     RemoveChar,
-    RemoveCharAt((u16, u16)),
+    RemoveCharAt,
     RemoveCharFrom(bool),
     WaitingCmd(char),
     DeleteLine,
@@ -52,7 +52,7 @@ pub enum Action {
     UndoDeleteBlock(OldCursorPosition, Vec<Option<String>>), //cursor.1 , top, content
     UndoNewLine(OldCursorPosition),
     UndoMultiple(Vec<Action>),
-    UndoCharAt(OldCursorPosition, (u16, u16)),
+    UndoCharAt(OldCursorPosition),
     ExecuteCommand,
     EnterFileOrDirectory,
     SwapViewportToExplorer,
@@ -87,6 +87,7 @@ pub enum Action {
     DeleteOtherViewport,
     DeleteViewport,
     PushEmptyViewport,
+    UndoRemoveCharAt(OldCursorPosition, char),
 }
 
 impl PartialEq for Action {
@@ -94,7 +95,7 @@ impl PartialEq for Action {
         match (self, other) {
             (Self::EnterMode(l0), Self::EnterMode(r0)) => l0 == r0,
             (Self::AddChar(l0), Self::AddChar(r0)) => l0 == r0,
-            (Self::RemoveCharAt(l0), Self::RemoveCharAt(r0)) => l0 == r0,
+            // (Self::RemoveCharAt(l0), Self::RemoveCharAt(r0)) => l0 == r0,
             (Self::RemoveCharFrom(l0), Self::RemoveCharFrom(r0)) => l0 == r0,
             (Self::WaitingCmd(l0), Self::WaitingCmd(r0)) => l0 == r0,
             (Self::AddCommandChar(l0), Self::AddCommandChar(r0)) => l0 == r0,
@@ -103,7 +104,7 @@ impl PartialEq for Action {
             (Self::UndoDeleteBlock(l0, l1), Self::UndoDeleteBlock(r0, r1)) => l0 == r0 && l1 == r1,
             (Self::UndoNewLine(l0), Self::UndoNewLine(r0)) => l0 == r0,
             (Self::UndoMultiple(l0), Self::UndoMultiple(r0)) => l0 == r0,
-            (Self::UndoCharAt(l0, l1), Self::UndoCharAt(r0, r1)) => l0 == r0 && l1 == r1,
+            // (Self::UndoCharAt(l0, l1), Self::UndoCharAt(r0, r1)) => l0 == r0 && l1 == r1,
             (Self::UndoPast(l0, l1, l2), Self::UndoPast(r0, r1, r2)) => {
                 l0 == r0 && l1 == r1 && l2 == r2
             }
@@ -140,7 +141,7 @@ impl From<String> for Action {
             ["EnterMode", mode] => Action::EnterMode(Mode::from(mode.to_string())),
             ["AddChar", c] if c.len() == 1 => Action::AddChar(c.chars().next().unwrap()),
             ["RemoveChar"] => Action::RemoveChar,
-            // ["RemoveCharAt"] => panic!("RemoveCharAt requires a cursor position"),
+            ["RemoveCharAt"] => Action::RemoveCharAt,
             ["RemoveCharFrom", pos] => Action::RemoveCharFrom(pos.parse::<bool>().unwrap_or(false)),
             ["WaitingCmd", c] if c.len() == 1 => Action::WaitingCmd(c.chars().next().unwrap()),
             ["DeleteLine"] => Action::DeleteLine,

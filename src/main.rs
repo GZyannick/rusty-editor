@@ -73,7 +73,6 @@ mod main_tests {
         let path = "./src/main.rs".to_string();
         let file_path = Some(path.clone());
         let buffer = Buffer::new(file_path);
-
         let editor = Editor::new(buffer, stdout())?;
         assert!(matches!(editor.mode, Mode::Normal));
         assert!(editor.viewports.values.len() == 1);

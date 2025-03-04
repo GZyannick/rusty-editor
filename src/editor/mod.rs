@@ -242,7 +242,8 @@ impl<W: Write> Editor<W> {
     fn get_specific_line_len_by_mode(&mut self) -> u16 {
         // ive created this fn because the ll is different by the mode we are in
         // != Mode::Insert = ll - 1
-        match self.viewports.c_viewport().get_line_len(&self.cursor) {
+
+        match self.viewports.c_viewport().get_line_len(&self.v_cursor()) {
             0 => 0,
             ll if matches!(self.mode, Mode::Insert) => ll,
             ll => ll - TERMINAL_LINE_LEN_MINUS,

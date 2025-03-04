@@ -322,10 +322,12 @@ impl Buffer {
         block
     }
 
-    pub fn remove_char(&mut self, cursor: (u16, u16)) {
+    pub fn remove_char(&mut self, cursor: (u16, u16)) -> Option<char> {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-            line.remove(cursor.0 as usize);
+            let char = line.remove(cursor.0 as usize);
+            return Some(char);
         }
+        None
     }
 
     pub fn remove_word(&mut self, _cursor: (u16, u16)) {

@@ -36,7 +36,7 @@ impl Action {
             Action::Past => {
                 if let Some(content) = clipboard::paste_from_clipboard() {
                     let current_viewport = editor.viewports.c_mut_viewport();
-                    let v_cursor = current_viewport.viewport_cursor(&editor.cursor);
+                    let v_cursor = &current_viewport.viewport_cursor(&editor.cursor);
                     let mut end_x: usize = 0;
                     let mut start_x: usize = 0;
                     let mut y: usize = v_cursor.1 as usize;
@@ -47,7 +47,8 @@ impl Action {
                     for (i, line) in content.iter().enumerate() {
                         match i {
                             _ if i == 0 => {
-                                let line_len = current_viewport.get_line_len(&editor.cursor);
+                                let line_len =
+                                    current_viewport.get_line_len_no_v_cursor(&editor.cursor);
 
                                 (start_x, end_x) = match line_len > 0 {
                                     true => {

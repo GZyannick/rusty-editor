@@ -90,17 +90,6 @@ impl KeybindManagerV2 {
 
     pub fn load_dyn_keybinds(&mut self) {
         self.bind_key(
-            Mode::Normal.to_string().to_lowercase(),
-            "x",
-            "",
-            KeyAction::new(
-                ActionOrClosure::Dynamic(Box::new(move |(_, v_cursor)| {
-                    Action::RemoveCharAt(*v_cursor)
-                })),
-                "Deletes a character at a specific position.".to_string(),
-            ),
-        );
-        self.bind_key(
             Mode::Command.to_string().to_lowercase(),
             "Return",
             "",
