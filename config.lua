@@ -5,6 +5,18 @@ return {
 	keybinds = {
 		normal = {
 			{
+				key = "<leader>bd",
+				action = "DeleteViewport",
+				description = "Delete current viewport",
+				modifiers = "",
+			},
+			{
+				key = "<leader>bo",
+				action = "DeleteOtherViewport",
+				description = "Delete other viewport",
+				modifiers = "",
+			},
+			{
 				key = "H",
 				action = "PrevViewport",
 				description = "Switch to the previous viewport",
@@ -16,7 +28,6 @@ return {
 				description = "Switch to the next viewport",
 				modifiers = "Shift",
 			},
-			{ key = "<leader>v", action = "PushViewport", description = "Switches to Visual mode.", modifiers = "" },
 			{ key = "v", action = "EnterMode Visual", description = "Switches to Visual mode.", modifiers = "" },
 			{ key = "h", action = "MoveLeft", description = "Move left by 1", modifiers = "" },
 			{ key = "j", action = "MoveDown", description = "Move down by 1", modifiers = "" },

@@ -82,9 +82,11 @@ pub enum Action {
     RenameInputModal,
     DeleteInputModal,
     HelpKeybinds(Option<String>),
-    PushViewport,
     PrevViewport,
     NextViewport,
+    DeleteOtherViewport,
+    DeleteViewport,
+    PushEmptyViewport,
 }
 
 impl PartialEq for Action {
@@ -189,9 +191,11 @@ impl From<String> for Action {
             ["DeleteInputModal"] => Action::DeleteInputModal,
             ["HelpKeybinds", opt] => Action::HelpKeybinds(Some(opt.to_string())),
             ["Undo"] => Action::Undo,
-            ["PushViewport"] => Action::PushViewport,
             ["PrevViewport"] => Action::PrevViewport,
             ["NextViewport"] => Action::NextViewport,
+            ["DeleteOtherViewport"] => Action::DeleteOtherViewport,
+            ["DeleteViewport"] => Action::DeleteViewport,
+            ["PushEmptyViewport"] => Action::PushEmptyViewport,
             _ => panic!("Invalid Action string: {}", value),
         }
     }

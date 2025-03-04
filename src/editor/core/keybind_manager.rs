@@ -1,10 +1,8 @@
 use core::fmt;
 use std::{
-    collections::{btree_map, BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap},
     time::{Duration, Instant},
 };
-
-use crate::log_message;
 
 use super::{actions::action::Action, mode::Mode};
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -21,10 +19,10 @@ impl KeyAction {
         Self { action, desc }
     }
 }
-
+type Closure = dyn FnMut((&str, &(u16, u16))) -> Action;
 pub enum ActionOrClosure {
     Static(Action),
-    Dynamic(Box<dyn FnMut((&str, &(u16, u16))) -> Action>),
+    Dynamic(Box<Closure>),
 }
 impl fmt::Debug for ActionOrClosure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -41,6 +39,9 @@ impl fmt::Debug for ActionOrClosure {
 }
 ///                          Mode,   Key,    Modifier
 pub type Keybinds = HashMap<(String, String, String), KeyAction>;
+
+type KeybindSort = Vec<((String, String), String)>;
+type BtreeSort = BTreeMap<String, KeybindSort>;
 pub struct KeybindManagerV2 {
     keybinds: Keybinds,
     last_pressed: Vec<(String, KeyCode, KeyModifiers, Instant)>,
@@ -303,8 +304,7 @@ impl KeybindManagerV2 {
 
         lines
     }
-
-    fn sort_by_mode(&self) -> BTreeMap<String, Vec<((String, String), String)>> {
+    fn sort_by_mode(&self) -> BtreeSort {
         let mut sorted = BTreeMap::new();
         for ((mode, key, modifiers), action) in &self.keybinds {
             sorted

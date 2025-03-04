@@ -23,10 +23,8 @@ use crate::editor::ui::modal::{
 };
 use crate::editor::TERMINAL_SIZE_MINUS;
 use crate::viewport::Viewport;
-use crate::{editor, log_message};
 
 impl ClearDraw for Viewport {}
-
 impl Action {
     // handle insert and leaving visual mode
     fn enter_mode_visual<W: Write>(
@@ -215,15 +213,25 @@ impl Action {
                             viewport.buffer = Buffer::new(Some(path));
                         }
                         false => {
-                            let mut viewport = Viewport::new(
-                                Buffer::new(Some(path)),
-                                editor.size.0,
-                                editor.size.1 - TERMINAL_SIZE_MINUS,
-                                0,
-                                true,
-                            );
-                            viewport.buffer.set_query_language(&viewport.languages);
-                            editor.viewports.push(viewport);
+                            let mut viewport_exists = false;
+                            for (i, v) in editor.viewports.values.iter().enumerate() {
+                                if v.buffer.path == path {
+                                    editor.viewports.index = i;
+                                    viewport_exists = true;
+                                }
+                            }
+
+                            if !viewport_exists {
+                                let mut viewport = Viewport::new(
+                                    Buffer::new(Some(path)),
+                                    editor.size.0,
+                                    editor.size.1 - TERMINAL_SIZE_MINUS,
+                                    0,
+                                    true,
+                                );
+                                viewport.buffer.set_query_language(&viewport.languages);
+                                editor.viewports.index = editor.viewports.push(viewport);
+                            }
                             editor.buffer_actions.push(Action::SwapViewportToExplorer);
                         }
                     }
@@ -274,35 +282,24 @@ impl Action {
             }
 
             Action::HelpKeybinds(keybind_type) => {
-                //TODO: For now we need to save all viewports before viewing keybinds because it remove the current
-                //buffer
-                if !editor.viewports.viewports_save_status()? {
-                    return Ok(());
-                }
-                if let Some(viewport) = editor.viewports.get_original_viewport() {
-                    viewport.modifiable = false;
-                    viewport.buffer = match keybind_type {
-                        Some(keybind_type) => Buffer::new_tmp(
-                            editor.keybinds.show_specific_keybinds(keybind_type),
-                            "Keybinds".to_string(),
-                        ),
-                        None => {
-                            Buffer::new_tmp(editor.keybinds.show_keybinds(), "Keybinds".to_string())
-                        }
+                let buffer = match keybind_type {
+                    Some(keybind_type) => Buffer::new_tmp(
+                        editor.keybinds.show_specific_keybinds(keybind_type),
+                        "Keybinds".to_string(),
+                    ),
+                    None => {
+                        Buffer::new_tmp(editor.keybinds.show_keybinds(), "Keybinds".to_string())
                     }
-                }
-            }
-            Action::PushViewport => {
-                editor.viewports.push(Viewport::new(
-                    Buffer::new(Some("./src/main.rs".to_string())),
+                };
+                let viewport = Viewport::new(
+                    buffer,
                     editor.size.0,
-                    editor.size.1,
+                    editor.size.1 - TERMINAL_SIZE_MINUS,
                     0,
-                    true,
-                ));
-                log_message!("Hello");
+                    false,
+                );
+                editor.viewports.index = editor.viewports.push(viewport);
             }
-
             _ => {}
         }
 
