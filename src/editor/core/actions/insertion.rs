@@ -24,10 +24,12 @@ impl Action {
             }
             Action::AddChar(c) => {
                 let cursor_viewport = editor.v_cursor();
-                editor.undo_insert_actions.push(Action::UndoCharAt(
-                    OldCursorPosition::new(editor.cursor, editor.viewports.c_viewport().top),
-                    cursor_viewport,
-                ));
+                editor
+                    .undo_insert_actions
+                    .push(Action::UndoCharAt(OldCursorPosition::new(
+                        editor.cursor,
+                        editor.viewports.c_viewport().top,
+                    )));
 
                 editor
                     .viewports

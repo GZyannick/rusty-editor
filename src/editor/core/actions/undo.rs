@@ -6,9 +6,23 @@ use crate::editor::Editor;
 impl Action {
     pub fn undo<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {
         match self {
-            Action::UndoCharAt(old_cursor, v_cursor) => {
-                editor.buffer_actions.push(Action::RemoveCharAt(*v_cursor));
+            Action::UndoRemoveCharAt(old_cursor, char) => {
+                editor.viewports.c_mut_viewport().top = old_cursor.top;
                 editor.cursor = old_cursor.cursor;
+                editor.buffer_actions.push(Action::AddChar(*char))
+            }
+            Action::UndoCharAt(old_cursor) => {
+                editor.viewports.c_mut_viewport().top = old_cursor.top;
+                editor.cursor = old_cursor.cursor;
+
+                let v_cursor = editor.v_cursor();
+                if editor.viewports.c_viewport().get_line_len(&v_cursor) > 0 {
+                    editor
+                        .viewports
+                        .c_mut_viewport()
+                        .buffer
+                        .remove_char(v_cursor);
+                }
             }
 
             Action::UndoStrAt(old_cursor, v_cursor, str_len) => {
@@ -100,7 +114,8 @@ impl Action {
                     for (i, c) in content.iter().enumerate() {
                         if let Some(line) = c {
                             // handle the first if she need to be insert in a existing line
-                            let len = current_viewport.get_line_len(&(start.cursor.0, y as u16));
+                            let len = current_viewport
+                                .get_line_len_no_v_cursor(&(start.cursor.0, y as u16));
                             match i {
                                 _ if i == 0 && len > 0 && start.cursor.0 == len => current_viewport
                                     .buffer

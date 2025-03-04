@@ -40,7 +40,7 @@ impl Action {
                 editor.cursor.0 = editor
                     .viewports
                     .c_viewport()
-                    .get_line_len(&editor.cursor)
+                    .get_line_len(&editor.v_cursor())
                     .wrapping_sub(TERMINAL_LINE_LEN_MINUS)
             }
 
@@ -231,7 +231,10 @@ mod tests_movement {
     fn test_start_and_end_of_line() {
         let mut editor = mock_file_editor();
         Action::EndOfLine.execute(&mut editor).unwrap();
-        let ll = editor.viewports.c_viewport().get_line_len(&editor.cursor);
+        let ll = editor
+            .viewports
+            .c_viewport()
+            .get_line_len(&editor.v_cursor());
 
         assert!(
             ll - 1 == editor.cursor.0,
