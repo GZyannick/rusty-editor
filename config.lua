@@ -5,6 +5,12 @@ return {
 	keybinds = {
 		normal = {
 			{
+				key = "x",
+				action = "RemoveCharAt",
+				description = "Deletes a character at a specific position.",
+				modifiers = "",
+			},
+			{
 				key = "<leader>bd",
 				action = "DeleteViewport",
 				description = "Delete current viewport",
