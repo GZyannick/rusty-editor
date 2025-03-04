@@ -1,11 +1,10 @@
-use crate::{buff::Buffer, editor::TERMINAL_SIZE_MINUS, log_message, viewport::Viewport};
+use crate::{buff::Buffer, viewport::Viewport};
 pub mod draw;
 #[derive(Debug)]
 pub struct Viewports {
     pub explorer: Viewport,
     pub values: Vec<Viewport>,
     pub index: usize,
-    pub buffer_index: usize,
     pub is_explorer: bool,
 }
 
@@ -15,7 +14,6 @@ impl Viewports {
             explorer,
             values: vec![],
             index: 0,
-            buffer_index: 0,
             is_explorer: false,
         }
     }
@@ -49,14 +47,6 @@ impl Viewports {
         }
     }
 
-    pub fn get_original_viewport(&mut self) -> Option<&mut Viewport> {
-        self.get_by_index(self.buffer_index)
-    }
-
-    fn get_by_index(&mut self, index: usize) -> Option<&mut Viewport> {
-        self.values.get_mut(index)
-    }
-
     pub fn prev_viewport(&mut self) {
         let prev_index = self.index.saturating_sub(1);
         self.index = match self.index == 0 {
@@ -80,7 +70,6 @@ impl Default for Viewports {
             explorer: Viewport::new(Buffer::new(Some("./".to_string())), 80, 20, 0, true),
             values,
             index: 0,
-            buffer_index: 0,
             is_explorer: false,
         }
     }
