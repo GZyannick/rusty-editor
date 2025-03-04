@@ -6,25 +6,14 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::viewport::Viewport;
+use crate::{theme::icon, viewport::Viewport};
 
 pub fn draw_file_explorer<W: Write>(viewport: &Viewport, stdout: &mut W) -> anyhow::Result<u16> {
     let mut y = viewport.min_vheight;
     for (i, line) in viewport.buffer.lines.iter().enumerate() {
         viewport.draw_line_number(stdout, y)?;
 
-        let icon = match PathBuf::from(line).is_dir() {
-            true => " \u{f115}",
-            false => match line.split('.').last() {
-                Some("txt") => " \u{f15c}",
-                Some("md") => " \u{f48a}",
-                Some("rs") => " \u{e7a8}",
-                Some("py") => " \u{e73c}",
-                Some("png") | Some("jpg") => " \u{f1c5}",
-                _ => " \u{f016}",
-            },
-        };
-
+        let icon = icon::get_icon(line);
         // we skip the ../ line
         //            // we skip the ../ line
         let line = match i > 0 {
