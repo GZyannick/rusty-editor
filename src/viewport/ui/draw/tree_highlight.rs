@@ -1,6 +1,6 @@
 use crate::{theme::color_highligther::ColorHighligter, viewport::Viewport};
 use streaming_iterator::StreamingIterator;
-use tree_sitter::{Parser, Query, QueryCursor};
+use tree_sitter::{Parser, QueryCursor};
 
 // highlight the rust code with tree_sitter and tree_sitter_rust
 pub fn highlight(viewport: &Viewport, code: &String) -> anyhow::Result<Vec<ColorHighligter>> {
@@ -16,7 +16,7 @@ pub fn highlight(viewport: &Viewport, code: &String) -> anyhow::Result<Vec<Color
     };
     let tree = parser.parse(code, None).expect("tree_sitter couldnt parse");
     let mut query_cursor = QueryCursor::new();
-    let mut query_matches = query_cursor.matches(&query, tree.root_node(), code.as_bytes());
+    let mut query_matches = query_cursor.matches(query, tree.root_node(), code.as_bytes());
     while let Some(m) = query_matches.next() {
         for cap in m.captures {
             let node = cap.node;

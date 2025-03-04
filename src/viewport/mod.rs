@@ -1,15 +1,12 @@
 pub mod core;
 mod ui;
 
-use std::collections::HashMap;
-
 use crossterm::style::Color;
-use tree_sitter::{Language, Query};
-use tree_sitter_rust::HIGHLIGHTS_QUERY;
+use tree_sitter::Query;
 
 use crate::{
     buff::Buffer,
-    languages::{self, Languages},
+    languages::Languages,
     theme::{color_highligther::ColorHighligter, colors::DARK0},
     LINE_NUMBERS_WIDTH,
 };

@@ -20,7 +20,6 @@ pub struct Buffer {
     pub query_language: Option<(Query, Language)>,
 }
 
-const TABSTOP: usize = 2;
 impl Buffer {
     pub fn new_tmp(lines: Vec<String>, path: String) -> Buffer {
         Buffer {

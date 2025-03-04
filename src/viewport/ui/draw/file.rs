@@ -1,4 +1,4 @@
-use std::io::{stdout, BufWriter};
+use std::io::BufWriter;
 
 use anyhow::Result;
 use crossterm::{
