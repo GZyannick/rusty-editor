@@ -293,6 +293,7 @@ impl KeybindManagerV2 {
 
         lines
     }
+
     fn sort_by_mode(&self) -> BtreeSort {
         let mut sorted = BTreeMap::new();
         for ((mode, key, modifiers), action) in &self.keybinds {
@@ -309,19 +310,27 @@ impl KeybindManagerV2 {
         let mut lines = vec![format!("---- Keybind for {mode} ----"), "".to_string()];
         let lowercase_mode = mode.to_lowercase();
         let mode = match lowercase_mode.as_str() {
-            "e" | "explorer" => "file_explorer",
-            "n" => "normal",
-            "c" => "command",
-            "i" => "insert",
-            "v" => "visual",
-            "s" => "search",
-            m => m,
+            "e" | "explorer" => Some("file_explorer"),
+            "n" => Some("normal"),
+            "c" => Some("command"),
+            "i" => Some("insert"),
+            "v" => Some("visual"),
+            "s" => Some("search"),
+            _ => None,
         };
 
-        for ((_, key, modifier), action) in self.keybinds.iter().filter(|k| k.0 .0 == mode) {
-            match modifier.is_empty() {
-                true => lines.push(format!("{key}   : {}", action.desc)),
-                false => lines.push(format!("{modifier} {key}   : {}", action.desc)),
+        match mode {
+            Some(mode) => {
+                for ((_, key, modifier), action) in self.keybinds.iter().filter(|k| k.0 .0 == mode)
+                {
+                    match modifier.is_empty() {
+                        true => lines.push(format!("{key}   : {}", action.desc)),
+                        false => lines.push(format!("{modifier} {key}   : {}", action.desc)),
+                    }
+                }
+            }
+            None => {
+                lines = self.show_keybinds();
             }
         }
         lines
