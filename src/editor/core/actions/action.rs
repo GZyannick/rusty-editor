@@ -86,6 +86,7 @@ pub enum Action {
     NextViewport,
     DeleteOtherViewport,
     DeleteViewport,
+    PushEmptyViewport,
 }
 
 impl PartialEq for Action {
@@ -194,6 +195,7 @@ impl From<String> for Action {
             ["NextViewport"] => Action::NextViewport,
             ["DeleteOtherViewport"] => Action::DeleteOtherViewport,
             ["DeleteViewport"] => Action::DeleteViewport,
+            ["PushEmptyViewport"] => Action::PushEmptyViewport,
             _ => panic!("Invalid Action string: {}", value),
         }
     }
