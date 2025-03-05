@@ -5,6 +5,7 @@ use crate::editor::fmt::Debug;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
+use crate::{editor, log_message};
 use anyhow::{Ok, Result};
 use core::actions::action::Action;
 use core::keybind_manager::KeybindManagerV2;
@@ -160,7 +161,7 @@ impl<W: Write> Editor<W> {
             }
         }
 
-        if self.v_cursor().1 as usize >= self.viewports.c_viewport().get_buffer_len() {
+        if self.cursor.1 as usize >= self.viewports.c_viewport().get_buffer_len() {
             self.cursor.1 = self.cursor.1.saturating_sub(1);
         }
     }
