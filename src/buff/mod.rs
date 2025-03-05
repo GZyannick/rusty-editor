@@ -175,6 +175,9 @@ impl Buffer {
         let mut indent_n_time: usize = 0;
 
         if let Some(line) = self.lines.get(y) {
+            if line.is_empty() {
+                return String::new();
+            }
             indent_n_time = line.chars().take_while(|&c| c == ' ').count();
 
             match line.chars().last().unwrap() {
