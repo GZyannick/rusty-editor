@@ -88,6 +88,8 @@ pub enum Action {
     DeleteViewport,
     PushEmptyViewport,
     UndoRemoveCharAt(OldCursorPosition, char),
+    AppendInsertMode,
+    EnterInsertMode,
 }
 
 impl PartialEq for Action {
@@ -197,6 +199,8 @@ impl From<String> for Action {
             ["DeleteOtherViewport"] => Action::DeleteOtherViewport,
             ["DeleteViewport"] => Action::DeleteViewport,
             ["PushEmptyViewport"] => Action::PushEmptyViewport,
+            ["AppendInsertMode"] => Action::AppendInsertMode,
+            ["EnterInsertMode"] => Action::EnterInsertMode,
             _ => panic!("Invalid Action string: {}", value),
         }
     }
