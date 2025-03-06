@@ -61,7 +61,6 @@ impl Buffer {
         if let Ok(mut c_file) = File::open(f_path) {
             let mut buf = String::new();
             c_file.read_to_string(&mut buf).unwrap();
-            // buf = buf.replace('\t', format!("{:<tab$}", " ", tab = TABSTOP).as_str());
             file = Some(c_file);
             lines = buf.lines().map(|s| s.to_string()).collect();
             if lines.is_empty() {
@@ -76,7 +75,7 @@ impl Buffer {
             is_directory: false,
             lines,
             path,
-            query_language: None, //TODO: ici Mettre Some
+            query_language: None,
         }
     }
 
