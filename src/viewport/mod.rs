@@ -140,7 +140,7 @@ impl Viewport {
 
         for (y, line) in self.buffer.lines.iter().enumerate() {
             for (x, _) in line.match_indices(find) {
-                occurences.push((x as u16, y as u16, find.len() as u16));
+                occurences.push((x as u16, y as u16 + self.min_vheight, find.len() as u16));
             }
         }
         self.search_pos = occurences;
