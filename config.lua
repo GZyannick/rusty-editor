@@ -86,8 +86,8 @@ return {
 			},
 
 			-- Insert Actions
-			{ key = "i", action = "EnterMode Insert", description = "Switches to Insert mode.", modifiers = "" },
-			{ key = "a", action = "EnterMode Insert", description = "Switches to Insert mode.", modifiers = "" },
+			{ key = "i", action = "EnterInsertMode", description = "Switches to Insert mode.", modifiers = "" },
+			{ key = "a", action = "AppendInsertMode", description = "Switches to Insert mode.", modifiers = "" },
 
 			-- Delete Actions
 			-- { key = "x", action = "RemoveCharAt", description = "Deletes a character at a specific position.", modifiers = "" },

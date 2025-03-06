@@ -95,6 +95,9 @@ impl Action {
         match self {
             Action::EnterMode(mode) => {
                 // to check if the viewport is modifiable to enter the insert_mode
+                if matches!(mode, Mode::Insert) && !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
                 if matches!(mode, Mode::Insert) && !editor.viewports.c_viewport().modifiable {
                     editor.toast.error("viewport cannot be modifiable".into());
                     return Ok(());
@@ -103,6 +106,30 @@ impl Action {
                 self.enter_mode_visual(editor, mode)?;
                 self.enter_mode_command(editor, mode)?;
                 editor.mode = *mode;
+            }
+            Action::AppendInsertMode => {
+                // to check if the viewport is modifiable to enter the insert_mode
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
+
+                let ll = editor.get_specific_line_len_by_mode();
+                if editor.cursor.0 < ll + 1 {
+                    editor.cursor.0 += 1
+                }
+                editor.clear_buffer_x_cursor();
+                editor.buffer_actions.push(Action::EnterMode(Mode::Insert));
+            }
+            Action::EnterInsertMode => {
+                if !editor.is_viewport_modifiable() {
+                    return Ok(());
+                }
+                let ll = editor.get_specific_line_len_by_mode();
+                if editor.cursor.0 >= ll {
+                    editor.cursor.0 = ll
+                }
+                editor.clear_buffer_x_cursor();
+                editor.buffer_actions.push(Action::EnterMode(Mode::Insert));
             }
             Action::Save => {
                 if !editor.viewports.c_viewport().is_file_explorer() {

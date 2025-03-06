@@ -175,6 +175,9 @@ impl Buffer {
         let mut indent_n_time: usize = 0;
 
         if let Some(line) = self.lines.get(y) {
+            if line.is_empty() {
+                return String::new();
+            }
             indent_n_time = line.chars().take_while(|&c| c == ' ').count();
 
             match line.chars().last().unwrap() {
@@ -231,10 +234,16 @@ impl Buffer {
 
     pub fn add_char(&mut self, c: char, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-            line.insert(cursor.0 as usize, c);
+            let char_indices: Vec<_> = line.char_indices().collect();
+
+            if cursor.0 as usize >= char_indices.len() {
+                line.push(c);
+            } else {
+                let byte_index = char_indices[cursor.0 as usize].0;
+                line.insert(byte_index, c);
+            }
         }
     }
-
     pub fn add_str(&mut self, s: String, cursor: (u16, u16)) {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
             line.insert_str(cursor.0 as usize, &s);
@@ -321,11 +330,15 @@ impl Buffer {
 
         block
     }
-
     pub fn remove_char(&mut self, cursor: (u16, u16)) -> Option<char> {
         if let Some(line) = self.lines.get_mut(cursor.1 as usize) {
-            let char = line.remove(cursor.0 as usize);
-            return Some(char);
+            let char_indices: Vec<_> = line.char_indices().collect();
+
+            if cursor.0 as usize >= char_indices.len() {
+                return None;
+            }
+            let byte_index = char_indices[cursor.0 as usize].0;
+            return Some(line.remove(byte_index));
         }
         None
     }

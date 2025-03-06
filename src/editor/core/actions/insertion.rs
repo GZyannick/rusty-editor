@@ -36,6 +36,7 @@ impl Action {
                     .c_mut_viewport()
                     .buffer
                     .add_char(*c, cursor_viewport);
+                editor.clear_buffer_x_cursor();
                 editor.cursor.0 += 1;
             }
             Action::AddCommandChar(c) => editor.command.push(*c),
