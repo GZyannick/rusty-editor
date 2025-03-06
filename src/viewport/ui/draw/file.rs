@@ -54,7 +54,7 @@ pub fn draw_file<W: std::io::Write>(
     let chars_len = viewport_buffer.len().saturating_sub(1);
     let mut bg_color = viewport.bg_color;
 
-    for (pos, c) in viewport_buffer.chars().enumerate() {
+    for (pos, c) in viewport_buffer.char_indices() {
         // tell us that we are at the end of the line
         // so we draw the line number and empty char to end of terminal size to get the same bg
         // and dont have undesirable artifact like ghost char
