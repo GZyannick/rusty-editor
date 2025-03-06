@@ -1,4 +1,4 @@
-use crate::viewport::Viewport;
+use crate::{log_message, viewport::Viewport};
 use crossterm::style::Color;
 
 pub fn draw_block(

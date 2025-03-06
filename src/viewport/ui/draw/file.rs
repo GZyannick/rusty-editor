@@ -78,7 +78,7 @@ pub fn draw_file<W: std::io::Write>(
                 bg_color = draw_block(
                     viewport,
                     x,
-                    y,
+                    y.saturating_sub(viewport.min_vheight),
                     start_block,
                     end_block,
                     Color::from(colors::LIGTH_GREY),
