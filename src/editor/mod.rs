@@ -5,7 +5,6 @@ use crate::editor::fmt::Debug;
 use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
-use crate::{editor, log_message};
 use anyhow::{Ok, Result};
 use core::actions::action::Action;
 use core::keybind_manager::KeybindManagerV2;

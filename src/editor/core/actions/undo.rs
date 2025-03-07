@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use super::action::Action;
-use crate::{editor::Editor, log_message};
+use crate::editor::Editor;
 
 impl Action {
     pub fn undo<W: Write>(&self, editor: &mut Editor<W>) -> anyhow::Result<()> {

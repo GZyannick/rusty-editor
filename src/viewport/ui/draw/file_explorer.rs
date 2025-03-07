@@ -1,4 +1,4 @@
-use std::{io::Write, path::PathBuf};
+use std::io::Write;
 
 use crossterm::{
     cursor,
@@ -49,7 +49,7 @@ mod test_draw_file_explorer {
 
     use super::*;
     use crossterm::style::Color;
-    use std::io::Cursor;
+    use std::{io::Cursor, path::PathBuf};
 
     // Function to create a viewport with mock files
     fn create_viewport_with_files() -> Viewport {
