@@ -10,13 +10,19 @@ use crate::{theme::icon, viewport::Viewport};
 
 pub fn draw_file_explorer<W: Write>(viewport: &Viewport, stdout: &mut W) -> anyhow::Result<u16> {
     let mut y = viewport.min_vheight;
-    for (i, line) in viewport.buffer.lines.iter().enumerate() {
+    let start = viewport.top as usize;
+    let end = (viewport.top + viewport.max_vheight()) as usize;
+    let range = match end > viewport.buffer.lines.len() {
+        true => start..viewport.buffer.lines.len(),
+        false => start..end,
+    };
+    for (i, line) in viewport.buffer.lines[range].iter().enumerate() {
         viewport.draw_line_number(stdout, y)?;
 
         let icon = icon::get_icon(line);
         // we skip the ../ line
         //            // we skip the ../ line
-        let line = match i > 0 {
+        let line = match i > 0 || (i == 0 && line != "../") {
             true if line.starts_with(viewport.buffer.path.as_str()) => {
                 let mut path = viewport.buffer.path.clone();
                 if !path.ends_with("/") {
