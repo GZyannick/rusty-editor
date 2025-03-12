@@ -1,5 +1,5 @@
 use crate::theme::colors;
-use crate::viewport::{Viewport, LINE_NUMBERS_WIDTH};
+use crate::viewport::{BufferPosition, Viewport, LINE_NUMBERS_WIDTH};
 use crossterm::style::Color;
 
 const POPUP_PERCENTAGE: u16 = 30;
@@ -37,7 +37,8 @@ impl Popup {
 
 impl Viewport {
     fn buffer_current_position(&mut self) {
-        self.buffer_position = (self.vwidth, self.vheight, self.min_vwidth, self.min_vheight);
+        self.buffer_position =
+            BufferPosition::from(self.vwidth, self.vheight, self.min_vwidth, self.min_vheight)
     }
 
     pub fn as_popup(&mut self) {
@@ -61,11 +62,11 @@ impl Viewport {
             return;
         }
 
-        self.vwidth = self.buffer_position.0;
-        self.vheight = self.buffer_position.1;
-        self.min_vwidth = self.buffer_position.2;
-        self.min_vheight = self.buffer_position.3;
-        self.buffer_position = (0, 0, 0, 0);
+        self.vwidth = self.buffer_position.width;
+        self.vheight = self.buffer_position.height;
+        self.min_vwidth = self.buffer_position.min_vwidth;
+        self.min_vheight = self.buffer_position.min_vheight;
+        self.buffer_position = BufferPosition::new();
         self.bg_color = Color::from(colors::DARK0);
         self.is_popup = false;
     }
@@ -74,7 +75,11 @@ impl Viewport {
 #[cfg(test)]
 mod test_popup {
 
-    use crate::{buff::Buffer, languages::Languages, viewport::Viewport};
+    use crate::{
+        buff::Buffer,
+        languages::Languages,
+        viewport::{BufferPosition, Viewport},
+    };
     use crossterm::style::Color;
 
     fn create_test_viewport() -> Viewport {
@@ -84,7 +89,7 @@ mod test_popup {
             vheight: 20,
             min_vwidth: 5,
             min_vheight: 5,
-            buffer_position: (0, 0, 0, 0),
+            buffer_position: BufferPosition::new(),
             modifiable: true,
             left: 0,
             top: 0,

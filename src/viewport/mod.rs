@@ -11,6 +11,34 @@ use crate::{
     LINE_NUMBERS_WIDTH,
 };
 
+#[derive(Debug)]
+pub struct BufferPosition {
+    width: u16,
+    height: u16,
+    min_vwidth: u16,
+    min_vheight: u16,
+}
+
+impl BufferPosition {
+    pub fn new() -> Self {
+        Self {
+            width: 0,
+            height: 0,
+            min_vwidth: 0,
+            min_vheight: 0,
+        }
+    }
+
+    pub fn from(width: u16, height: u16, min_vwidth: u16, min_vheight: u16) -> Self {
+        Self {
+            width,
+            height,
+            min_vwidth,
+            min_vheight,
+        }
+    }
+}
+
 // to implement scrolling and showing text of the size of our current terminal
 #[derive(Debug)]
 pub struct Viewport {
@@ -22,7 +50,7 @@ pub struct Viewport {
     // buffer position is when viewport change from its original position like popup, left -> right
     // and if we want to retrieve its old position we use the buffer_position
     //                    vw , vh , mvw, mvh
-    pub buffer_position: (u16, u16, u16, u16),
+    pub buffer_position: BufferPosition,
 
     pub modifiable: bool,
     pub vwidth: u16,
@@ -62,7 +90,7 @@ impl Viewport {
             min_vheight: 1,
             left: 0,
             top: 0,
-            buffer_position: (0, 0, 0, 0),
+            buffer_position: BufferPosition::new(),
             languages,
             bg_color: Color::from(DARK0),
             is_popup: false,
@@ -177,7 +205,7 @@ impl Default for Viewport {
             min_vheight: 1,
             left: 0,
             top: 0,
-            buffer_position: (0, 0, 0, 0),
+            buffer_position: BufferPosition::new(),
             languages: Languages::new(),
             bg_color: Color::from(DARK0),
             is_popup: false,
