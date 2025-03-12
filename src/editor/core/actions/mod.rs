@@ -22,6 +22,7 @@ use crate::editor::ui::modal::{
     create::ModalCreateFD, delete::ModalDeleteFD, rename::ModalRenameFD,
 };
 use crate::editor::TERMINAL_SIZE_MINUS;
+use crate::log_message;
 use crate::viewport::Viewport;
 
 impl ClearDraw for Viewport {}
@@ -96,9 +97,6 @@ impl Action {
             Action::EnterMode(mode) => {
                 // to check if the viewport is modifiable to enter the insert_mode
                 if matches!(mode, Mode::Insert) && !editor.is_viewport_modifiable() {
-                    return Ok(());
-                }
-                if matches!(mode, Mode::Insert) && !editor.viewports.c_viewport().modifiable {
                     editor.toast.error("viewport cannot be modifiable".into());
                     return Ok(());
                 }
@@ -107,6 +105,7 @@ impl Action {
                 self.enter_mode_command(editor, mode)?;
                 editor.mode = *mode;
             }
+
             Action::AppendInsertMode => {
                 // to check if the viewport is modifiable to enter the insert_mode
                 if !editor.is_viewport_modifiable() {
@@ -122,6 +121,7 @@ impl Action {
             }
             Action::EnterInsertMode => {
                 if !editor.is_viewport_modifiable() {
+                    editor.toast.error("viewport cannot be modifiable".into());
                     return Ok(());
                 }
                 let ll = editor.get_specific_line_len_by_mode();
@@ -349,6 +349,7 @@ mod tests_other_actions {
     use crate::editor::core::actions::action::Action;
     use crate::editor::core::mode::Mode;
     use crate::editor::Editor;
+    use crate::log_message;
 
     fn mock_editor() -> Editor<Cursor<Vec<u8>>> {
         Editor::default()
@@ -371,6 +372,17 @@ mod tests_other_actions {
             editor.toast._last_message(),
             Some("viewport cannot be modifiable")
         );
+    }
+    #[test]
+    fn test_enter_mode_insert_modifiable() {
+        let mut editor = mock_editor();
+        editor.viewports.c_mut_viewport().modifiable = true;
+
+        Action::EnterMode(Mode::Insert)
+            .execute(&mut editor)
+            .unwrap();
+
+        assert_eq!(editor.mode, Mode::Insert);
     }
 
     #[test]
