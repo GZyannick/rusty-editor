@@ -24,6 +24,15 @@ pub enum ActionOrClosure {
     Static(Action),
     Dynamic(Box<Closure>),
 }
+impl PartialEq for ActionOrClosure {
+    fn eq(&self, other: &Self) -> bool {
+        // partial eq only for static because we dont need it on dyn ( closure )
+        match (self, other) {
+            (Self::Static(l0), Self::Static(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
 impl fmt::Debug for ActionOrClosure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -59,12 +68,67 @@ impl KeybindManagerV2 {
         }
     }
 
-    pub fn load_keybinds_from_lua(&mut self) -> mlua::Result<()> {
+    pub fn load_user_keybinds(&mut self) -> mlua::Result<()> {
         let lua = Lua::new();
+        // Charger le fichier Lua
+        let config_path = dirs::home_dir().unwrap().join(".rusty/config.lua");
 
+        // if there is no config.lua skip this part
+        if !std::path::Path::new(&config_path).exists() {
+            return Ok(());
+        }
+        let lua_code = std::fs::read_to_string(&config_path).expect("cannot load lua file");
+
+        if lua_code.is_empty() {
+            return Ok(());
+        }
+
+        let config: Table = lua.load(lua_code).eval()?; // Charge le fichier Lua
+        let keybinds_table: Table = config.get("keybinds")?; // Récupère la table "keybinds"
+
+        let mut to_insert = Vec::new();
+        for keybind_pair in keybinds_table.pairs::<String, Table>() {
+            let (mode, mode_table) = keybind_pair?;
+            for pair in mode_table.sequence_values::<Table>() {
+                let action_table = pair?;
+                let action = action_table.get::<String>("action")?;
+                let desc = action_table.get::<String>("description")?;
+                let modifiers = action_table.get::<String>("modifiers")?;
+                let keys = action_table.get::<String>("key")?;
+                let action_or_closure = ActionOrClosure::Static(Action::from(action.clone()));
+
+                // we remove all the default config keybind
+                self.keybinds.retain(|(m, _, _), act| {
+                    if *m == mode && act.action == action_or_closure {
+                        // Store the updated key-value pair
+                        to_insert.push((
+                            (mode.clone(), keys.clone(), modifiers.clone()),
+                            KeyAction::new(
+                                ActionOrClosure::Static(Action::from(action.clone())),
+                                desc.clone(),
+                            ),
+                        ));
+                        false // Remove from HashMap
+                    } else {
+                        true // Keep the entry
+                    }
+                });
+            }
+        }
+
+        // And we insert the new user keybind
+        for (new_key, value) in to_insert {
+            self.keybinds.insert(new_key, value);
+        }
+
+        Ok(())
+    }
+
+    pub fn load_default_lua_keybinds(&mut self) -> mlua::Result<()> {
+        let lua = Lua::new();
         // Charger le fichier Lua
         let lua_code = include_str!("../../config.lua");
-        // let lua_code = std::fs::read_to_string(config_path).expect("cannot load lua file");
+
         let config: Table = lua.load(lua_code).eval()?; // Charge le fichier Lua
         let keybinds_table: Table = config.get("keybinds")?; // Récupère la table "keybinds"
 
@@ -109,9 +173,10 @@ impl KeybindManagerV2 {
     }
 
     pub fn init_keybinds(&mut self) {
-        self.load_keybinds_from_lua()
+        self.load_default_lua_keybinds()
             .expect("Failed to load keybinds from lua");
         self.load_dyn_keybinds();
+        self.load_user_keybinds().unwrap();
     }
 
     fn clear_input(&mut self) {
