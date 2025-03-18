@@ -1,6 +1,6 @@
 use crate::{
     editor::{core::mode::Mode, Editor, TERMINAL_SIZE_MINUS},
-    theme::colors,
+    THEME,
 };
 use anyhow::Result;
 use crossterm::{
@@ -42,14 +42,14 @@ pub fn draw_status_line<W: Write>(
     editor.stdout.queue(PrintStyledContent(
         mode.with(Color::White)
             .bold()
-            .on(Color::from(colors::FADED_PURPLE)),
+            .on(Color::from(THEME.faded_purple)),
     ))?;
 
     //print the filename
     editor.stdout.queue(PrintStyledContent(
         filename
-            .with(Color::White)
-            .on(Color::from(colors::DARK0_SOFT)),
+            .with(Color::from(THEME.default))
+            .on(Color::from(THEME.bg1)),
     ))?;
     Ok(())
 }
@@ -66,7 +66,7 @@ pub fn draw_last_line<W: Write>(editor: &mut Editor<W>) -> Result<()> {
         .stdout
         .queue(cursor::MoveTo(0, editor.size.1 - 1))?
         .queue(PrintStyledContent(
-            format!("{symbol}{cmd:<width$}", width = r_width - 1).on(Color::from(colors::DARK0)),
+            format!("{symbol}{cmd:<width$}", width = r_width - 1).on(Color::from(THEME.bg0)),
         ))?;
     Ok(())
 }
@@ -74,7 +74,7 @@ pub fn draw_last_line<W: Write>(editor: &mut Editor<W>) -> Result<()> {
 pub fn draw_line_counter<W: Write>(editor: &mut Editor<W>, pos: String) -> Result<()> {
     // print the cursor position
     editor.stdout.queue(PrintStyledContent(
-        pos.with(Color::Black).on(Color::from(colors::BRIGHT_GREEN)),
+        pos.with(Color::Black).on(Color::from(THEME.bright_green)),
     ))?;
 
     Ok(())

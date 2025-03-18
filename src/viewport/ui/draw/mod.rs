@@ -6,8 +6,8 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::viewport::LINE_NUMBERS_WIDTH;
-use crate::{theme::colors, viewport::Viewport};
+use crate::viewport::Viewport;
+use crate::{viewport::LINE_NUMBERS_WIDTH, THEME};
 
 mod file;
 mod file_explorer;
@@ -84,7 +84,7 @@ impl Viewport {
                     search_block.0 + search_block.2.saturating_sub(1),
                     search_block.1.saturating_sub(self.top),
                 ),
-                Color::from(colors::BRIGHT_ORANGE),
+                Color::from(THEME.bright_orange),
             ));
         }
 

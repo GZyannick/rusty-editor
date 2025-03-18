@@ -8,10 +8,7 @@ use crossterm::{
 };
 
 use super::Viewports;
-use crate::{
-    theme::{colors, icon},
-    LINE_NUMBERS_WIDTH,
-};
+use crate::{theme::icon, LINE_NUMBERS_WIDTH, THEME};
 
 impl Viewports {
     // draw the name of each viewports at the top /
@@ -24,8 +21,8 @@ impl Viewports {
                                                    // it will be 2 len so we need to remove the icon len
 
             let name_color = match i == self.index {
-                true => Color::from(colors::BRIGHT_YELLOW),
-                false => Color::from(colors::GRAY_245),
+                true => Color::from(THEME.bright_yellow),
+                false => Color::from(THEME.gray),
             };
 
             // stop printing viewport if the size is > to the width of the terminal
@@ -36,7 +33,7 @@ impl Viewports {
             stdout
                 .queue(cursor::MoveTo(x, 0))?
                 .queue(PrintStyledContent(
-                    name.with(name_color).on(Color::from(colors::DARK0_SOFT)),
+                    name.with(name_color).on(Color::from(THEME.fg0)),
                 ))?;
 
             x += len as u16;
@@ -46,7 +43,7 @@ impl Viewports {
             .queue(cursor::MoveTo(x, 0))?
             .queue(PrintStyledContent(
                 " ".repeat(width as usize - x as usize - LINE_NUMBERS_WIDTH as usize)
-                    .on(Color::from(colors::DARK1)),
+                    .on(Color::from(THEME.bg1)),
             ))?;
 
         Ok(())

@@ -4,7 +4,7 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::theme::colors;
+use crate::THEME;
 
 pub trait ClearDraw {
     fn clear_at<W: std::io::Write>(
@@ -23,7 +23,7 @@ pub trait ClearDraw {
         for i in start_y..max_h {
             stdout
                 .queue(PrintStyledContent(
-                    " ".repeat(max_w as usize).on(Color::from(colors::DARK0)),
+                    " ".repeat(max_w as usize).on(Color::from(THEME.bg0)),
                 ))?
                 .queue(cursor::MoveTo(start_x, i))?;
         }
