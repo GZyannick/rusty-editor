@@ -2,9 +2,9 @@ pub mod core;
 pub mod ui;
 
 use crate::editor::fmt::Debug;
-use crate::theme::colors;
 use crate::viewport::Viewport;
 use crate::{buff::Buffer, viewports::Viewports};
+use crate::{log_message, THEME};
 use anyhow::{Ok, Result};
 use core::actions::action::Action;
 use core::keybind_manager::KeybindManagerV2;
@@ -61,7 +61,6 @@ pub struct Editor<W: Write> {
 impl<W: Write> Editor<W> {
     pub fn new(buffer: Buffer, stdout: W) -> Result<Editor<W>> {
         let size = terminal::size()?;
-
         let (explorer, viewport) = match buffer.is_directory {
             true => (
                 Viewport::new(buffer, size.0, size.1 - TERMINAL_SIZE_MINUS, 0, true),
@@ -122,9 +121,7 @@ impl<W: Write> Editor<W> {
     pub fn enter_raw_mode(&mut self) -> anyhow::Result<()> {
         crossterm::terminal::enable_raw_mode()?;
         self.stdout
-            .execute(crossterm::style::SetBackgroundColor(Color::from(
-                colors::DARK0,
-            )))?;
+            .execute(crossterm::style::SetBackgroundColor(Color::from(THEME.bg0)))?;
         self.stdout.execute(terminal::EnterAlternateScreen)?;
         self.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?;

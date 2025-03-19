@@ -1,6 +1,6 @@
 use std::io::stdout;
 use std::panic;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 mod buff;
 mod languages;
 mod theme;
@@ -16,8 +16,11 @@ pub const LINE_NUMBERS_WIDTH: u16 = 5;
 pub static INSTANCE: OnceLock<Mutex<Logger>> = OnceLock::new();
 
 use anyhow::Ok;
+use once_cell::sync::Lazy;
+use theme::Theme;
 mod viewport;
 
+pub static THEME: Lazy<Arc<Theme>> = Lazy::new(|| Arc::new(Theme::load_theme().unwrap()));
 fn main() -> anyhow::Result<()> {
     let file_path = std::env::args().nth(1);
     let buffer = Buffer::new(file_path.clone());

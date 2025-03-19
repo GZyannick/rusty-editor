@@ -1,5 +1,5 @@
-use crate::theme::colors;
 use crate::viewport::{BufferPosition, Viewport, LINE_NUMBERS_WIDTH};
+use crate::THEME;
 use crossterm::style::Color;
 
 const POPUP_PERCENTAGE: u16 = 30;
@@ -53,7 +53,7 @@ impl Viewport {
         self.vheight = popup.height;
         self.min_vwidth = popup.left;
         self.min_vheight = popup.top;
-        self.bg_color = Color::from(colors::DARK1);
+        self.bg_color = Color::from(THEME.bg1);
         self.is_popup = true;
     }
 
@@ -67,7 +67,7 @@ impl Viewport {
         self.min_vwidth = self.buffer_position.min_vwidth;
         self.min_vheight = self.buffer_position.min_vheight;
         self.buffer_position = BufferPosition::new();
-        self.bg_color = Color::from(colors::DARK0);
+        self.bg_color = Color::from(THEME.bg0);
         self.is_popup = false;
     }
 }

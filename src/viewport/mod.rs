@@ -5,10 +5,8 @@ use crossterm::style::Color;
 use tree_sitter::Query;
 
 use crate::{
-    buff::Buffer,
-    languages::Languages,
-    theme::{color_highligther::ColorHighligter, colors::DARK0},
-    LINE_NUMBERS_WIDTH,
+    buff::Buffer, languages::Languages, theme::color_highligther::ColorHighligter,
+    LINE_NUMBERS_WIDTH, THEME,
 };
 
 #[derive(Debug)]
@@ -92,7 +90,7 @@ impl Viewport {
             top: 0,
             buffer_position: BufferPosition::new(),
             languages,
-            bg_color: Color::from(DARK0),
+            bg_color: Color::from(THEME.bg0),
             is_popup: false,
             search_pos: vec![],
             search_index: 0,
@@ -207,7 +205,7 @@ impl Default for Viewport {
             top: 0,
             buffer_position: BufferPosition::new(),
             languages: Languages::new(),
-            bg_color: Color::from(DARK0),
+            bg_color: Color::from(THEME.bg0),
             is_popup: false,
             search_pos: vec![],
             search_index: 0,

@@ -1,9 +1,6 @@
 use crossterm::style::Color;
 
-use super::colors::{
-    BRIGHT_AQUA, BRIGHT_BLUE, BRIGHT_GREEN, BRIGHT_PURPLE, BRIGHT_RED, BRIGHT_WHITE, BRIGHT_YELLOW,
-    GRAY_245, NEUTRAL_AQUA, NEUTRAL_GREEN, NEUTRAL_RED, NEUTRAL_YELLOW,
-};
+use crate::THEME;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ColorHighligter {
@@ -15,27 +12,27 @@ pub struct ColorHighligter {
 impl ColorHighligter {
     fn get_color_from_punctuation(punctuation: &str) -> Color {
         let color = match punctuation {
-            "keyword" => NEUTRAL_RED,
-            "punctuation.delimiter" => NEUTRAL_YELLOW,
-            "punctuation.bracket" => NEUTRAL_YELLOW,
-            "comment" => GRAY_245,
-            "comment.documentation" => GRAY_245,
-            "property" => BRIGHT_BLUE,
-            "type" => BRIGHT_YELLOW,
-            "type.builtin" => BRIGHT_YELLOW,
-            "constructor" => BRIGHT_PURPLE,
-            "attribute" => NEUTRAL_YELLOW,
-            "variable.builtin" => BRIGHT_BLUE, // dont show up but exist
-            "variable.parameter" => BRIGHT_BLUE,
-            "constant.builtin" => BRIGHT_PURPLE,
-            "function.method" => BRIGHT_GREEN,
-            "function" => BRIGHT_RED,
-            "operator" => NEUTRAL_YELLOW,
-            "string" => NEUTRAL_GREEN,
-            "function.macro" => NEUTRAL_AQUA,
-            "escape" => NEUTRAL_YELLOW,
-            "label" => BRIGHT_AQUA,
-            _ => BRIGHT_WHITE,
+            "keyword" => THEME.neutral_red,
+            "punctuation.delimiter" => THEME.neutral_yellow,
+            "punctuation.bracket" => THEME.neutral_yellow,
+            "comment" => THEME.gray,
+            "comment.documentation" => THEME.gray,
+            "property" => THEME.bright_blue,
+            "type" => THEME.bright_yellow,
+            "type.builtin" => THEME.bright_yellow,
+            "constructor" => THEME.bright_purple,
+            "attribute" => THEME.neutral_yellow,
+            "variable.builtin" => THEME.bright_blue,
+            "variable.parameter" => THEME.bright_blue,
+            "constant.builtin" => THEME.bright_purple,
+            "function.method" => THEME.bright_green,
+            "function" => THEME.bright_red,
+            "operator" => THEME.neutral_yellow,
+            "string" => THEME.neutral_green,
+            "function.macro" => THEME.neutral_aqua,
+            "escape" => THEME.neutral_yellow,
+            "label" => THEME.bright_aqua,
+            _ => THEME.default,
         };
 
         Color::from(color)

@@ -8,7 +8,7 @@ use crossterm::{
 };
 
 use super::{tree_highlight::highlight, visual_block::draw_block};
-use crate::{theme::colors, viewport::Viewport};
+use crate::{viewport::Viewport, THEME};
 
 fn draw_new_line<W: std::io::Write>(
     viewport: &Viewport,
@@ -81,7 +81,7 @@ pub fn draw_file<W: std::io::Write>(
                     y.saturating_sub(viewport.min_vheight),
                     start_block,
                     end_block,
-                    Color::from(colors::LIGTH_GREY),
+                    Color::from(THEME.light_gray),
                 );
             }
         }

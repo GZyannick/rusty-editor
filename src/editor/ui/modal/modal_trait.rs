@@ -9,7 +9,7 @@ use crossterm::{
 
 use crate::{
     editor::{core::actions::action::Action, Editor},
-    theme::colors,
+    THEME,
 };
 
 pub trait ModalContent<W: Write>: Debug {
@@ -36,14 +36,14 @@ pub trait ModalContent<W: Write>: Debug {
         let title = format!(" {:<width$}", self.title(), width = modal_width as usize);
         editor.stdout.queue(cursor::MoveTo(start_x, start_y))?;
         editor.stdout.queue(PrintStyledContent(
-            title.bold().on(Color::from(colors::FADED_PURPLE)),
+            title.bold().on(Color::from(THEME.faded_purple)),
         ))?;
 
         let body = format!(" {:<width$}", self.body(), width = modal_width as usize);
         editor.stdout.queue(cursor::MoveTo(start_x, start_y + 1))?;
         editor
             .stdout
-            .queue(PrintStyledContent(body.on(Color::from(colors::DARK0_SOFT))))?;
+            .queue(PrintStyledContent(body.on(Color::from(THEME.fg0))))?;
 
         editor.stdout.flush()?;
         Ok(())
