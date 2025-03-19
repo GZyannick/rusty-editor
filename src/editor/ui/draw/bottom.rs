@@ -74,7 +74,7 @@ pub fn draw_last_line<W: Write>(editor: &mut Editor<W>) -> Result<()> {
 pub fn draw_line_counter<W: Write>(editor: &mut Editor<W>, pos: String) -> Result<()> {
     // print the cursor position
     editor.stdout.queue(PrintStyledContent(
-        pos.with(Color::Black).on(Color::from(THEME.bright_green)),
+        pos.with(Color::Black).on(Color::from(THEME.fg0)),
     ))?;
 
     Ok(())

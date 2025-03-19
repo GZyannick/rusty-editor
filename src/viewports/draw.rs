@@ -33,7 +33,7 @@ impl Viewports {
             stdout
                 .queue(cursor::MoveTo(x, 0))?
                 .queue(PrintStyledContent(
-                    name.with(name_color).on(Color::from(THEME.fg0)),
+                    name.with(name_color).on(Color::from(THEME.bg1)),
                 ))?;
 
             x += len as u16;
@@ -43,7 +43,7 @@ impl Viewports {
             .queue(cursor::MoveTo(x, 0))?
             .queue(PrintStyledContent(
                 " ".repeat(width as usize - x as usize - LINE_NUMBERS_WIDTH as usize)
-                    .on(Color::from(THEME.bg1)),
+                    .on(Color::from(THEME.bg0)),
             ))?;
 
         Ok(())
