@@ -4,6 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::helper::lua_handler::get_home_file;
+
 use super::{actions::action::Action, mode::Mode};
 use crossterm::event::{KeyCode, KeyModifiers};
 use mlua::{Lua, Table};
@@ -71,17 +73,10 @@ impl KeybindManagerV2 {
     pub fn load_user_keybinds(&mut self) -> mlua::Result<()> {
         let lua = Lua::new();
         // Charger le fichier Lua
-        let config_path = dirs::home_dir().unwrap().join(".rusty/config.lua");
-
-        // if there is no config.lua skip this part
-        if !std::path::Path::new(&config_path).exists() {
-            return Ok(());
-        }
-        let lua_code = std::fs::read_to_string(&config_path).expect("cannot load lua file");
-
-        if lua_code.is_empty() {
-            return Ok(());
-        }
+        let lua_code = match get_home_file(".rusty/config.lua")? {
+            Some(lua_code) => lua_code,
+            None => return Ok(()),
+        };
 
         let config: Table = lua.load(lua_code).eval()?; // Charge le fichier Lua
         let keybinds_table: Table = config.get("keybinds")?; // Récupère la table "keybinds"

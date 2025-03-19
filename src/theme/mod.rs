@@ -1,6 +1,8 @@
 pub mod color_highligther;
 pub mod icon;
 use mlua::{self, Lua, Table};
+
+use crate::{helper::lua_handler::get_home_file, log_message};
 #[derive(Debug)]
 pub struct Theme {
     pub bg0: (u8, u8, u8),
@@ -25,13 +27,25 @@ pub struct Theme {
 }
 
 impl Theme {
-    pub fn load_theme(theme_name: &str) -> mlua::Result<Self> {
+    pub fn load_theme() -> mlua::Result<Self> {
         let lua = Lua::new();
+
+        // we wanna be sure that the app doesnt panic! and use the default theme
+        let theme_name = match get_home_file(".rusty/theme.lua")? {
+            Some(lua_code) => match lua.load(lua_code).eval::<Table>() {
+                Ok(config) => config
+                    .get::<String>("theme")
+                    .unwrap_or("default".to_string()),
+                Err(_) => "default".to_string(),
+            },
+            None => "default".to_string(),
+        };
         let theme_str = include_str!("./colors.lua").to_string();
         let theme_table: Table = lua.load(&theme_str).eval().unwrap();
+
         let theme: Table = theme_table
-            .get(theme_name)
-            .expect("Couldnt find theme name");
+            .get::<Table>(theme_name)
+            .unwrap_or(theme_table.get("default").unwrap());
 
         Self::from_lua_table(&theme)
     }

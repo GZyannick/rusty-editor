@@ -20,7 +20,7 @@ use once_cell::sync::Lazy;
 use theme::Theme;
 mod viewport;
 
-pub static THEME: Lazy<Arc<Theme>> = Lazy::new(|| Arc::new(Theme::load_theme("default").unwrap()));
+pub static THEME: Lazy<Arc<Theme>> = Lazy::new(|| Arc::new(Theme::load_theme().unwrap()));
 fn main() -> anyhow::Result<()> {
     let file_path = std::env::args().nth(1);
     let buffer = Buffer::new(file_path.clone());
