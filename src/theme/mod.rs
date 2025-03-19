@@ -27,25 +27,53 @@ pub struct Theme {
 }
 
 impl Theme {
+    // we pass lua on both like that there is only one Lua::new
+    fn get_default_theme(theme_name: &str, lua: &Lua) -> Table {
+        let default_table = lua
+            .load(include_str!("./colors.lua"))
+            .eval::<Table>()
+            .unwrap();
+
+        default_table
+            .get::<Table>(theme_name)
+            .unwrap_or(default_table.get("default").unwrap())
+    }
+
+    // we check if there is a theme file and if it contains the named theme in config.lua
+    // else we check in app_theme
+    fn get_user_theme(theme_name: &str, lua: &Lua) -> Table {
+        // we load the created user theme
+        // we wanna be sure the app doenst panic so in each case we want a default theme
+        match get_home_file(".rusty/themes.lua").unwrap_or(None) {
+            Some(user_theme) => {
+                let user_table: Table = match lua.load(&user_theme).eval() {
+                    Ok(table) => table,
+                    Err(_) => return Self::get_default_theme(theme_name, lua),
+                };
+                match user_table.get::<Table>(theme_name) {
+                    Ok(theme) => theme,
+                    Err(_) => Self::get_default_theme(theme_name, lua),
+                }
+            }
+            None => Self::get_default_theme(theme_name, lua),
+        }
+    }
+
+    fn get_theme_name(lua: &Lua) -> String {
+        // we retrieve the name of the theme ( user theme or app theme)
+        // we wanna be sure that the app doesnt panic! and use the default theme
+        get_home_file(".rusty/config.lua")
+            .unwrap_or(None)
+            .and_then(|lua_code| lua.load(lua_code).eval::<Table>().ok())
+            .and_then(|config| config.get::<String>("theme").ok())
+            .unwrap_or_else(|| "default".to_string())
+    }
+
     pub fn load_theme() -> mlua::Result<Self> {
         let lua = Lua::new();
 
-        // we wanna be sure that the app doesnt panic! and use the default theme
-        let theme_name = match get_home_file(".rusty/theme.lua")? {
-            Some(lua_code) => match lua.load(lua_code).eval::<Table>() {
-                Ok(config) => config
-                    .get::<String>("theme")
-                    .unwrap_or("default".to_string()),
-                Err(_) => "default".to_string(),
-            },
-            None => "default".to_string(),
-        };
-        let theme_str = include_str!("./colors.lua").to_string();
-        let theme_table: Table = lua.load(&theme_str).eval().unwrap();
-
-        let theme: Table = theme_table
-            .get::<Table>(theme_name)
-            .unwrap_or(theme_table.get("default").unwrap());
+        let theme_name = Self::get_theme_name(&lua);
+        let theme = Self::get_user_theme(&theme_name, &lua);
 
         Self::from_lua_table(&theme)
     }
@@ -54,6 +82,7 @@ impl Theme {
         let color: Table = table.get(key)?;
         Ok((color.get(1)?, color.get(2)?, color.get(3)?))
     }
+
     fn from_lua_table(table: &Table) -> mlua::Result<Self> {
         Ok(Self {
             bg0: Self::get_color(table, "bg0")?,
