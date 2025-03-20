@@ -60,7 +60,10 @@ impl Buffer {
 
         if let Ok(mut c_file) = File::open(f_path) {
             let mut buf = String::new();
-            c_file.read_to_string(&mut buf).unwrap();
+            match c_file.read_to_string(&mut buf) {
+                Ok(u) => u,
+                Err(_) => panic!("Couldnt open file: {}", path),
+            };
             file = Some(c_file);
             lines = buf.lines().map(|s| s.to_string()).collect();
             if lines.is_empty() {
