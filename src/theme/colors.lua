@@ -102,4 +102,52 @@ return {
 		faded_purple = { 180, 142, 173 },
 		light_gray = { 216, 222, 233 },
 	},
+
+	grey = {
+		bg0 = { 30, 30, 30 },
+		fg0 = { 220, 220, 204 },
+		cursor = { 255, 255, 255 },
+		default = { 255, 255, 255 },
+		bg1 = { 45, 45, 45 },
+		gray = { 110, 110, 110 },
+		bright_red = { 255, 85, 85 },
+		bright_green = { 100, 255, 100 },
+		bright_yellow = { 255, 255, 100 },
+		bright_blue = { 85, 85, 255 },
+		bright_purple = { 255, 85, 255 },
+		bright_aqua = { 85, 255, 255 },
+		bright_orange = { 255, 165, 0 },
+		neutral_red = { 204, 36, 29 },
+		neutral_green = { 152, 151, 26 },
+		neutral_yellow = { 215, 153, 33 },
+		neutral_aqua = { 104, 157, 106 },
+		faded_purple = { 143, 63, 113 },
+		light_gray = { 128, 128, 128 },
+	},
+
+	dark = {
+		bg0 = { 0, 0, 0 },
+		fg0 = { 120, 120, 120 },
+		cursor = { 255, 255, 255 },
+		default = { 255, 255, 255 },
+		bg1 = { 30, 30, 30 },
+
+		gray = { 146, 131, 116 },
+
+		bright_red = { 251, 73, 52 },
+		bright_green = { 184, 187, 38 },
+		bright_yellow = { 250, 189, 47 },
+		bright_blue = { 131, 165, 152 },
+		bright_purple = { 211, 134, 155 },
+		bright_aqua = { 142, 192, 124 },
+		bright_orange = { 254, 128, 25 },
+
+		neutral_red = { 204, 36, 29 },
+		neutral_green = { 152, 151, 26 },
+		neutral_yellow = { 215, 153, 33 },
+		neutral_aqua = { 104, 157, 106 },
+
+		faded_purple = { 143, 63, 113 },
+		light_gray = { 91, 91, 93 },
+	},
 }
