@@ -115,7 +115,19 @@ impl Viewport {
             self.get_buffer_len(),
         );
         let vec = &self.buffer.lines;
-        vec[self.top as usize..height].join("\n")
+
+        let mut chunk: Vec<String> = vec![];
+        for line in vec[self.top as usize..height].iter() {
+            let line = match line.len() >= self.left as usize {
+                true => line[self.left as usize..].to_string(),
+                false => "".to_string(),
+            };
+
+            chunk.push(line);
+        }
+
+        // vec[self.top as usize..height].join("\n")
+        chunk.join("\n")
     }
 
     // retrieve the len of the line
@@ -145,7 +157,13 @@ impl Viewport {
             return false;
         }
         let (_, y) = self.viewport_cursor(cursor);
-        (y as usize) < (self.buffer.lines.len() - 1_usize)
+        (y as usize) < (self.buffer.lines.len().saturating_sub(1))
+    }
+
+    pub fn is_under_line_len(&self, cursor: &(u16, u16)) -> bool {
+        // if  self.get_line_len(cursor) > cursor
+        let (x, _) = self.viewport_cursor(cursor);
+        (x as usize) < (self.get_line_len(cursor).saturating_sub(1) as usize)
     }
 
     // return the buffer len

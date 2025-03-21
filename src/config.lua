@@ -128,8 +128,8 @@ return {
 			-- Movement Actions
 			{ key = "Page Up", action = "PageUp", description = "Scrolls up by one page.", modifiers = "" },
 			{ key = "Page Down", action = "PageDown", description = "Scrolls down by one page.", modifiers = "" },
-			{ key = "b", action = "PageUp", description = "Scrolls up by one page.", modifiers = "Control" },
-			{ key = "f", action = "PageDown", description = "Scrolls down by one page.", modifiers = "Control" },
+			{ key = "[", action = "PageUp", description = "Scrolls up by one page.", modifiers = "" },
+			{ key = "]", action = "PageDown", description = "Scrolls down by one page.", modifiers = "" },
 
 			{
 				key = "gg",

@@ -204,6 +204,9 @@ impl<W: Write> Editor<W> {
             true => self.cursor.1 = self.cursor.1.saturating_sub(1),
             false => self.viewports.c_mut_viewport().scroll_up(),
         }
+        self.viewports
+            .c_mut_viewport()
+            .check_left_bound(&mut self.cursor);
     }
 
     fn move_next_line(&mut self) {
@@ -215,6 +218,28 @@ impl<W: Write> Editor<W> {
             match self.cursor.1 >= self.viewports.c_viewport().max_vheight().saturating_sub(1) {
                 true => self.viewports.c_mut_viewport().scroll_down(),
                 false => self.cursor.1 += 1,
+            }
+            self.viewports
+                .c_mut_viewport()
+                .check_left_bound(&mut self.cursor);
+        }
+    }
+
+    fn move_prev_char(&mut self) {
+        match self.cursor.0 > 0 {
+            true => self.cursor.0 = self.cursor.0.saturating_sub(1),
+            false => self.viewports.c_mut_viewport().scroll_left(),
+        }
+    }
+
+    fn move_next_char(&mut self) {
+        if self.viewports.c_viewport().is_under_line_len(&self.cursor) {
+            let line_len = self.get_specific_line_len_by_mode();
+            let max_vwidth = self.viewports.c_viewport().max_vwidth().saturating_sub(1);
+
+            match line_len > max_vwidth && self.cursor.0 >= max_vwidth && self.cursor.0 < line_len {
+                true => self.viewports.c_mut_viewport().scroll_right(),
+                false => self.cursor.0 += 1,
             }
         }
     }
