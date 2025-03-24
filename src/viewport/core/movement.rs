@@ -1,26 +1,66 @@
-use crate::viewport::Viewport;
+use crate::{editor::TERMINAL_LINE_LEN_MINUS, viewport::Viewport};
 
 impl Viewport {
     pub fn scroll_up(&mut self) {
-        if self.top > 0 {
-            self.top -= 1;
-        }
+        self.top = self.top.saturating_sub(1);
     }
 
     pub fn scroll_down(&mut self) {
         self.top += 1;
+    }
+    pub fn scroll_left(&mut self) {
+        self.left = self.left.saturating_sub(1);
+    }
+    pub fn scroll_right(&mut self) {
+        self.left += 1;
     }
 
     pub fn page_up(&mut self) {
         if self.top > self.vheight {
             self.top -= self.vheight;
         } else {
-            self.move_top();
+            self.top = 0
         };
     }
 
-    pub fn move_top(&mut self) {
+    pub fn move_start_of_line(&mut self) {
+        self.left = 0;
+    }
+
+    pub fn move_end_of_line(&mut self, cursor: &mut (u16, u16)) {
+        let line_len = self.get_line_len(cursor);
+        let max_vwidth = self.max_vwidth().saturating_sub(1);
+        match line_len > max_vwidth {
+            true => {
+                self.calculate_left_and_cursor_position(cursor);
+            }
+            false => {
+                cursor.0 = self
+                    .get_line_len(cursor)
+                    .wrapping_sub(TERMINAL_LINE_LEN_MINUS)
+            }
+        }
+    }
+
+    pub fn calculate_left_and_cursor_position(&mut self, cursor: &mut (u16, u16)) {
+        let max_vwidth = self.max_vwidth().saturating_sub(1);
+        let without_line_len_minus = self
+            .get_line_len(cursor)
+            .saturating_sub(TERMINAL_LINE_LEN_MINUS);
+
+        cursor.0 = max_vwidth;
+        self.left = without_line_len_minus.saturating_sub(max_vwidth);
+    }
+
+    pub fn check_left_bound(&mut self, cursor: &mut (u16, u16)) {
+        if self.left > 0 && self.max_vwidth() > self.get_line_len(cursor) {
+            self.calculate_left_and_cursor_position(cursor);
+        }
+    }
+    pub fn move_top(&mut self, cursor: &mut (u16, u16)) {
         self.top = 0;
+        cursor.1 = 0;
+        self.check_left_bound(cursor);
     }
 
     pub fn move_end(&mut self, cursor: &mut (u16, u16)) {
@@ -32,10 +72,15 @@ impl Viewport {
         } else {
             cursor.1 = buffer_len - 1;
         }
+        self.check_left_bound(cursor);
     }
 
     pub fn max_vheight(&self) -> u16 {
         self.vheight.saturating_sub(self.min_vheight)
+    }
+
+    pub fn max_vwidth(&self) -> u16 {
+        self.vwidth.saturating_sub(self.min_vwidth)
     }
 
     pub fn page_down(&mut self, cursor: &(u16, u16)) {
@@ -86,5 +131,7 @@ impl Viewport {
                 }
             }
         }
+
+        self.check_left_bound(cursor);
     }
 }

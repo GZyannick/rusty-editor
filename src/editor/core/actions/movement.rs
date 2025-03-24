@@ -11,19 +11,13 @@ impl Action {
                 editor.move_prev_line();
             }
             Action::MoveRight => {
-                // we clear the buffer because to overwrite it if needed;
-                // if we are at the end of the line_len - 1 move to next line
-                if editor.get_specific_line_len_by_mode() > editor.cursor.0 {
-                    editor.clear_buffer_x_cursor();
-                    editor.cursor.0 += 1;
-                }
+                editor.clear_buffer_x_cursor();
+                editor.move_next_char();
             }
             // we clear the buffer because to overwrite it if needed;
             Action::MoveLeft => {
-                if editor.cursor.0 > 0 {
-                    editor.clear_buffer_x_cursor();
-                    editor.cursor.0 -= 1;
-                }
+                editor.clear_buffer_x_cursor();
+                editor.move_prev_char()
             }
 
             Action::MoveDown => editor.move_next_line(),
@@ -32,23 +26,25 @@ impl Action {
 
             Action::StartOfLine => {
                 editor.clear_buffer_x_cursor();
+                editor.viewports.c_mut_viewport().move_start_of_line();
                 editor.cursor.0 = 0;
             }
 
             Action::EndOfLine => {
                 editor.clear_buffer_x_cursor();
-                editor.cursor.0 = editor
+                editor
                     .viewports
-                    .c_viewport()
-                    .get_line_len(&editor.v_cursor())
-                    .wrapping_sub(TERMINAL_LINE_LEN_MINUS)
+                    .c_mut_viewport()
+                    .move_end_of_line(&mut editor.cursor);
             }
 
             Action::PageDown => editor.viewports.c_mut_viewport().page_down(&editor.cursor),
 
             Action::StartOfFile => {
-                editor.viewports.c_mut_viewport().move_top();
-                editor.cursor.1 = 0;
+                editor
+                    .viewports
+                    .c_mut_viewport()
+                    .move_top(&mut editor.cursor);
             }
 
             Action::EndOfFile => {
@@ -57,6 +53,7 @@ impl Action {
                     .c_mut_viewport()
                     .move_end(&mut editor.cursor);
             }
+
             Action::CenterLine => {
                 editor
                     .viewports
@@ -74,7 +71,6 @@ impl Action {
                     let line = line[v_cursor.0 as usize..].to_string();
                     if line.len() > 1 {
                         CharType::goto_diff_type(line, Some(base_len), &mut editor.cursor.0);
-                        // CharType.goto_diff_type(&line, Some(base_len), &mut editor.cursor.0);
                     } else if current_viewport.buffer.lines.len() - 1 > v_cursor.1 as usize {
                         editor.cursor.0 = 0;
                         editor.move_next_line();
